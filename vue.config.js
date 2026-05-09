@@ -134,7 +134,7 @@ const vueConfig = {
     port: 8000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         ws: true,
         changeOrigin: true,
         timeout: 600000, // 10 minutes for long-running requests like backtest
