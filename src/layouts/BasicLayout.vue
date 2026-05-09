@@ -716,7 +716,7 @@ export default {
                 max-width 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86),
                 opacity 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86);
     max-width: 256px;
-    display: block; /* 默认显示 */
+    display: none !important; /* 默认显示 */
     opacity: 1;
 
     &.collapsed {
