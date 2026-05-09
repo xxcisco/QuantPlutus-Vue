@@ -717,7 +717,7 @@ export default {
           short: 'BN',
           brandBg: 'rgba(243, 186, 47, 0.16)',
           brandColor: '#f0b90b',
-          signupUrl: 'https://www.bsmkweb.cc/register?ref=QUANTDINGER'
+          signupUrl: 'https://www.bsmkweb.cc/register?ref=35189078'
         },
         {
           id: 'bitget',
@@ -725,7 +725,7 @@ export default {
           short: 'BG',
           brandBg: 'rgba(0, 193, 255, 0.14)',
           brandColor: '#00c1ff',
-          signupUrl: 'https://partner.hdmune.cn/bg/7r4xz8kd'
+          signupUrl: 'https://www.bitget.com/zh-CN/referral/register?clacCode=WTG4UW05&from=%2Fzh-CN%2Fevents%2Freferral-all-program&source=events&utmSource=PremierInviter'
         },
         {
           id: 'bybit',
@@ -733,7 +733,7 @@ export default {
           short: 'BY',
           brandBg: 'rgba(247, 166, 0, 0.14)',
           brandColor: '#f7a600',
-          signupUrl: 'https://partner.bybit.com/b/DINGER'
+          signupUrl: 'https://www.bybit.com/invite?ref=JP9MN4P'
         },
         {
           id: 'okx',
@@ -741,7 +741,7 @@ export default {
           short: 'OK',
           brandBg: 'rgba(17, 24, 39, 0.08)',
           brandColor: '#111827',
-          signupUrl: 'https://www.xqmnobxky.com/join/QUANTDINGER'
+          signupUrl: 'https://www.asdfghjklqw.com/join/1861249'
         },
         {
           id: 'gate',
@@ -749,7 +749,7 @@ export default {
           short: 'GT',
           brandBg: 'rgba(42, 93, 255, 0.12)',
           brandColor: '#2a5dff',
-          signupUrl: 'https://www.gateport.company/share/DINGER'
+          signupUrl: 'https://www.gate.com/zh/rewards_hub?ch=RewardsHub&ref=VlgXUl0K&ref_type=145'
         },
         {
           id: 'htx',
@@ -757,7 +757,7 @@ export default {
           short: 'HX',
           brandBg: 'rgba(22, 119, 255, 0.12)',
           brandColor: '#1677ff',
-          signupUrl: 'https://www.htx.com/invite/zh-cn/1f?invite_code=dinger'
+          signupUrl: 'https://www.htx.com/invite/zh-cn/1f?invite_code=928je223'
         }
       ]
     }

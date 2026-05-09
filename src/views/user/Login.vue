@@ -1186,14 +1186,14 @@ export default {
               this.$router.push({ path: '/' }).then(() => {
                 this.$notification.success({
                   message: 'Welcome',
-                  description: `${timeFix()}, welcome to QuantDinger!`
+                  description: `${timeFix()}, welcome to NEXTFlutus!`
                 })
               }).catch(err => {
                 console.error('Router push error:', err)
                 // 即使跳转失败，也显示成功消息
                 this.$notification.success({
                   message: 'Welcome',
-                  description: `${timeFix()}, welcome to QuantDinger!`
+                  description: `${timeFix()}, welcome to NEXTFlutus!`
                 })
               })
             } else {

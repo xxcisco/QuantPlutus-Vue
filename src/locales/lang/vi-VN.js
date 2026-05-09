@@ -490,7 +490,7 @@ const locale = {
 
 'user.captcha.required': 'Vui lòng nhập mã xác minh hình ảnh!',
 
-'user.login.infos': 'QuantDinger là công cụ phân tích cổ phiếu đa tác nhân AI và không có chứng chỉ tư vấn đầu tư chứng khoán. Tất cả kết quả phân tích, xếp hạng và ý kiến ​​tham khảo trên nền tảng đều được AI tự động tạo ra dựa trên dữ liệu lịch sử và chỉ dành cho mục đích học tập, nghiên cứu và trao đổi kỹ thuật. Chúng không cấu thành bất kỳ lời khuyên đầu tư hoặc cơ sở ra quyết định nào. Đầu tư cổ phiếu tiềm ẩn nhiều rủi ro như rủi ro thị trường, rủi ro thanh khoản và rủi ro chính sách, có thể dẫn đến mất vốn gốc. Người dùng nên đưa ra quyết định độc lập dựa trên khả năng chấp nhận rủi ro của mình, và mọi hành vi đầu tư và hậu quả phát sinh từ việc sử dụng công cụ này đều do người dùng chịu trách nhiệm. Thị trường đầy rủi ro, và đầu tư cần thận trọng.',
+'user.login.infos': 'NEXTFlutus là công cụ phân tích cổ phiếu đa tác nhân AI và không có chứng chỉ tư vấn đầu tư chứng khoán. Tất cả kết quả phân tích, xếp hạng và ý kiến ​​tham khảo trên nền tảng đều được AI tự động tạo ra dựa trên dữ liệu lịch sử và chỉ dành cho mục đích học tập, nghiên cứu và trao đổi kỹ thuật. Chúng không cấu thành bất kỳ lời khuyên đầu tư hoặc cơ sở ra quyết định nào. Đầu tư cổ phiếu tiềm ẩn nhiều rủi ro như rủi ro thị trường, rủi ro thanh khoản và rủi ro chính sách, có thể dẫn đến mất vốn gốc. Người dùng nên đưa ra quyết định độc lập dựa trên khả năng chấp nhận rủi ro của mình, và mọi hành vi đầu tư và hậu quả phát sinh từ việc sử dụng công cụ này đều do người dùng chịu trách nhiệm. Thị trường đầy rủi ro, và đầu tư cần thận trọng.',
 
 'user.login.tab-login-web3': 'Đăng nhập Web3',
 
@@ -538,7 +538,7 @@ const locale = {
 
 'user.login.legal.required': 'Vui lòng đọc và kiểm tra tuyên bố pháp lý trước',
 
-'user.login.legal.content': 'QuantDinger là công cụ phân tích cổ phiếu đa tác nhân AI và không có bằng cấp tư vấn đầu tư chứng khoán. Tất cả kết quả phân tích, xếp hạng và ý kiến ​​tham khảo trên nền tảng đều được AI tự động tạo ra dựa trên dữ liệu lịch sử và chỉ dành cho mục đích học tập, nghiên cứu và trao đổi kỹ thuật, và không cấu thành bất kỳ lời khuyên đầu tư hoặc cơ sở ra quyết định nào. Đầu tư cổ phiếu tiềm ẩn nhiều rủi ro như rủi ro thị trường, rủi ro thanh khoản và rủi ro chính sách, có thể dẫn đến mất vốn gốc. Người dùng nên đưa ra quyết định độc lập dựa trên khả năng chấp nhận rủi ro của mình, và mọi hành vi đầu tư và hậu quả phát sinh từ việc sử dụng công cụ này sẽ do người dùng chịu trách nhiệm. Thị trường đầy rủi ro, và đầu tư cần thận trọng.',
+'user.login.legal.content': 'NEXTFlutus là công cụ phân tích cổ phiếu đa tác nhân AI và không có bằng cấp tư vấn đầu tư chứng khoán. Tất cả kết quả phân tích, xếp hạng và ý kiến ​​tham khảo trên nền tảng đều được AI tự động tạo ra dựa trên dữ liệu lịch sử và chỉ dành cho mục đích học tập, nghiên cứu và trao đổi kỹ thuật, và không cấu thành bất kỳ lời khuyên đầu tư hoặc cơ sở ra quyết định nào. Đầu tư cổ phiếu tiềm ẩn nhiều rủi ro như rủi ro thị trường, rủi ro thanh khoản và rủi ro chính sách, có thể dẫn đến mất vốn gốc. Người dùng nên đưa ra quyết định độc lập dựa trên khả năng chấp nhận rủi ro của mình, và mọi hành vi đầu tư và hậu quả phát sinh từ việc sử dụng công cụ này sẽ do người dùng chịu trách nhiệm. Thị trường đầy rủi ro, và đầu tư cần thận trọng.',
 
 'user.login.privacy.title': 'Điều khoản Quyền riêng tư Người dùng',
 
@@ -3880,7 +3880,7 @@ const locale = {
   'trading-assistant.form.liveTradingNotSupportedHint': 'Thị trường hiện tại không hỗ trợ giao dịch thực',
   'trading-assistant.form.broker': 'Nhà môi giới',
   'trading-assistant.form.localDeploymentRequired': '⚠️ Cần triển khai chạy cục bộ',
-  'trading-assistant.form.localDeploymentHint': 'IBKR và MT5 thuộc loại giao diện giao dịch thực bên ngoài, cần triển khai chạy cục bộ QuantDinger, không hỗ trợ chế độ SaaS đám mây. Vui lòng đảm bảo bạn đã cài đặt và cấu hình phần mềm giao dịch liên quan (TWS/IB Gateway hoặc MT5 terminal) trên máy cục bộ.',
+  'trading-assistant.form.localDeploymentHint': 'IBKR và MT5 thuộc loại giao diện giao dịch thực bên ngoài, cần triển khai chạy cục bộ NEXTFlutus, không hỗ trợ chế độ SaaS đám mây. Vui lòng đảm bảo bạn đã cài đặt và cấu hình phần mềm giao dịch liên quan (TWS/IB Gateway hoặc MT5 terminal) trên máy cục bộ.',
   'trading-assistant.form.ibkrConnectionTitle': 'Cấu hình kết nối Interactive Brokers',
   'trading-assistant.form.ibkrConnectionHint': 'Vui lòng đảm bảo TWS hoặc IB Gateway đã khởi động và bật kết nối API',
   'trading-assistant.validation.brokerRequired': 'Vui lòng chọn nhà môi giới',
@@ -4487,7 +4487,7 @@ const locale = {
   'profile.exchange.addTitle': 'Thêm tài khoản sàn giao dịch',
   'profile.exchange.openAccount': 'Mở tài khoản ngay',
   'profile.exchange.openAccountTitle': 'Chọn sàn giao dịch để đăng ký',
-  'profile.exchange.openAccountPromo': 'Đăng ký độc quyền QuantDinger — nhận hoa hồng lên đến 20%',
+  'profile.exchange.openAccountPromo': 'Đăng ký độc quyền NEXTFlutus — nhận hoa hồng lên đến 20%',
   'profile.exchange.openAccountButton': 'Mở tài khoản',
   'profile.exchange.openAccountHint': 'Chọn liên kết giới thiệu sàn giao dịch được hỗ trợ và chuyển đến trang đăng ký.',
   'profile.exchange.openAccountGo': 'Đăng ký ngay',
@@ -4534,7 +4534,7 @@ const locale = {
   'profile.exchange.typeIBKR': 'Nhà môi giới Mỹ (IBKR)',
   'profile.exchange.typeMT5': 'Ngoại hối (MetaTrader 5)',
   'profile.exchange.localDeploymentRequired': 'Cần triển khai cục bộ',
-  'profile.exchange.localDeploymentHint': 'Nhà môi giới này yêu cầu triển khai cục bộ QuantDinger để sử dụng.',
+  'profile.exchange.localDeploymentHint': 'Nhà môi giới này yêu cầu triển khai cục bộ NEXTFlutus để sử dụng.',
   'profile.exchange.goToManage': 'Đến Trung tâm cá nhân → Quản lý cấu hình sàn giao dịch',
   'profile.exchange.noCredentialHint': 'Vui lòng thêm tài khoản sàn giao dịch trong Trung tâm cá nhân trước',
   'userManage.credits': 'Điểm',
@@ -4846,7 +4846,7 @@ const locale = {
   'fastAnalysis.analysisTime': 'Thời gian phân tích',
   'fastAnalysis.startAnalysis': 'Phân tích',
   'fastAnalysis.history': 'Lịch sử',
-  'fastAnalysis.systemTitle': 'QUANTDINGER AI',
+  'fastAnalysis.systemTitle': 'NEXTFlutus AI',
   'fastAnalysis.systemOnline': 'Hệ thống trực tuyến',
   'fastAnalysis.version': 'Phiên bản nhanh',
   'fastAnalysis.preparing': 'Đang chuẩn bị...',
@@ -5112,7 +5112,7 @@ const locale = {
   'trading-assistant.editor.templateApplied': 'Tham số mẫu đã được áp dụng vào mã',
   'trading-assistant.editor.aiHint': 'Chọn mẫu trước, sau đó dùng "Điều chỉnh tham số mẫu" để sửa số tiền, khoảng cách, v.v. bằng ngôn ngữ tự nhiên; dùng "Tạo mã đầy đủ" khi cần thay đổi logic lớn.',
   'trading-assistant.editor.docsIntroTitle': 'Tài liệu API tích hợp',
-  'trading-assistant.editor.docsIntroDesc': 'Đây là các API và móc vòng đời thường dùng cho chiến lược script QuantDinger, giúp bạn vừa viết vừa tra cứu.',
+  'trading-assistant.editor.docsIntroDesc': 'Đây là các API và móc vòng đời thường dùng cho chiến lược script NEXTFlutus, giúp bạn vừa viết vừa tra cứu.',
   'trading-assistant.editor.aiPromptRequired': 'Vui lòng nhập mô tả chiến lược muốn AI tạo hoặc sửa trước',
   'trading-assistant.editor.aiGenerateSuccess': 'AI đã tạo mã chiến lược',
   'trading-assistant.editor.aiGenerateFailed': 'AI tạo thất bại',
@@ -5308,7 +5308,7 @@ const locale = {
   'quickTrade.sl': 'Giá cắt lỗ',
   'quickTrade.tpPlaceholder': 'Nhập giá chốt lời',
   'quickTrade.slPlaceholder': 'Nhập giá cắt lỗ',
-  'quickTrade.tpslRecordOnlyHint': 'Lưu ý: Giá chốt lời/cắt lỗ chỉ được lưu trong hồ sơ giao dịch QuantDinger. Chúng không được gửi đến sàn dưới dạng lệnh điều kiện hoặc kích hoạt đóng. Nếu cần, hãy đặt chốt lời/cắt lỗ trực tiếp trên sàn.',
+  'quickTrade.tpslRecordOnlyHint': 'Lưu ý: Giá chốt lời/cắt lỗ chỉ được lưu trong hồ sơ giao dịch NEXTFlutus. Chúng không được gửi đến sàn dưới dạng lệnh điều kiện hoặc kích hoạt đóng. Nếu cần, hãy đặt chốt lời/cắt lỗ trực tiếp trên sàn.',
   'quickTrade.optional': 'Tùy chọn',
   'quickTrade.buyLong': 'Mua / Mua',
   'quickTrade.sellShort': 'Bán / Bán',
@@ -5933,7 +5933,7 @@ const locale = {
 
   // ==== Mã thông báo Agent (trang quản trị /agent-tokens) ====
   'agentTokens.title': 'Mã thông báo Agent',
-  'agentTokens.description': 'Cấp và quản lý mã thông báo cho phép các Agent AI bên ngoài (Cursor, Claude Code, Codex, MCP, bot tùy chỉnh) gọi instance QuantDinger này qua /api/agent/v1.',
+  'agentTokens.description': 'Cấp và quản lý mã thông báo cho phép các Agent AI bên ngoài (Cursor, Claude Code, Codex, MCP, bot tùy chỉnh) gọi instance NEXTFlutus này qua /api/agent/v1.',
   'agentTokens.tabTokens': 'Mã thông báo',
   'agentTokens.tabAudit': 'Nhật ký kiểm toán',
   'agentTokens.issueToken': 'Cấp mã thông báo',

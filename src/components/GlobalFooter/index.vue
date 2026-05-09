@@ -2,7 +2,7 @@
   <div :class="footerCls">
     <global-footer class="footer custom-render">
       <template #links>
-        <a @click="showLegal = true" style="cursor: pointer;">{{ $t('user.login.legal.title') }} © 2025-2026 QuantDinger</a>
+        <a @click="showLegal = true" style="cursor: pointer;">{{ $t('user.login.legal.title') }} © 2025-2026 NEXTFlutus</a>
       </template>
     </global-footer>
 

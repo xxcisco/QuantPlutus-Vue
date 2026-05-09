@@ -44,7 +44,7 @@ export default {
   },
   data () {
     return {
-      apiBase: 'https://api.quantdinger.com/'
+      apiBase: 'https://api.nextflutus.com/'
     }
   },
   methods: {

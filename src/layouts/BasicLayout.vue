@@ -13,8 +13,8 @@
 
       <template #menuHeaderRender>
         <div class="sidebar-logo-wrapper" :class="{ 'sidebar-logo-wrapper--collapsed': collapsed }">
-          <img v-if="collapsed" :src="slogoImg" class="sidebar-logo sidebar-logo--collapsed" alt="QuantDinger" />
-          <img v-else :src="currentLogo" class="sidebar-logo" alt="QuantDinger" />
+          <img v-if="collapsed" :src="slogoImg" class="sidebar-logo sidebar-logo--collapsed" alt="NEXTFlutus" />
+          <img v-else :src="currentLogo" class="sidebar-logo" alt="NEXTFlutus" />
         </div>
       </template>
       <!-- 1.0.0+ 版本 pro-layout 提供 API,
@@ -223,7 +223,7 @@ export default {
           user_agreement: '',
           privacy_policy: ''
         },
-        copyright: '© 2025-2026 QuantDinger. All rights reserved.'
+        copyright: '© 2025-2026 NEXTFlutus. All rights reserved.'
       },
       // 是否是首次初始化主题色（用于决定是否显示"正在切换主题"提示）
       isInitialThemeColorLoad: true

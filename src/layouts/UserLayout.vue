@@ -14,7 +14,7 @@
           <div class="header">
             <a href="/">
               <img src="~@/assets/logo.png" class="logo" alt="logo">
-              <!-- <span class="title">QuantDinger</span> -->
+              <!-- <span class="title">NEXTFlutus</span> -->
             </a>
           </div>
           <!-- <div class="desc">
@@ -28,7 +28,7 @@
 
         <div class="footer">
           <div class="copyright">
-            Copyright &copy; 2025-2026 Quantdinger.com
+            Copyright &copy; 2025-2026 NEXTFlutus.com
             <div style="width: 70%; text-align: center; margin-left: 15%; margin-top: 10px;">
               <a @click="toggleRisk" style="color: #1890ff; cursor: pointer;">
                 {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
