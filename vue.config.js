@@ -126,6 +126,10 @@ const vueConfig = {
   },
 
   devServer: {
+    // Disable Vue CLI's progress-webpack-plugin (incompatible options for Webpack 5 ProgressPlugin).
+    client: {
+      progress: false
+    },
     // development server port 8000
     port: 8000,
     proxy: {

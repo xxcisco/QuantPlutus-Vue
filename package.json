@@ -2,7 +2,11 @@
   "name": "vue-antd-pro",
   "version": "3.0.3",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
+    "dev": "vue-cli-service serve --no-lint --mode development",
     "serve": "vue-cli-service serve --no-lint",
     "build": "vue-cli-service build --no-lint",
     "test:unit": "vue-cli-service test:unit",
@@ -19,6 +23,7 @@
     "ant-design-vue": "^1.7.8",
     "axios": "^0.26.1",
     "babel-loader": "8",
+    "ci-info": "^4.4.0",
     "codemirror": "^5.65.16",
     "core-js": "^3.21.1",
     "crypto-js": "^4.2.0",

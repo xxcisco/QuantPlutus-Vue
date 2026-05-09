@@ -91,8 +91,8 @@
 
 | 要求 | 版本 |
 |------|------|
-| Node.js | 建议 16+ |
-| npm | 8+ |
+| Node.js | 建议 22+ |
+| npm | 建议 10+ |
 | Backend | 可访问的 QuantDinger 后端，默认 `http://localhost:5000` |
 
 ### 安装与启动

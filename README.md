@@ -91,8 +91,8 @@ For `v3.0.1`, this frontend README is aligned with the current product scope and
 
 | Requirement | Version |
 |-------------|---------|
-| Node.js | 16+ recommended |
-| npm | 8+ |
+| Node.js | 22+ recommended |
+| npm | 10+ |
 | Backend | QuantDinger backend available at `http://localhost:5000` |
 
 ### Install and Run
