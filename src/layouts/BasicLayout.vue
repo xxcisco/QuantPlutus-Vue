@@ -618,10 +618,9 @@ export default {
 .sidebar-logo-wrapper {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 0 16px;
   box-sizing: border-box;
 
   .sidebar-logo {
@@ -644,9 +643,10 @@ export default {
   }
 }
 
-/deep/ .ant-pro-sider-menu-logo {
+.ant-pro-sider-menu-logo {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding-left: 0 !important;
   padding-right: 0;
 
@@ -673,6 +673,7 @@ export default {
 .ant-pro-sider-menu-sider.ant-layout-sider-collapsed /deep/ .ant-pro-sider-menu-logo {
   padding: 0 !important;
   justify-content: center;
+  padding-left: 0 !important;
 
   img {
     max-width: 80% !important;
@@ -682,9 +683,14 @@ export default {
   }
 }
 
-.ant-pro-sider-menu-sider.light .ant-menu-light {
-  height: 60vh!important;
+// .ant-pro-sider-menu-sider.light .ant-menu-light {
+//   height: 60vh!important;
+// }
+
+.ant-pro-basicLayout-content {
+  margin: 0 !important;
 }
+
 /* 完全隐藏所有 footer */
 .basic-layout-wrapper {
   .ant-layout-footer {
@@ -915,7 +921,7 @@ export default {
 /* 侧栏菜单滚动 & 为自定义 footer 预留空间 */
 .basic-layout-wrapper {
   .ant-layout-sider-children {
-    padding-bottom: calc(var(--menu-footer-height, 220px) + 12px);
+    // padding-bottom: calc(var(--menu-footer-height, 220px) + 12px);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -965,7 +971,7 @@ export default {
     .ant-menu {
       flex: 1 1 auto;
       min-height: 0;
-      max-height: calc(100vh - var(--menu-footer-height, 220px) - 24px);
+      // max-height: calc(100vh - var(--menu-footer-height, 220px) - 24px);
       overflow-y: auto !important;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
