@@ -160,8 +160,8 @@ request.interceptors.request.use(config => {
       // 尝试设置 cookie（可能因为跨域而失败，但不影响 withCredentials 的工作）
       try {
         // 尝试设置带 domain 的 cookie（仅当在相同域名下时有效）
-        if (window.location.hostname.includes('nextflutus.com')) {
-          document.cookie = `PHPSESSID=${phpsessid}; path=/; domain=.nextflutus.com; SameSite=None; Secure`
+        if (window.location.hostname.includes('nextplutus.com')) {
+          document.cookie = `PHPSESSID=${phpsessid}; path=/; domain=.nextplutus.com; SameSite=None; Secure`
         } else {
           // 跨域情况下，只能依赖 withCredentials: true 和服务器设置
           // 这里尝试设置，但可能不会成功

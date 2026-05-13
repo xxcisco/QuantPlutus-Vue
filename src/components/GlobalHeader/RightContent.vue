@@ -44,7 +44,7 @@ export default {
   },
   data () {
     return {
-      apiBase: 'https://api.nextflutus.com/'
+      apiBase: 'https://api.nextplutus.com/'
     }
   },
   methods: {

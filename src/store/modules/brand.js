@@ -7,9 +7,9 @@ import { getBrandConfig } from '@/api/brand'
  * yet (or fails entirely).
  */
 const DEFAULT_BRAND = {
-  app_name: 'QuantDinger',
-  app_version: '3.0.3',
-  copyright: '© 2025-2026 QuantDinger. All rights reserved.',
+  app_name: 'NEXTPlutus',
+  app_version: '1.0.0',
+  copyright: '© 2025-2026 NEXTPlutus. All rights reserved.',
   logos: {
     light: '',
     dark: '',
@@ -17,7 +17,7 @@ const DEFAULT_BRAND = {
     favicon: ''
   },
   contact: {
-    email: 'brokermr810@gmail.com',
+    email: 'ciscoyyds@gmail.com',
     support_url: 'https://t.me/quantdinger',
     feature_request_url: 'https://github.com/brokermr810/QuantDinger/issues',
     live_chat_url: 'https://t.me/quantdinger'
@@ -41,7 +41,7 @@ const DEFAULT_BRAND = {
   }
 }
 
-const STORAGE_KEY = 'quantdinger.brand-config.v1'
+const STORAGE_KEY = 'nextplutus.brand-config.v1'
 
 function readCachedBrand () {
   try {
