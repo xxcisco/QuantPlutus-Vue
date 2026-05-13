@@ -1,6 +1,11 @@
 <template>
 
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
+    <div class="scene">
+      <div class="grid-plane">
+        <div class="grid-lines"></div>
+      </div>
+    </div>
     <div class="container">
       <div class="fx-layer" aria-hidden="true">
         <div class="fx-gradient"></div>
@@ -33,7 +38,8 @@
               <a @click="toggleRisk" style="color: #1890ff; cursor: pointer;">
                 {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
               </a>
-              <div v-if="showRisk" style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.65); line-height: 1.6; text-align: left;">
+              <div v-if="showRisk"
+                style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.65); line-height: 1.6; text-align: left;">
                 <div style="font-weight: 600; margin-bottom: 6px;">{{ $t('user.login.privacy.title') }}</div>
                 {{ $t('user.login.privacy.content') }}
               </div>
@@ -55,26 +61,91 @@ export default {
     SelectLang
   },
   mixins: [deviceMixin],
-  data () {
+  data() {
     return {
       showRisk: false
     }
   },
   methods: {
-    toggleRisk () {
+    toggleRisk() {
       this.showRisk = !this.showRisk
     }
   },
-  mounted () {
+  mounted() {
     document.body.classList.add('userLayout')
   },
-  beforeDestroy () {
+  beforeDestroy() {
     document.body.classList.remove('userLayout')
   }
 }
 </script>
 
 <style lang="less" scoped>
+.scene {
+  position: absolute;
+  inset: 0;
+  perspective: 1560px;
+  perspective-origin: 50% -50%;
+}
+
+.grid-plane {
+  --coin-tile: url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23d7a93d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M0 48h16M80 48h16M48 0v16M48 80v16' opacity='.42'/%3E%3Ccircle cx='48' cy='48' r='31'/%3E%3Ccircle cx='48' cy='48' r='25' opacity='.46'/%3E%3Crect x='37' y='37' width='22' height='22'/%3E%3Cpath d='M48 22v7M48 67v7M22 48h7M67 48h7' opacity='.75'/%3E%3C/g%3E%3Cg fill='%23ffe18a' opacity='.32'%3E%3Ccircle cx='35' cy='27' r='1.4'/%3E%3Ccircle cx='61' cy='69' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  height: 158%;
+  transform: rotateX(67deg);
+  transform-origin: center bottom;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 112, 0.58));
+}
+
+.grid-lines {
+  position: absolute;
+  inset: 0;
+  background-image: var(--coin-tile);
+  background-size: 68px 68px;
+  animation: grid-travel 2s linear infinite;
+  box-shadow:
+    inset 0 0 76px rgba(255, 226, 135, 0.16),
+    0 0 28px rgba(255, 211, 98, 0.22);
+  opacity: 0.3;
+}
+
+.grid-lines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--coin-tile);
+  background-size: 68px 68px;
+  background-position: 1px 1px;
+  mix-blend-mode: screen;
+  animation: glow-breathe 6s ease-in-out infinite;
+  opacity: 0.1;
+}
+
+@keyframes grid-travel {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 0 68px;
+  }
+}
+
+@keyframes glow-breathe {
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
 #userLayout.user-layout-wrapper {
   height: 100%;
 
@@ -90,7 +161,7 @@ export default {
   .container {
     width: 100%;
     min-height: 100%;
-    background: #f0f2f5 url(~@/assets/background.svg) no-repeat 50%;
+    // background: #f0f2f5 url(~@/assets/background.svg) no-repeat 50%;
     background-size: 100%;
     //padding: 50px 0 84px;
     position: relative;
@@ -106,8 +177,8 @@ export default {
         position: absolute;
         inset: -20% -20% -20% -20%;
         background: radial-gradient(1200px 600px at 10% 10%, rgba(78, 161, 255, 0.18), transparent 60%),
-                    radial-gradient(900px 500px at 90% 20%, rgba(127, 92, 255, 0.18), transparent 60%),
-                    radial-gradient(800px 500px at 30% 90%, rgba(0, 210, 170, 0.14), transparent 60%);
+          radial-gradient(900px 500px at 90% 20%, rgba(127, 92, 255, 0.18), transparent 60%),
+          radial-gradient(800px 500px at 30% 90%, rgba(0, 210, 170, 0.14), transparent 60%);
         filter: blur(20px);
         animation: fxFloat 18s ease-in-out infinite alternate;
         transform: translateZ(0);
@@ -116,8 +187,8 @@ export default {
       .fx-grid {
         position: absolute;
         inset: 0;
-        background-image: linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
-                          linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
         background-size: 44px 44px, 44px 44px;
         background-position: 0 0, 0 0;
         mix-blend-mode: overlay;
@@ -186,6 +257,7 @@ export default {
             top: 2px;
           }
         }
+
         .desc {
           font-size: 14px;
           color: rgba(0, 0, 0, 0.45);
@@ -217,14 +289,17 @@ export default {
         .links {
           margin-bottom: 8px;
           font-size: 14px;
+
           a {
             color: rgba(0, 0, 0, 0.45);
             transition: all 0.3s;
+
             &:not(:last-child) {
               margin-right: 40px;
             }
           }
         }
+
         .copyright {
           color: rgba(0, 0, 0, 0.45);
           font-size: 14px;
@@ -245,20 +320,39 @@ export default {
     max-width: 70vw;
     margin-top: 8px;
   }
+
   #userLayout.user-layout-wrapper .container .user-layout-content .main {
     width: 92vw;
   }
 }
 
 @keyframes fxFloat {
-  0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
-  50%  { transform: translate3d(1%, 2%, 0) scale(1.02); }
-  100% { transform: translate3d(3%, -2%, 0) scale(1.04); }
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(1%, 2%, 0) scale(1.02);
+  }
+
+  100% {
+    transform: translate3d(3%, -2%, 0) scale(1.04);
+  }
 }
 
 @keyframes gridDrift {
-  0%   { background-position: 0 0, 0 0; transform: rotate(0deg); }
-  50%  { background-position: 22px 22px, 22px 22px; }
-  100% { background-position: 44px 44px, 44px 44px; transform: rotate(0.01turn); }
+  0% {
+    background-position: 0 0, 0 0;
+    transform: rotate(0deg);
+  }
+
+  50% {
+    background-position: 22px 22px, 22px 22px;
+  }
+
+  100% {
+    background-position: 44px 44px, 44px 44px;
+    transform: rotate(0.01turn);
+  }
 }
 </style>

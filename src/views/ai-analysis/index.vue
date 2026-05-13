@@ -1,5 +1,6 @@
 <template>
-  <div class="ai-analysis-container" :class="{ 'theme-dark': isDarkTheme, embedded: embedded }" :style="{ '--primary-color': primaryColor }">
+  <div class="ai-analysis-container" :class="{ 'theme-dark': isDarkTheme, embedded: embedded }"
+    :style="{ '--primary-color': primaryColor }">
     <!-- 全宽主内容区域 -->
     <div class="main-content-full">
       <!-- 顶部指数条 -->
@@ -43,7 +44,7 @@
           </template>
           <template v-else-if="marketData.indices.length > 0">
             <div class="marquee-track">
-              <div class="index-item" v-for="idx in marketData.indices" :key="'a-'+idx.symbol">
+              <div class="index-item" v-for="idx in marketData.indices" :key="'a-' + idx.symbol">
                 <span class="idx-flag">{{ idx.flag }}</span>
                 <span class="idx-symbol">{{ idx.symbol }}</span>
                 <span class="idx-price">{{ formatPrice(idx.price) }}</span>
@@ -52,7 +53,7 @@
                   {{ Math.abs(idx.change).toFixed(2) }}%
                 </span>
               </div>
-              <div class="index-item" v-for="idx in marketData.indices" :key="'b-'+idx.symbol">
+              <div class="index-item" v-for="idx in marketData.indices" :key="'b-' + idx.symbol">
                 <span class="idx-flag">{{ idx.flag }}</span>
                 <span class="idx-symbol">{{ idx.symbol }}</span>
                 <span class="idx-price">{{ formatPrice(idx.price) }}</span>
@@ -88,13 +89,14 @@
             </div>
             <div class="heatmap-grid">
               <template v-if="loadingHeatmap">
-                <div v-for="i in 12" :key="'skel-'+i" class="heat-cell skeleton-cell">
+                <div v-for="i in 12" :key="'skel-' + i" class="heat-cell skeleton-cell">
                   <span class="skeleton-text short"></span>
                   <span class="skeleton-text"></span>
                 </div>
               </template>
               <template v-else-if="currentHeatmap.length > 0">
-                <div v-for="(item, i) in currentHeatmap.slice(0, 12)" :key="i" class="heat-cell" :style="getHeatmapStyle(item.value)">
+                <div v-for="(item, i) in currentHeatmap.slice(0, 12)" :key="i" class="heat-cell"
+                  :style="getHeatmapStyle(item.value)">
                   <span class="heat-name">{{ getHeatmapName(item) }}</span>
                   <span class="heat-price" v-if="item.price">{{ formatHeatmapPrice(item.price) }}</span>
                   <span class="heat-val">{{ item.value >= 0 ? '+' : '' }}{{ formatNum(item.value) }}%</span>
@@ -113,14 +115,15 @@
             </div>
             <div class="calendar-list">
               <template v-if="loadingCalendar">
-                <div v-for="i in 5" :key="'cal-skel-'+i" class="cal-item skeleton-item">
+                <div v-for="i in 5" :key="'cal-skel-' + i" class="cal-item skeleton-item">
                   <span class="skeleton-text short"></span>
                   <span class="skeleton-text short"></span>
                   <span class="skeleton-text"></span>
                 </div>
               </template>
               <template v-else-if="marketData.calendar.length > 0">
-                <div v-for="evt in marketData.calendar.slice(0, 10)" :key="evt.id" class="cal-item" :class="evt.importance">
+                <div v-for="evt in marketData.calendar.slice(0, 10)" :key="evt.id" class="cal-item"
+                  :class="evt.importance">
                   <span class="cal-date">{{ formatCalendarDate(evt.date) }}</span>
                   <span class="cal-time">{{ evt.time || '--:--' }}</span>
                   <span class="cal-flag">{{ getCountryFlag(evt.country) }}</span>
@@ -144,25 +147,13 @@
         <div class="right-panel">
           <!-- 分析工具栏 -->
           <div class="analysis-toolbar">
-            <a-select
-              v-model="selectedSymbol"
-              :placeholder="$t('dashboard.analysis.empty.selectSymbol')"
-              size="large"
-              show-search
-              allow-clear
-              option-label-prop="label"
-              :filter-option="filterSymbolOption"
-              @change="handleSymbolChange"
-              class="symbol-selector"
-            >
-              <a-select-option
-                v-for="stock in (watchlist || [])"
-                :key="`${stock.market}-${stock.symbol}`"
-                :value="`${stock.market}:${stock.symbol}`"
-                :label="watchlistSelectLabel(stock)"
-              >
+            <a-select v-model="selectedSymbol" :placeholder="$t('dashboard.analysis.empty.selectSymbol')" size="large"
+              show-search allow-clear option-label-prop="label" :filter-option="filterSymbolOption"
+              @change="handleSymbolChange" class="symbol-selector">
+              <a-select-option v-for="stock in (watchlist || [])" :key="`${stock.market}-${stock.symbol}`"
+                :value="`${stock.market}:${stock.symbol}`" :label="watchlistSelectLabel(stock)">
                 <span class="symbol-option wl-select-option-row">
-                  <a-tag :color="getMarketColor(stock.market)" size="small">{{ getMarketName(stock.market) }}</a-tag>
+                  <a-tag class="wl-select-tag" :color="getMarketColor(stock.market)" size="small">{{ getMarketName(stock.market) }}</a-tag>
                   <strong class="wl-select-symbol">{{ stock.symbol }}</strong>
                   <span v-if="stock.name" class="symbol-name wl-select-name">{{ stock.name }}</span>
                 </span>
@@ -173,17 +164,12 @@
                 </div>
               </a-select-option>
             </a-select>
-            <a-button
-type="primary"
-size="large"
-icon="thunderbolt"
-@click="startFastAnalysis"
-:loading="analyzing"
-:disabled="!selectedSymbol || analyzing"
-class="analyze-button">
+            <a-button type="primary" size="large" icon="thunderbolt" @click="startFastAnalysis" :loading="analyzing"
+              :disabled="!selectedSymbol || analyzing" class="analyze-button">
               {{ $t('fastAnalysis.startAnalysis') }}
             </a-button>
-            <a-button size="large" icon="history" @click="showHistoryModal = true; loadHistoryList()" class="history-button">
+            <a-button size="large" icon="history" @click="showHistoryModal = true; loadHistoryList()"
+              class="history-button">
               {{ $t('fastAnalysis.history') }}
             </a-button>
           </div>
@@ -236,26 +222,21 @@ class="analyze-button">
                 </div>
               </div>
             </div>
-            <FastAnalysisReport
-              v-if="analysisResult || analyzing || analysisError"
-              :result="analysisResult"
-              :loading="analyzing"
-              :error="analysisError"
-              :error-tone="analysisErrorTone"
-              @retry="startFastAnalysis"
-              @generate-strategy="handleGenerateStrategy"
-              @go-backtest="handleGoBacktest"
-            />
+            <FastAnalysisReport v-if="analysisResult || analyzing || analysisError" :result="analysisResult"
+              :loading="analyzing" :error="analysisError" :error-tone="analysisErrorTone" @retry="startFastAnalysis"
+              @generate-strategy="handleGenerateStrategy" @go-backtest="handleGoBacktest" />
           </div>
         </div>
 
         <!-- 右侧自选股面板 -->
         <div class="watchlist-panel">
           <div class="panel-header">
-            <span class="panel-title"><a-icon type="star" theme="filled" /> {{ $t('dashboard.analysis.watchlist.title') }}</span>
+            <span class="panel-title"><a-icon type="star" theme="filled" /> {{ $t('dashboard.analysis.watchlist.title')
+              }}</span>
             <span class="panel-header-actions">
               <a-tooltip :title="$t('aiAssetAnalysis.tasks.manage')">
-                <a-badge :count="monitors.length" :offset="[-2, 2]" :number-style="{ fontSize: '9px', minWidth: '14px', height: '14px', lineHeight: '14px', padding: '0 3px' }">
+                <a-badge :count="monitors.length" :offset="[-2, 2]"
+                  :number-style="{ fontSize: '9px', minWidth: '14px', height: '14px', lineHeight: '14px', padding: '0 3px' }">
                   <a-icon type="unordered-list" class="panel-header-icon" @click="showTaskDrawer = true" />
                 </a-badge>
               </a-tooltip>
@@ -281,37 +262,34 @@ class="analyze-button">
               <span class="sc-label">{{ $t('aiAssetAnalysis.watchlist.taskCount') }}</span>
             </div>
             <div class="summary-chip pnl" v-if="watchlistTotalPnl !== 0">
-              <span class="sc-num" :class="watchlistTotalPnl >= 0 ? 'up' : 'down'">{{ watchlistTotalPnl >= 0 ? '+' : '' }}{{ formatNum(watchlistTotalPnl) }}</span>
+              <span class="sc-num" :class="watchlistTotalPnl >= 0 ? 'up' : 'down'">{{ watchlistTotalPnl >= 0 ? '+' : ''
+                }}{{
+                  formatNum(watchlistTotalPnl) }}</span>
               <span class="sc-label">P&amp;L</span>
             </div>
           </div>
 
           <!-- 批量勾选栏 -->
           <div class="batch-bar" v-if="batchMode">
-            <a-checkbox :checked="batchSelectedAll" :indeterminate="batchIndeterminate" @change="onBatchSelectAll" class="batch-all-cb">
+            <a-checkbox :checked="batchSelectedAll" :indeterminate="batchIndeterminate" @change="onBatchSelectAll"
+              class="batch-all-cb">
               {{ $t('aiAssetAnalysis.batch.selectAll') }}
             </a-checkbox>
-            <a-button type="primary" size="small" :disabled="batchSelectedKeys.length === 0" @click="openBatchScheduleModal">
-              {{ $t('aiAssetAnalysis.batch.schedule') }}<template v-if="batchSelectedKeys.length > 0"> {{ batchSelectedKeys.length }}</template>
+            <a-button type="primary" size="small" :disabled="batchSelectedKeys.length === 0"
+              @click="openBatchScheduleModal">
+              {{ $t('aiAssetAnalysis.batch.schedule') }}<template v-if="batchSelectedKeys.length > 0"> {{
+                batchSelectedKeys.length }}</template>
             </a-button>
             <a-button size="small" @click="toggleBatchMode">{{ $t('common.cancel') }}</a-button>
           </div>
 
           <div class="watchlist-list">
-            <div
-              v-for="stock in (watchlist || [])"
-              :key="`wl-${stock.market}-${stock.symbol}`"
-              class="wl-card"
+            <div v-for="stock in (watchlist || [])" :key="`wl-${stock.market}-${stock.symbol}`" class="wl-card"
               :class="{ active: selectedSymbol === `${stock.market}:${stock.symbol}` }"
-              @click="selectWatchlistItem(stock)"
-            >
-              <a-checkbox
-                v-if="batchMode"
-                class="wl-card-cb"
+              @click="selectWatchlistItem(stock)">
+              <a-checkbox v-if="batchMode" class="wl-card-cb"
                 :checked="batchSelectedKeys.includes(`${stock.market}:${stock.symbol}`)"
-                @change="onBatchItemToggle(stock, $event)"
-                @click.native.stop
-              />
+                @change="onBatchItemToggle(stock, $event)" @click.native.stop />
               <div class="wl-card-body" :class="{ 'with-cb': batchMode }">
                 <!-- 主信息行：代码 + 价格/涨跌 -->
                 <div class="wl-row-main">
@@ -324,46 +302,57 @@ class="analyze-button">
                   </div>
                   <div class="wl-sparkline-wrap" v-if="watchlistPrices[`${stock.market}:${stock.symbol}`]">
                     <svg class="wl-sparkline" viewBox="0 0 60 20" preserveAspectRatio="none">
-                      <polyline
-                        :points="getSparklinePoints(stock)"
-                        fill="none"
+                      <polyline :points="getSparklinePoints(stock)" fill="none"
                         :stroke="(watchlistPrices[`${stock.market}:${stock.symbol}`]?.change || 0) >= 0 ? '#10b981' : '#ef4444'"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
+                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                   </div>
                   <span v-else class="wl-spacer"></span>
                   <div class="wl-info-right" v-if="watchlistPrices[`${stock.market}:${stock.symbol}`]">
-                    <span class="wl-price">{{ formatPrice(watchlistPrices[`${stock.market}:${stock.symbol}`].price) }}</span>
-                    <span class="wl-change" :class="(watchlistPrices[`${stock.market}:${stock.symbol}`]?.change || 0) >= 0 ? 'up' : 'down'">
-                      {{ (watchlistPrices[`${stock.market}:${stock.symbol}`]?.change || 0) >= 0 ? '+' : '' }}{{ formatNum(watchlistPrices[`${stock.market}:${stock.symbol}`]?.change) }}%
+                    <span class="wl-price">{{ formatPrice(watchlistPrices[`${stock.market}:${stock.symbol}`].price)
+                      }}</span>
+                    <span class="wl-change"
+                      :class="(watchlistPrices[`${stock.market}:${stock.symbol}`]?.change || 0) >= 0 ? 'up' : 'down'">
+                      {{ (watchlistPrices[`${stock.market}:${stock.symbol}`]?.change || 0) >= 0 ? '+' : '' }}{{
+                        formatNum(watchlistPrices[`${stock.market}:${stock.symbol}`]?.change) }}%
                     </span>
                   </div>
                 </div>
                 <!-- 持仓/盈亏行（仅有持仓时） -->
                 <div class="wl-row-pnl" v-if="positionSummaryMap[`${stock.market}:${stock.symbol}`]">
-                  <span class="wl-pnl-qty">{{ formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].quantity, 4) }} @ {{ formatPrice(positionSummaryMap[`${stock.market}:${stock.symbol}`].avgEntry || 0) }}</span>
-                  <span class="wl-pnl-val" :class="positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl >= 0 ? 'up' : 'down'">
-                    {{ positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl >= 0 ? '+' : '' }}{{ formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl || 0) }}
-                    ({{ positionSummaryMap[`${stock.market}:${stock.symbol}`].pnlPercent >= 0 ? '+' : '' }}{{ formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].pnlPercent || 0) }}%)
+                  <span class="wl-pnl-qty">{{ formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].quantity,
+                    4) }}
+                    @ {{ formatPrice(positionSummaryMap[`${stock.market}:${stock.symbol}`].avgEntry || 0) }}</span>
+                  <span class="wl-pnl-val"
+                    :class="positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl >= 0 ? 'up' : 'down'">
+                    {{ positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl >= 0 ? '+' : '' }}{{
+                      formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].pnl || 0) }}
+                    ({{ positionSummaryMap[`${stock.market}:${stock.symbol}`].pnlPercent >= 0 ? '+' : '' }}{{
+                      formatNum(positionSummaryMap[`${stock.market}:${stock.symbol}`].pnlPercent || 0) }}%)
                   </span>
                 </div>
                 <!-- 任务状态（仅有任务时） -->
                 <div class="wl-row-task" v-if="getMonitorMeta(stock)">
-                  <span class="wl-task-badge" :class="getMonitorMeta(stock).activeCount > 0 ? 'active' : 'paused'" @click.stop="toggleStockMonitor(stock)">
-                    <a-icon :type="getMonitorMeta(stock).activeCount > 0 ? 'sync' : 'pause-circle'" :spin="getMonitorMeta(stock).activeCount > 0" />
-                    {{ getMonitorMeta(stock).activeCount > 0 ? ($t('aiAssetAnalysis.monitor.running')) : ($t('aiAssetAnalysis.monitor.paused')) }}
+                  <span class="wl-task-badge" :class="getMonitorMeta(stock).activeCount > 0 ? 'active' : 'paused'"
+                    @click.stop="toggleStockMonitor(stock)">
+                    <a-icon :type="getMonitorMeta(stock).activeCount > 0 ? 'sync' : 'pause-circle'"
+                      :spin="getMonitorMeta(stock).activeCount > 0" />
+                    {{ getMonitorMeta(stock).activeCount > 0 ? ($t('aiAssetAnalysis.monitor.running')) :
+                      ($t('aiAssetAnalysis.monitor.paused')) }}
                   </span>
-                  <span class="wl-task-next" v-if="getMonitorMeta(stock).nextRunAtText">{{ getMonitorMeta(stock).nextRunAtText }}</span>
+                  <span class="wl-task-next" v-if="getMonitorMeta(stock).nextRunAtText">{{
+                    getMonitorMeta(stock).nextRunAtText
+                    }}</span>
                 </div>
               </div>
               <!-- hover 浮出操作 -->
               <div class="wl-card-hover-actions">
-                <a-tooltip :title="$t('aiAssetAnalysis.position.quickAdd')"><span class="wl-hover-btn" @click.stop="openPositionModal(stock)"><a-icon type="wallet" /></span></a-tooltip>
-                <a-tooltip :title="$t('aiAssetAnalysis.monitor.quickTask')"><span class="wl-hover-btn" @click.stop="openMonitorModal(stock)"><a-icon type="clock-circle" /></span></a-tooltip>
-                <span class="wl-hover-btn danger" @click.stop="removeFromWatchlist(stock)"><a-icon type="delete" /></span>
+                <a-tooltip :title="$t('aiAssetAnalysis.position.quickAdd')"><span class="wl-hover-btn"
+                    @click.stop="openPositionModal(stock)"><a-icon type="wallet" /></span></a-tooltip>
+                <a-tooltip :title="$t('aiAssetAnalysis.monitor.quickTask')"><span class="wl-hover-btn"
+                    @click.stop="openMonitorModal(stock)"><a-icon type="clock-circle" /></span></a-tooltip>
+                <span class="wl-hover-btn danger" @click.stop="removeFromWatchlist(stock)"><a-icon
+                    type="delete" /></span>
               </div>
             </div>
             <div v-if="!watchlist || watchlist.length === 0" class="watchlist-empty">
@@ -379,39 +368,24 @@ class="analyze-button">
     </div>
 
     <!-- 添加股票弹窗 -->
-    <a-modal
-      :title="$t('dashboard.analysis.modal.addStock.title')"
-      :visible="showAddStockModal"
-      @ok="handleAddStock"
-      @cancel="handleCloseAddStockModal"
-      :confirmLoading="addingStock"
-      width="600px"
-      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''"
-      :okText="$t('dashboard.analysis.modal.addStock.confirm')"
-      :cancelText="$t('dashboard.analysis.modal.addStock.cancel')"
-    >
+    <a-modal :title="$t('dashboard.analysis.modal.addStock.title')" :visible="showAddStockModal" @ok="handleAddStock"
+      @cancel="handleCloseAddStockModal" :confirmLoading="addingStock" width="600px"
+      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''" :okText="$t('dashboard.analysis.modal.addStock.confirm')"
+      :cancelText="$t('dashboard.analysis.modal.addStock.cancel')">
       <div class="add-stock-modal-content">
         <!-- Tab标签 -->
         <a-tabs v-model="selectedMarketTab" @change="handleMarketTabChange" class="market-tabs">
-          <a-tab-pane
-            v-for="marketType in marketTypes"
-            :key="marketType.value"
-            :tab="$t(marketType.i18nKey || `dashboard.analysis.market.${marketType.value}`)"
-          >
+          <a-tab-pane v-for="marketType in marketTypes" :key="marketType.value"
+            :tab="$t(marketType.i18nKey || `dashboard.analysis.market.${marketType.value}`)">
           </a-tab-pane>
         </a-tabs>
 
         <!-- 搜索/输入框 -->
         <div class="symbol-search-section">
-          <a-input-search
-            v-model="symbolSearchKeyword"
+          <a-input-search v-model="symbolSearchKeyword"
             :placeholder="$t('dashboard.analysis.modal.addStock.searchOrInputPlaceholder')"
-            @search="handleSearchOrInput"
-            @change="handleSymbolSearchInput"
-            :loading="searchingSymbols"
-            size="large"
-            allow-clear
-          >
+            @search="handleSearchOrInput" @change="handleSymbolSearchInput" :loading="searchingSymbols" size="large"
+            allow-clear>
             <a-button slot="enterButton" type="primary" icon="search">
               {{ $t('dashboard.analysis.modal.addStock.search') }}
             </a-button>
@@ -424,12 +398,7 @@ class="analyze-button">
             <a-icon type="search" style="margin-right: 4px;" />
             {{ $t('dashboard.analysis.modal.addStock.searchResults') }}
           </div>
-          <a-list
-            :data-source="symbolSearchResults"
-            :loading="searchingSymbols"
-            size="small"
-            class="symbol-list"
-          >
+          <a-list :data-source="symbolSearchResults" :loading="searchingSymbols" size="small" class="symbol-list">
             <a-list-item slot="renderItem" slot-scope="item" class="symbol-list-item" @click="selectSymbol(item)">
               <a-list-item-meta>
                 <template slot="title">
@@ -453,12 +422,7 @@ class="analyze-button">
             {{ $t('dashboard.analysis.modal.addStock.hotSymbols') }}
           </div>
           <a-spin :spinning="loadingHotSymbols">
-            <a-list
-              v-if="hotSymbols.length > 0"
-              :data-source="hotSymbols"
-              size="small"
-              class="symbol-list"
-            >
+            <a-list v-if="hotSymbols.length > 0" :data-source="hotSymbols" size="small" class="symbol-list">
               <a-list-item slot="renderItem" slot-scope="item" class="symbol-list-item" @click="selectSymbol(item)">
                 <a-list-item-meta>
                   <template slot="title">
@@ -479,20 +443,16 @@ class="analyze-button">
 
         <!-- 选中的标的显示 -->
         <div v-if="selectedSymbolForAdd" class="selected-symbol-section">
-          <a-alert
-            :message="$t('dashboard.analysis.modal.addStock.selectedSymbol')"
-            type="info"
-            show-icon
-            closable
-            @close="selectedSymbolForAdd = null"
-          >
+          <a-alert :message="$t('dashboard.analysis.modal.addStock.selectedSymbol')" type="info" show-icon closable
+            @close="selectedSymbolForAdd = null">
             <template slot="description">
               <div class="selected-symbol-info">
                 <a-tag :color="getMarketColor(selectedSymbolForAdd.market)" style="margin-right: 8px;">
                   {{ $t(`dashboard.analysis.market.${selectedSymbolForAdd.market}`) }}
                 </a-tag>
                 <strong>{{ selectedSymbolForAdd.symbol }}</strong>
-                <span v-if="selectedSymbolForAdd.name" style="color: #999; margin-left: 8px;">{{ selectedSymbolForAdd.name }}</span>
+                <span v-if="selectedSymbolForAdd.name" style="color: #999; margin-left: 8px;">{{
+                  selectedSymbolForAdd.name }}</span>
               </div>
             </template>
           </a-alert>
@@ -500,13 +460,9 @@ class="analyze-button">
       </div>
     </a-modal>
 
-    <a-modal
-      :visible="showPositionModal"
+    <a-modal :visible="showPositionModal"
       :title="`${($i18n && $i18n.locale === 'zh-CN') ? '创建持仓（虚拟仓）' : 'Create Position (Virtual)'} - ${targetStockForOps ? targetStockForOps.symbol : ''}`"
-      @ok="savePosition"
-      @cancel="showPositionModal = false"
-      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''"
-    >
+      @ok="savePosition" @cancel="showPositionModal = false" :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''">
       <a-form layout="vertical">
         <a-form-item :label="$t('portfolio.positions.side') || 'Direction'">
           <a-select v-model="positionForm.side">
@@ -523,13 +479,9 @@ class="analyze-button">
       </a-form>
     </a-modal>
 
-    <a-modal
-      :visible="showMonitorModal"
+    <a-modal :visible="showMonitorModal"
       :title="`${$t('aiAssetAnalysis.monitor.quickTask')} - ${targetStockForOps ? targetStockForOps.symbol : ''}`"
-      @ok="saveMonitorTask"
-      @cancel="showMonitorModal = false"
-      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''"
-    >
+      @ok="saveMonitorTask" @cancel="showMonitorModal = false" :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''">
       <a-form layout="vertical">
         <a-form-item :label="$t('aiAssetAnalysis.batch.intervalLabel')">
           <a-select v-model="monitorForm.interval_min" style="width: 100%;">
@@ -553,19 +505,15 @@ class="analyze-button">
     </a-modal>
 
     <!-- 批量定时任务弹窗 -->
-    <a-modal
-      :visible="showBatchScheduleModal"
-      :title="$t('aiAssetAnalysis.batch.scheduleTitle')"
-      @ok="saveBatchSchedule"
-      @cancel="showBatchScheduleModal = false"
-      :confirmLoading="batchRunning"
-      width="520px"
-      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''"
-    >
+    <a-modal :visible="showBatchScheduleModal" :title="$t('aiAssetAnalysis.batch.scheduleTitle')"
+      @ok="saveBatchSchedule" @cancel="showBatchScheduleModal = false" :confirmLoading="batchRunning" width="520px"
+      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''">
       <div class="batch-modal-summary">
         <p>{{ $t('aiAssetAnalysis.batch.scheduleDesc', { count: batchSelectedKeys.length }) }}</p>
         <div class="batch-symbols-preview">
-          <a-tag v-for="key in batchSelectedKeys" :key="key" color="blue" style="margin-bottom: 4px;">{{ key.split(':')[1] }}</a-tag>
+          <a-tag v-for="key in batchSelectedKeys" :key="key" color="blue" style="margin-bottom: 4px;">{{
+            key.split(':')[1]
+            }}</a-tag>
         </div>
       </div>
       <a-form layout="vertical">
@@ -591,14 +539,8 @@ class="analyze-button">
     </a-modal>
 
     <!-- 任务管理抽屉 -->
-    <a-drawer
-      :title="$t('aiAssetAnalysis.tasks.manage')"
-      :visible="showTaskDrawer"
-      @close="showTaskDrawer = false"
-      width="420"
-      placement="right"
-      :wrapClassName="isDarkTheme ? 'qd-dark-drawer' : ''"
-    >
+    <a-drawer :title="$t('aiAssetAnalysis.tasks.manage')" :visible="showTaskDrawer" @close="showTaskDrawer = false"
+      width="420" placement="right" :wrapClassName="isDarkTheme ? 'qd-dark-drawer' : ''">
       <div v-if="monitors.length === 0" class="task-drawer-empty">
         <a-icon type="inbox" style="font-size: 40px; color: #ccc;" />
         <p>{{ $t('aiAssetAnalysis.tasks.empty') }}</p>
@@ -620,11 +562,14 @@ class="analyze-button">
             </span>
           </div>
           <div class="task-item-actions">
-            <a-button size="small" :type="m.is_active ? 'default' : 'primary'" icon="poweroff" @click="handleToggleTask(m)">
+            <a-button size="small" :type="m.is_active ? 'default' : 'primary'" icon="poweroff"
+              @click="handleToggleTask(m)">
               {{ m.is_active ? $t('aiAssetAnalysis.tasks.pause') : $t('aiAssetAnalysis.tasks.resume') }}
             </a-button>
-            <a-button size="small" icon="edit" @click="handleEditTask(m)">{{ $t('aiAssetAnalysis.tasks.edit') }}</a-button>
-            <a-popconfirm :title="$t('aiAssetAnalysis.tasks.deleteConfirm')" @confirm="handleDeleteTask(m)" :okText="$t('common.confirm')" :cancelText="$t('common.cancel')">
+            <a-button size="small" icon="edit" @click="handleEditTask(m)">{{ $t('aiAssetAnalysis.tasks.edit')
+              }}</a-button>
+            <a-popconfirm :title="$t('aiAssetAnalysis.tasks.deleteConfirm')" @confirm="handleDeleteTask(m)"
+              :okText="$t('common.confirm')" :cancelText="$t('common.cancel')">
               <a-button size="small" type="danger" icon="delete">{{ $t('aiAssetAnalysis.tasks.delete') }}</a-button>
             </a-popconfirm>
           </div>
@@ -633,14 +578,9 @@ class="analyze-button">
     </a-drawer>
 
     <!-- 编辑任务弹窗 -->
-    <a-modal
-      :visible="showEditTaskModal"
-      :title="$t('aiAssetAnalysis.tasks.edit')"
-      @ok="saveEditTask"
-      @cancel="showEditTaskModal = false"
-      :confirmLoading="editTaskLoading"
-      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''"
-    >
+    <a-modal :visible="showEditTaskModal" :title="$t('aiAssetAnalysis.tasks.edit')" @ok="saveEditTask"
+      @cancel="showEditTaskModal = false" :confirmLoading="editTaskLoading"
+      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''">
       <a-form layout="vertical" v-if="editTaskForm">
         <a-form-item :label="$t('aiAssetAnalysis.tasks.name')">
           <a-input v-model="editTaskForm.name" />
@@ -666,28 +606,19 @@ class="analyze-button">
     </a-modal>
 
     <!-- 历史分析列表弹窗 -->
-    <a-modal
-      :title="$t('dashboard.analysis.modal.history.title')"
-      :visible="showHistoryModal"
-      @cancel="showHistoryModal = false"
-      :footer="null"
-      width="800px"
-      :bodyStyle="{ maxHeight: '60vh', overflowY: 'auto' }"
-      :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''"
-    >
+    <a-modal :title="$t('dashboard.analysis.modal.history.title')" :visible="showHistoryModal"
+      @cancel="showHistoryModal = false" :footer="null" width="800px"
+      :bodyStyle="{ maxHeight: '60vh', overflowY: 'auto' }" :wrapClassName="isDarkTheme ? 'qd-dark-modal' : ''">
       <a-spin :spinning="historyLoading">
-        <a-list
-          :data-source="historyList"
-          :pagination="{
-            current: historyPage,
-            pageSize: historyPageSize,
-            total: historyTotal,
-            onChange: (page) => { historyPage = page; loadHistoryList() },
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50'],
-            onShowSizeChange: (current, size) => { historyPageSize = size; historyPage = 1; loadHistoryList() }
-          }"
-        >
+        <a-list :data-source="historyList" :pagination="{
+          current: historyPage,
+          pageSize: historyPageSize,
+          total: historyTotal,
+          onChange: (page) => { historyPage = page; loadHistoryList() },
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
+          onShowSizeChange: (current, size) => { historyPageSize = size; historyPage = 1; loadHistoryList() }
+        }">
           <a-list-item slot="renderItem" slot-scope="item">
             <a-list-item-meta>
               <template slot="title">
@@ -697,10 +628,8 @@ class="analyze-button">
                       {{ getMarketName(item.market) }}
                     </a-tag>
                     <strong>{{ item.symbol }}</strong>
-                    <a-tag
-                      :color="item.decision === 'BUY' ? 'green' : (item.decision === 'SELL' ? 'red' : 'blue')"
-                      style="margin-left: 12px;"
-                    >
+                    <a-tag :color="item.decision === 'BUY' ? 'green' : (item.decision === 'SELL' ? 'red' : 'blue')"
+                      style="margin-left: 12px;">
                       {{ item.decision }}
                     </a-tag>
                     <a-tag :color="getStatusColor(item.status || 'completed')" style="margin-left: 8px;">
@@ -711,27 +640,14 @@ class="analyze-button">
                     </span>
                   </div>
                   <div>
-                    <a-button
-                      type="link"
-                      size="small"
-                      icon="eye"
-                      :disabled="(item.status || '').toLowerCase() === 'processing'"
-                      @click="viewHistoryResult(item)"
-                    >
+                    <a-button type="link" size="small" icon="eye"
+                      :disabled="(item.status || '').toLowerCase() === 'processing'" @click="viewHistoryResult(item)">
                       {{ $t('dashboard.analysis.modal.history.viewResult') }}
                     </a-button>
-                    <a-popconfirm
-                      :title="$t('dashboard.analysis.modal.history.deleteConfirm')"
-                      :ok-text="$t('common.confirm')"
-                      :cancel-text="$t('common.cancel')"
-                      @confirm="deleteHistoryItem(item)"
-                    >
-                      <a-button
-                        type="link"
-                        size="small"
-                        icon="delete"
-                        style="color: #ff4d4f;"
-                      >
+                    <a-popconfirm :title="$t('dashboard.analysis.modal.history.deleteConfirm')"
+                      :ok-text="$t('common.confirm')" :cancel-text="$t('common.cancel')"
+                      @confirm="deleteHistoryItem(item)">
+                      <a-button type="link" size="small" icon="delete" style="color: #ff4d4f;">
                         {{ $t('dashboard.analysis.modal.history.delete') }}
                       </a-button>
                     </a-popconfirm>
@@ -741,7 +657,8 @@ class="analyze-button">
               <template slot="description">
                 <div style="color: #666; font-size: 12px;">
                   <span v-if="item.price">${{ formatNumber(item.price) }}</span>
-                  <span v-if="item.summary" style="margin-left: 8px;">{{ item.summary.substring(0, 80) }}{{ item.summary.length > 80 ? '...' : '' }}</span>
+                  <span v-if="item.summary" style="margin-left: 8px;">{{ item.summary.substring(0, 80) }}{{
+                    item.summary.length > 80 ? '...' : '' }}</span>
                 </div>
                 <div v-if="item.created_at" style="color: #999; font-size: 12px; margin-top: 4px;">
                   {{ formatIsoTime(item.created_at) }}
@@ -750,7 +667,8 @@ class="analyze-button">
             </a-list-item-meta>
           </a-list-item>
         </a-list>
-        <a-empty v-if="!historyLoading && historyList.length === 0" :description="$t('dashboard.analysis.empty.noHistory')" />
+        <a-empty v-if="!historyLoading && historyList.length === 0"
+          :description="$t('dashboard.analysis.empty.noHistory')" />
       </a-spin>
     </a-modal>
   </div>
@@ -784,7 +702,7 @@ export default {
   components: {
     FastAnalysisReport
   },
-  data () {
+  data() {
     return {
       loadingMarket: false,
       heatmapType: 'crypto',
@@ -875,48 +793,48 @@ export default {
       navTheme: state => state.app.theme,
       primaryColor: state => state.app.color || '#1890ff'
     }),
-    isDarkTheme () {
+    isDarkTheme() {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
-    isZhLocale () {
+    isZhLocale() {
       return this.$i18n.locale === 'zh-CN'
     },
-    currentHeatmap () {
+    currentHeatmap() {
       return this.marketData.heatmap[this.heatmapType] || []
     },
-    storeUserInfo () {
+    storeUserInfo() {
       return this.userInfo || {}
     },
-    mergedUserInfo () {
+    mergedUserInfo() {
       return this.localUserInfo && this.localUserInfo.email ? this.localUserInfo : this.storeUserInfo
     },
-    watchlistTotalPnl () {
+    watchlistTotalPnl() {
       return Object.values(this.positionSummaryMap).reduce((s, v) => s + (Number(v.pnl) || 0), 0)
     },
-    watchlistPositionCount () {
+    watchlistPositionCount() {
       return Object.values(this.positionSummaryMap).filter(v => v.quantity > 0).length
     },
-    watchlistTaskCount () {
+    watchlistTaskCount() {
       return Object.values(this.positionSummaryMap).reduce((s, v) => s + (v.monitorCount || 0), 0)
     },
-    batchSelectedAll () {
+    batchSelectedAll() {
       return this.watchlist && this.watchlist.length > 0 && this.batchSelectedKeys.length === this.watchlist.length
     },
-    batchIndeterminate () {
+    batchIndeterminate() {
       return this.batchSelectedKeys.length > 0 && this.batchSelectedKeys.length < (this.watchlist || []).length
     }
   },
-  created () {
+  created() {
     this.loadUserInfo()
     this.loadMarketTypes()
     this.loadWatchlist()
     this.loadPositionData()
     this.loadMarketData()
   },
-  mounted () {
+  mounted() {
     this.startWatchlistPriceRefresh()
   },
-  beforeDestroy () {
+  beforeDestroy() {
     if (this.watchlistPriceTimer) {
       clearInterval(this.watchlistPriceTimer)
     }
@@ -926,7 +844,7 @@ export default {
     }
   },
   methods: {
-    stopTaskPolling () {
+    stopTaskPolling() {
       if (this.taskPollingTimer) {
         clearInterval(this.taskPollingTimer)
         this.taskPollingTimer = null
@@ -934,7 +852,7 @@ export default {
       this.currentTaskId = null
       this.taskPollingStartedAt = 0
     },
-    async pollTaskResult () {
+    async pollTaskResult() {
       if (!this.currentTaskId) return
       try {
         const res = await getAllAnalysisHistory({ page: 1, pagesize: 50 })
@@ -972,7 +890,7 @@ export default {
         // 轮询异常不打断流程，等待下一轮
       }
     },
-    async startTaskPolling (taskId) {
+    async startTaskPolling(taskId) {
       this.stopTaskPolling()
       this.currentTaskId = Number(taskId)
       this.taskPollingStartedAt = Date.now()
@@ -981,14 +899,14 @@ export default {
         this.pollTaskResult()
       }, 2500)
     },
-    watchlistSelectLabel (stock) {
+    watchlistSelectLabel(stock) {
       if (!stock) return ''
       const sym = (stock.symbol || '').trim()
       const nm = (stock.name || '').trim()
       if (nm && nm !== sym) return `${sym} · ${nm}`
       return sym
     },
-    filterSymbolOption (input, option) {
+    filterSymbolOption(input, option) {
       const props = option.componentOptions?.propsData || {}
       const value = props.value || ''
       if (value === '__add_stock_option__') return true
@@ -996,7 +914,7 @@ export default {
       const label = (props.label || '').toString().toLowerCase()
       return value.toLowerCase().includes(q) || (label && label.includes(q))
     },
-    handleSymbolChange (value) {
+    handleSymbolChange(value) {
       if (value === '__add_stock_option__') {
         this.showAddStockModal = true
         this.$nextTick(() => {
@@ -1012,20 +930,20 @@ export default {
       // Notify parent about symbol change (for Quick Trade integration)
       this.$emit('symbol-change', value)
     },
-    selectWatchlistItem (stock) {
+    selectWatchlistItem(stock) {
       this.selectedSymbol = `${stock.market}:${stock.symbol}`
       this.analysisResult = null
       this.analysisError = null
       this.analysisErrorTone = 'error'
       this.$emit('symbol-change', this.selectedSymbol)
     },
-    hasMonitorForStock (stock) {
+    hasMonitorForStock(stock) {
       if (!stock) return false
       const key = `${stock.market}:${stock.symbol}`
       const summary = this.positionSummaryMap[key]
       return !!(summary && summary.monitorCount > 0)
     },
-    getMonitorMeta (stock) {
+    getMonitorMeta(stock) {
       if (!stock) return null
       const key = `${stock.market}:${stock.symbol}`
       const summary = this.positionSummaryMap[key]
@@ -1035,7 +953,7 @@ export default {
         nextRunAtText: summary.nextRunAtText || ''
       }
     },
-    getPnlBarStyle (summary) {
+    getPnlBarStyle(summary) {
       const pct = Math.abs(Number(summary?.pnlPercent || 0))
       const width = Math.min(100, Math.max(4, pct))
       return { width: `${width}%` }
@@ -1043,7 +961,7 @@ export default {
     /**
      * 与 profile 中设置的 IANA 时区一致；未设置或非法时回退为浏览器本地时区。
      */
-    _displayDateTimeLocaleOptions () {
+    _displayDateTimeLocaleOptions() {
       const tz = String((this.storeUserInfo && this.storeUserInfo.timezone) || '').trim()
       const base = {
         year: 'numeric',
@@ -1064,7 +982,7 @@ export default {
     /**
      * 将后端时刻（建议 RFC3339 / 带 Z 的 UTC）解析为 Date；展示时再按 _displayDateTimeLocaleOptions 转本地。
      */
-    _parseInstantForDisplay (s) {
+    _parseInstantForDisplay(s) {
       s = String(s || '').trim()
       if (!s) return null
       // 无时区后缀时按 UTC 解析（与当前后端 _serialize_monitor_ts 约定一致），再交给 toLocale 转到用户本地
@@ -1076,7 +994,7 @@ export default {
       const d = new Date(s)
       return Number.isNaN(d.getTime()) ? null : d
     },
-    _formatNextRunText (iso) {
+    _formatNextRunText(iso) {
       try {
         const d = this._parseInstantForDisplay(iso)
         if (!d) return ''
@@ -1085,7 +1003,7 @@ export default {
         return ''
       }
     },
-    buildPositionSummary () {
+    buildPositionSummary() {
       const map = {}
       const positions = Array.isArray(this.positions) ? this.positions : []
       const monitors = Array.isArray(this.monitors) ? this.monitors : []
@@ -1151,7 +1069,7 @@ export default {
       })
       this.positionSummaryMap = map
     },
-    async toggleStockMonitor (stock) {
+    async toggleStockMonitor(stock) {
       const key = `${stock.market}:${stock.symbol}`
       const ids = (this.positions || [])
         .filter(p => `${p.market}:${p.symbol}` === key)
@@ -1176,7 +1094,7 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Toggle monitor failed')
       }
     },
-    async loadPositionData () {
+    async loadPositionData() {
       try {
         const [posRes, monRes] = await Promise.all([
           getPositions(),
@@ -1191,7 +1109,7 @@ export default {
         this.positionSummaryMap = {}
       }
     },
-    openPositionModal (stock) {
+    openPositionModal(stock) {
       this.targetStockForOps = stock
       const key = `${stock.market}:${stock.symbol}`
       const existingPos = (this.positions || []).find(p => `${p.market}:${p.symbol}` === key)
@@ -1211,7 +1129,7 @@ export default {
       }
       this.showPositionModal = true
     },
-    async savePosition () {
+    async savePosition() {
       const stock = this.targetStockForOps
       if (!stock) return
       const quantity = Number(this.positionForm.quantity || 0)
@@ -1244,7 +1162,7 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Add position failed')
       }
     },
-    openMonitorModal (stock) {
+    openMonitorModal(stock) {
       this.targetStockForOps = stock
       this.monitorForm = {
         interval_min: 240,
@@ -1252,7 +1170,7 @@ export default {
       }
       this.showMonitorModal = true
     },
-    async saveMonitorTask () {
+    async saveMonitorTask() {
       const stock = this.targetStockForOps
       if (!stock) return
       const key = `${stock.market}:${stock.symbol}`
@@ -1282,18 +1200,18 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Create monitor failed')
       }
     },
-    toggleBatchMode () {
+    toggleBatchMode() {
       this.batchMode = !this.batchMode
       if (!this.batchMode) this.batchSelectedKeys = []
     },
-    onBatchSelectAll (e) {
+    onBatchSelectAll(e) {
       if (e.target.checked) {
         this.batchSelectedKeys = (this.watchlist || []).map(s => `${s.market}:${s.symbol}`)
       } else {
         this.batchSelectedKeys = []
       }
     },
-    onBatchItemToggle (stock, e) {
+    onBatchItemToggle(stock, e) {
       const key = `${stock.market}:${stock.symbol}`
       if (e.target.checked) {
         if (!this.batchSelectedKeys.includes(key)) this.batchSelectedKeys.push(key)
@@ -1301,12 +1219,12 @@ export default {
         this.batchSelectedKeys = this.batchSelectedKeys.filter(k => k !== key)
       }
     },
-    openBatchScheduleModal () {
+    openBatchScheduleModal() {
       if (this.batchSelectedKeys.length === 0) return
       this.batchScheduleForm = { interval_min: 240, notify_channels: [] }
       this.showBatchScheduleModal = true
     },
-    async saveBatchSchedule () {
+    async saveBatchSchedule() {
       const keys = [...this.batchSelectedKeys]
       if (keys.length === 0) return
       this.batchRunning = true
@@ -1331,7 +1249,7 @@ export default {
             is_active: true
           })
           created++
-        } catch (_) {}
+        } catch (_) { }
       }
       this.batchRunning = false
       this.showBatchScheduleModal = false
@@ -1340,12 +1258,12 @@ export default {
       await this.loadPositionData()
       this.$message.success(this.$t('aiAssetAnalysis.batch.done') + ` (${created}/${keys.length})`)
     },
-    formatIntervalText (minutes) {
+    formatIntervalText(minutes) {
       if (minutes >= 1440) return `${Math.round(minutes / 1440)}d`
       if (minutes >= 60) return `${Math.round(minutes / 60)}h`
       return `${minutes}m`
     },
-    async handleToggleTask (m) {
+    async handleToggleTask(m) {
       try {
         await updateMonitor(m.id, { is_active: !m.is_active })
         this.$message.success(m.is_active ? this.$t('aiAssetAnalysis.tasks.paused') : this.$t('aiAssetAnalysis.tasks.resumed'))
@@ -1354,7 +1272,7 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Failed')
       }
     },
-    handleEditTask (m) {
+    handleEditTask(m) {
       this.editTaskId = m.id
       this.editTaskForm = {
         name: m.name || '',
@@ -1363,7 +1281,7 @@ export default {
       }
       this.showEditTaskModal = true
     },
-    async saveEditTask () {
+    async saveEditTask() {
       if (!this.editTaskId) return
       this.editTaskLoading = true
       try {
@@ -1381,7 +1299,7 @@ export default {
         this.editTaskLoading = false
       }
     },
-    async handleDeleteTask (m) {
+    async handleDeleteTask(m) {
       try {
         await deleteMonitor(m.id)
         this.$message.success(this.$t('aiAssetAnalysis.tasks.deleted'))
@@ -1390,7 +1308,7 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Failed')
       }
     },
-    async loadMarketData () {
+    async loadMarketData() {
       // 渐进式加载：每个数据块独立加载，先出来的先显示
       this.loadingMarket = true
 
@@ -1406,7 +1324,7 @@ export default {
       // 4. 加载财经日历
       this.loadCalendarData()
     },
-    async loadSentimentData () {
+    async loadSentimentData() {
       this.loadingSentiment = true
       try {
         const res = await getMarketSentiment()
@@ -1422,7 +1340,7 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadIndicesData () {
+    async loadIndicesData() {
       this.loadingIndices = true
       try {
         const res = await getMarketOverview()
@@ -1436,7 +1354,7 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadHeatmapData () {
+    async loadHeatmapData() {
       this.loadingHeatmap = true
       try {
         const res = await getMarketHeatmap()
@@ -1455,7 +1373,7 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadCalendarData () {
+    async loadCalendarData() {
       this.loadingCalendar = true
       try {
         const res = await getEconomicCalendar()
@@ -1469,13 +1387,13 @@ export default {
         this.checkAllLoaded()
       }
     },
-    checkAllLoaded () {
+    checkAllLoaded() {
       // 当所有数据都加载完成时，关闭总loading状态
       if (!this.loadingSentiment && !this.loadingIndices && !this.loadingHeatmap && !this.loadingCalendar) {
         this.loadingMarket = false
       }
     },
-    getFearGreedClass (val) {
+    getFearGreedClass(val) {
       if (!val) return ''
       if (val <= 25) return 'extreme-fear'
       if (val <= 45) return 'fear'
@@ -1483,13 +1401,13 @@ export default {
       if (val <= 75) return 'greed'
       return 'extreme-greed'
     },
-    getVixLevel (val) {
+    getVixLevel(val) {
       if (!val) return ''
       if (val < 15) return 'low'
       if (val < 25) return 'medium'
       return 'high'
     },
-    getSparklinePoints (stock) {
+    getSparklinePoints(stock) {
       const key = `${stock.market}:${stock.symbol}`
       const pd = this.watchlistPrices[key]
       if (!pd || !pd.price) return '0,10 60,10'
@@ -1519,11 +1437,11 @@ export default {
         return `${x.toFixed(1)},${y.toFixed(1)}`
       }).join(' ')
     },
-    formatNum (num, digits = 2) {
+    formatNum(num, digits = 2) {
       if (num === undefined || num === null || isNaN(num)) return '--'
       return Number(num).toFixed(digits)
     },
-    getHeatmapStyle (value) {
+    getHeatmapStyle(value) {
       const v = parseFloat(value) || 0
       const intensity = Math.min(Math.abs(v) / 5, 1)
       const dark = this.isDarkTheme
@@ -1535,11 +1453,11 @@ export default {
         return { background: `rgba(239, 68, 68, ${0.15 + intensity * 0.6})`, color }
       }
     },
-    getCountryFlag (country) {
+    getCountryFlag(country) {
       const flags = { US: '🇺🇸', CN: '🇨🇳', EU: '🇪🇺', JP: '🇯🇵', UK: '🇬🇧', DE: '🇩🇪', AU: '🇦🇺', CA: '🇨🇦' }
       return flags[country] || '🌍'
     },
-    formatCalendarDate (dateStr) {
+    formatCalendarDate(dateStr) {
       if (!dateStr) return ''
       try {
         const date = new Date(dateStr)
@@ -1563,30 +1481,30 @@ export default {
         return dateStr
       }
     },
-    formatPrice (price) {
+    formatPrice(price) {
       if (!price) return '--'
       if (price >= 10000) return (price / 1000).toFixed(1) + 'K'
       if (price >= 1000) return price.toFixed(0)
       return price.toFixed(2)
     },
-    formatHeatmapPrice (price) {
+    formatHeatmapPrice(price) {
       if (!price) return ''
       if (price >= 10000) return '$' + (price / 1000).toFixed(1) + 'K'
       if (price >= 1000) return '$' + price.toFixed(0)
       if (price >= 1) return '$' + price.toFixed(2)
       return '$' + price.toFixed(4)
     },
-    getHeatmapName (item) {
+    getHeatmapName(item) {
       // sectors, commodities, forex 都需要多语言适配
       if (this.heatmapType === 'sectors' || this.heatmapType === 'commodities' || this.heatmapType === 'forex') {
         return this.isZhLocale ? (item.name_cn || item.name) : (item.name_en || item.name)
       }
       return item.name
     },
-    getImpactClass (evt) {
+    getImpactClass(evt) {
       return evt.actual_impact || evt.expected_impact || 'neutral'
     },
-    getMarketColor (market) {
+    getMarketColor(market) {
       const colors = {
         'USStock': 'green',
         'CNStock': 'blue',
@@ -1597,16 +1515,16 @@ export default {
       }
       return colors[market] || 'default'
     },
-    getCurrencySymbol (market) {
+    getCurrencySymbol(market) {
       return '$'
     },
-    formatCreditNum (n) {
+    formatCreditNum(n) {
       if (n === undefined || n === null || n === '') return '--'
       const x = Number(n)
       if (Number.isNaN(x)) return String(n)
       return Number.isInteger(x) ? String(x) : x.toFixed(2)
     },
-    async refreshUserInfoFromServer () {
+    async refreshUserInfoFromServer() {
       try {
         const res = await getUserInfo()
         if (res && res.code === 1 && res.data) {
@@ -1618,7 +1536,7 @@ export default {
         // 静默失败，积分以接口返回为准
       }
     },
-    handleGenerateStrategy (result) {
+    handleGenerateStrategy(result) {
       const market = result.market || (this.selectedSymbol ? this.selectedSymbol.split(':')[0] : '')
       const symbol = result.symbol || (this.selectedSymbol ? this.selectedSymbol.split(':')[1] : '')
       const decision = result.decision || 'HOLD'
@@ -1636,7 +1554,7 @@ export default {
       Object.keys(query).forEach(k => { if (!query[k] && query[k] !== 0) delete query[k] })
       this.$router.push({ path: '/strategy-live', query })
     },
-    handleGoBacktest (result) {
+    handleGoBacktest(result) {
       const market = result.market || (this.selectedSymbol ? this.selectedSymbol.split(':')[0] : '')
       const symbol = result.symbol || (this.selectedSymbol ? this.selectedSymbol.split(':')[1] : '')
       this.$router.push({
@@ -1644,7 +1562,7 @@ export default {
         query: { market, symbol }
       })
     },
-    async startFastAnalysis () {
+    async startFastAnalysis() {
       if (this.analyzing) return
       if (!this.selectedSymbol) {
         this.$message.warning(this.$t('dashboard.analysis.message.selectSymbol'))
@@ -1726,7 +1644,7 @@ export default {
         }
       }
     },
-    async loadHistoryList () {
+    async loadHistoryList() {
       this.historyLoading = true
       try {
         const res = await getAllAnalysisHistory({
@@ -1744,7 +1662,7 @@ export default {
         this.historyLoading = false
       }
     },
-    async viewHistoryResult (item) {
+    async viewHistoryResult(item) {
       if ((item.status || '').toLowerCase() === 'processing') {
         this.$message.info(this.$t('fastAnalysis.analysisStillProcessing') || '该任务仍在处理中，请稍后刷新历史记录')
         return
@@ -1794,7 +1712,7 @@ export default {
       this.selectedSymbol = `${item.market}:${item.symbol}`
       this.showHistoryModal = false
     },
-    async deleteHistoryItem (item) {
+    async deleteHistoryItem(item) {
       try {
         const res = await deleteAnalysisHistory(item.id)
         if (res && res.code === 1) {
@@ -1807,18 +1725,18 @@ export default {
         this.$message.error(this.$t('dashboard.analysis.message.deleteFailed'))
       }
     },
-    formatTime (timestamp) {
+    formatTime(timestamp) {
       if (!timestamp) return '-'
       const date = new Date(timestamp * 1000)
       if (Number.isNaN(date.getTime())) return '-'
       return date.toLocaleString(undefined, this._displayDateTimeLocaleOptions())
     },
-    formatIsoTime (isoString) {
+    formatIsoTime(isoString) {
       const d = this._parseInstantForDisplay(isoString)
       if (!d) return '-'
       return d.toLocaleString(undefined, this._displayDateTimeLocaleOptions())
     },
-    getStatusColor (status) {
+    getStatusColor(status) {
       const colors = {
         'pending': 'orange',
         'processing': 'blue',
@@ -1827,7 +1745,7 @@ export default {
       }
       return colors[status] || 'default'
     },
-    getStatusText (status) {
+    getStatusText(status) {
       const statusMap = {
         'pending': 'dashboard.analysis.status.pending',
         'processing': 'dashboard.analysis.status.processing',
@@ -1837,7 +1755,7 @@ export default {
       const key = statusMap[status]
       return key ? this.$t(key) : status
     },
-    async loadUserInfo () {
+    async loadUserInfo() {
       this.loadingUserInfo = true
       try {
         if (this.storeUserInfo && this.storeUserInfo.email) {
@@ -1860,7 +1778,7 @@ export default {
         this.loadingUserInfo = false
       }
     },
-    async loadWatchlist () {
+    async loadWatchlist() {
       if (!this.userId) return
       this.loadingWatchlist = true
       try {
@@ -1880,7 +1798,7 @@ export default {
         this.loadingWatchlist = false
       }
     },
-    async loadWatchlistPrices () {
+    async loadWatchlistPrices() {
       if (!this.watchlist || this.watchlist.length === 0) return
 
       try {
@@ -1924,7 +1842,7 @@ export default {
         // Silent fail
       }
     },
-    startWatchlistPriceRefresh () {
+    startWatchlistPriceRefresh() {
       this.watchlistPriceTimer = setInterval(() => {
         if (this.watchlist && this.watchlist.length > 0) {
           this.loadWatchlistPrices()
@@ -1935,7 +1853,7 @@ export default {
         this.loadWatchlistPrices()
       }
     },
-    async handleAddStock () {
+    async handleAddStock() {
       let market = ''
       let symbol = ''
       let name = ''
@@ -1979,7 +1897,7 @@ export default {
         this.addingStock = false
       }
     },
-    handleCloseAddStockModal () {
+    handleCloseAddStockModal() {
       this.showAddStockModal = false
       this.selectedSymbolForAdd = null
       this.symbolSearchKeyword = ''
@@ -1987,7 +1905,7 @@ export default {
       this.hasSearched = false
       this.selectedMarketTab = this.marketTypes.length > 0 ? this.marketTypes[0].value : ''
     },
-    handleMarketTabChange (activeKey) {
+    handleMarketTabChange(activeKey) {
       this.selectedMarketTab = activeKey
       this.symbolSearchKeyword = ''
       this.symbolSearchResults = []
@@ -1995,7 +1913,7 @@ export default {
       this.hasSearched = false
       this.loadHotSymbols(activeKey)
     },
-    handleSymbolSearchInput (e) {
+    handleSymbolSearchInput(e) {
       const keyword = e.target.value
       this.symbolSearchKeyword = keyword
 
@@ -2014,7 +1932,7 @@ export default {
         this.searchSymbolsInModal(keyword)
       }, 500)
     },
-    handleSearchOrInput (keyword) {
+    handleSearchOrInput(keyword) {
       if (!keyword || !keyword.trim()) return
 
       if (!this.selectedMarketTab) {
@@ -2030,7 +1948,7 @@ export default {
         this.searchSymbolsInModal(keyword)
       }
     },
-    async searchSymbolsInModal (keyword) {
+    async searchSymbolsInModal(keyword) {
       if (!keyword || keyword.trim() === '') {
         this.symbolSearchResults = []
         this.hasSearched = false
@@ -2071,7 +1989,7 @@ export default {
         this.searchingSymbols = false
       }
     },
-    handleDirectAdd () {
+    handleDirectAdd() {
       if (!this.symbolSearchKeyword || !this.symbolSearchKeyword.trim()) {
         this.$message.warning(this.$t('dashboard.analysis.modal.addStock.pleaseEnterSymbol'))
         return
@@ -2088,14 +2006,14 @@ export default {
         name: ''
       }
     },
-    selectSymbol (symbol) {
+    selectSymbol(symbol) {
       this.selectedSymbolForAdd = {
         market: symbol.market,
         symbol: symbol.symbol,
         name: symbol.name || symbol.symbol
       }
     },
-    async loadHotSymbols (market) {
+    async loadHotSymbols(market) {
       if (!market) {
         market = this.selectedMarketTab || (this.marketTypes.length > 0 ? this.marketTypes[0].value : '')
       }
@@ -2119,7 +2037,7 @@ export default {
         this.loadingHotSymbols = false
       }
     },
-    async removeFromWatchlist (stock) {
+    async removeFromWatchlist(stock) {
       if (!this.userId) return
       // 支持传入 stock 对象或单独的 symbol/market
       const symbol = typeof stock === 'object' ? stock.symbol : stock
@@ -2140,14 +2058,14 @@ export default {
         this.$message.error(this.$t('dashboard.analysis.message.removeStockFailed'))
       }
     },
-    getMarketName (market) {
+    getMarketName(market) {
       return this.$t(`dashboard.analysis.market.${market}`) || market
     },
-    formatNumber (num) {
+    formatNumber(num) {
       if (typeof num === 'string') return num
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     },
-    async loadMarketTypes () {
+    async loadMarketTypes() {
       try {
         const res = await getMarketTypes()
         if (res && res.code === 1 && res.data && Array.isArray(res.data)) {
@@ -2182,7 +2100,7 @@ export default {
     }
   },
   watch: {
-    presetSymbol (newVal) {
+    presetSymbol(newVal) {
       if (newVal && newVal !== this.selectedSymbol) {
         this.selectedSymbol = newVal
         this.analysisResult = null
@@ -2190,7 +2108,7 @@ export default {
         this.analysisErrorTone = 'error'
       }
     },
-    autoAnalyzeSignal (newVal) {
+    autoAnalyzeSignal(newVal) {
       if (!newVal) return
       if (this.presetSymbol && this.presetSymbol !== this.selectedSymbol) {
         this.selectedSymbol = this.presetSymbol
@@ -2199,7 +2117,7 @@ export default {
         this.startFastAnalysis()
       })
     },
-    showAddStockModal (newVal) {
+    showAddStockModal(newVal) {
       if (newVal) {
         if (this.marketTypes.length > 0 && !this.selectedMarketTab) {
           this.selectedMarketTab = this.marketTypes[0].value
@@ -2286,18 +2204,53 @@ export default {
     border: 1px solid #e2e8f0;
     min-width: 50px;
 
-    .ind-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; }
-    .ind-value { font-size: 13px; font-weight: 700; color: #1e293b; }
+    .ind-label {
+      font-size: 9px;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
 
-    &.fear-greed.extreme-fear .ind-value { color: #dc2626; }
-    &.fear-greed.fear .ind-value { color: #ea580c; }
-    &.fear-greed.neutral .ind-value { color: #ca8a04; }
-    &.fear-greed.greed .ind-value { color: #65a30d; }
-    &.fear-greed.extreme-greed .ind-value { color: #16a34a; }
-    &.vix.low .ind-value { color: #16a34a; }
-    &.vix.medium .ind-value { color: #ca8a04; }
-    &.vix.high .ind-value { color: #dc2626; }
-    &.dxy .ind-value { color: #2563eb; }
+    .ind-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    &.fear-greed.extreme-fear .ind-value {
+      color: #dc2626;
+    }
+
+    &.fear-greed.fear .ind-value {
+      color: #ea580c;
+    }
+
+    &.fear-greed.neutral .ind-value {
+      color: #ca8a04;
+    }
+
+    &.fear-greed.greed .ind-value {
+      color: #65a30d;
+    }
+
+    &.fear-greed.extreme-greed .ind-value {
+      color: #16a34a;
+    }
+
+    &.vix.low .ind-value {
+      color: #16a34a;
+    }
+
+    &.vix.medium .ind-value {
+      color: #ca8a04;
+    }
+
+    &.vix.high .ind-value {
+      color: #dc2626;
+    }
+
+    &.dxy .ind-value {
+      color: #2563eb;
+    }
   }
 
   .indices-marquee {
@@ -2310,7 +2263,10 @@ export default {
       gap: 8px;
       animation: marquee 35s linear infinite;
       width: max-content;
-      &:hover { animation-play-state: paused; }
+
+      &:hover {
+        animation-play-state: paused;
+      }
     }
 
     .index-item {
@@ -2324,29 +2280,54 @@ export default {
       font-size: 11px;
       white-space: nowrap;
 
-      .idx-flag { font-size: 11px; }
-      .idx-symbol { color: #64748b; font-weight: 500; }
-      .idx-price { color: #1e293b; font-weight: 600; }
+      .idx-flag {
+        font-size: 11px;
+      }
+
+      .idx-symbol {
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .idx-price {
+        color: #1e293b;
+        font-weight: 600;
+      }
+
       .idx-change {
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 1px;
-        &.up { color: #16a34a; }
-        &.down { color: #dc2626; }
+
+        &.up {
+          color: #16a34a;
+        }
+
+        &.down {
+          color: #dc2626;
+        }
       }
     }
   }
 
   @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
   }
 
   .refresh-btn {
     color: #94a3b8;
     flex-shrink: 0;
-    &:hover { color: #1e293b; }
+
+    &:hover {
+      color: #1e293b;
+    }
   }
 }
 
@@ -2378,6 +2359,7 @@ export default {
 
     .box-header {
       margin-bottom: 10px;
+
       ::v-deep .ant-radio-group {
         display: flex;
         gap: 0;
@@ -2398,9 +2380,13 @@ export default {
           box-shadow: none;
           transition: all 0.2s;
 
-          &::before { display: none; }
+          &::before {
+            display: none;
+          }
 
-          &:hover { color: #555; }
+          &:hover {
+            color: #555;
+          }
 
           &.ant-radio-button-wrapper-checked {
             background: #fff;
@@ -2423,10 +2409,31 @@ export default {
         text-align: center;
         font-size: 9px;
         transition: transform 0.15s;
-        &:hover { transform: scale(1.03); }
-        .heat-name { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
-        .heat-price { display: block; font-size: 9px; opacity: 0.8; margin-bottom: 1px; }
-        .heat-val { font-weight: 700; font-size: 10px; }
+
+        &:hover {
+          transform: scale(1.03);
+        }
+
+        .heat-name {
+          display: block;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-bottom: 1px;
+        }
+
+        .heat-price {
+          display: block;
+          font-size: 9px;
+          opacity: 0.8;
+          margin-bottom: 1px;
+        }
+
+        .heat-val {
+          font-weight: 700;
+          font-size: 10px;
+        }
       }
     }
   }
@@ -2445,12 +2452,17 @@ export default {
 
     .box-header {
       margin-bottom: 8px;
+
       .box-title {
         font-size: 12px;
         color: #555;
         font-weight: 700;
         letter-spacing: -0.1px;
-        .anticon { margin-right: 6px; color: var(--primary-color, #1890ff); }
+
+        .anticon {
+          margin-right: 6px;
+          color: var(--primary-color, #1890ff);
+        }
       }
     }
 
@@ -2458,8 +2470,14 @@ export default {
       flex: 1;
       overflow-y: auto;
 
-      &::-webkit-scrollbar { width: 3px; }
-      &::-webkit-scrollbar-thumb { background: #d4d8dd; border-radius: 2px; }
+      &::-webkit-scrollbar {
+        width: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #d4d8dd;
+        border-radius: 2px;
+      }
 
       .cal-item {
         display: flex;
@@ -2468,10 +2486,28 @@ export default {
         padding: 6px 0;
         border-bottom: 1px solid #f1f5f9;
         font-size: 10px;
-        &:last-child { border-bottom: none; }
-        &.high { border-left: 3px solid #dc2626; padding-left: 8px; margin-left: -4px; }
-        &.medium { border-left: 3px solid #ca8a04; padding-left: 8px; margin-left: -4px; }
-        &.low { border-left: 3px solid #16a34a; padding-left: 8px; margin-left: -4px; }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &.high {
+          border-left: 3px solid #dc2626;
+          padding-left: 8px;
+          margin-left: -4px;
+        }
+
+        &.medium {
+          border-left: 3px solid #ca8a04;
+          padding-left: 8px;
+          margin-left: -4px;
+        }
+
+        &.low {
+          border-left: 3px solid #16a34a;
+          padding-left: 8px;
+          margin-left: -4px;
+        }
 
         .cal-date {
           font-size: 9px;
@@ -2479,21 +2515,52 @@ export default {
           min-width: 32px;
           font-weight: 500;
         }
-        .cal-time { color: #64748b; min-width: 36px; font-weight: 500; }
-        .cal-flag { font-size: 12px; }
-        .cal-name { flex: 1; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .cal-time {
+          color: #64748b;
+          min-width: 36px;
+          font-weight: 500;
+        }
+
+        .cal-flag {
+          font-size: 12px;
+        }
+
+        .cal-name {
+          flex: 1;
+          color: #334155;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
         .cal-impact {
           font-weight: 600;
           font-size: 10px;
           display: flex;
           align-items: center;
           gap: 2px;
-          &.bullish { color: #16a34a; }
-          &.bearish { color: #dc2626; }
-          &.neutral { color: #94a3b8; }
+
+          &.bullish {
+            color: #16a34a;
+          }
+
+          &.bearish {
+            color: #dc2626;
+          }
+
+          &.neutral {
+            color: #94a3b8;
+          }
         }
       }
-      .cal-empty { text-align: center; color: #94a3b8; padding: 20px 0; font-size: 12px; }
+
+      .cal-empty {
+        text-align: center;
+        color: #94a3b8;
+        padding: 20px 0;
+        font-size: 12px;
+      }
     }
   }
 }
@@ -2522,33 +2589,6 @@ export default {
     .symbol-selector {
       flex: 1;
       max-width: 320px;
-    }
-
-    ::v-deep .symbol-selector {
-      .wl-select-option-row {
-        display: flex;
-        align-items: center;
-        flex-wrap: nowrap;
-        gap: 8px;
-        min-width: 0;
-      }
-      .wl-select-symbol {
-        flex: 0 0 auto;
-        margin-left: 0;
-      }
-      .wl-select-name {
-        flex: 1 1 auto;
-        min-width: 0;
-        margin-left: 0;
-        padding-left: 4px;
-        color: #8c8c8c;
-        font-size: 13px;
-        font-weight: 400;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        border-left: 1px solid #f0f0f0;
-      }
     }
 
     .analyze-button {
@@ -2580,6 +2620,39 @@ export default {
   }
 }
 
+.ant-select-dropdown-menu-item {
+  .wl-select-option-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .wl-select-tag {
+    margin-right: 0;
+  }
+
+  .wl-select-symbol {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+
+  .wl-select-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 0;
+    padding-left: 4px;
+    color: #8c8c8c;
+    font-size: 11px;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-left: 1px solid #f0f0f0;
+  }
+}
+
 // 右侧自选股面板
 .watchlist-panel {
   width: 320px;
@@ -2607,7 +2680,11 @@ export default {
       font-weight: 700;
       color: #333;
       letter-spacing: -0.1px;
-      .anticon { color: #facc15; margin-right: 6px; }
+
+      .anticon {
+        color: #facc15;
+        margin-right: 6px;
+      }
     }
   }
 
@@ -2616,22 +2693,44 @@ export default {
     overflow-y: auto;
     padding: 6px 8px;
 
-    &::-webkit-scrollbar { width: 3px; }
-    &::-webkit-scrollbar-thumb { background: #d4d8dd; border-radius: 2px; }
+    &::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #d4d8dd;
+      border-radius: 2px;
+    }
 
     .watchlist-empty {
       text-align: center;
       padding: 24px 12px;
       color: #94a3b8;
-      .anticon { font-size: 32px; margin-bottom: 8px; display: block; }
-      p { font-size: 12px; margin-bottom: 12px; }
+
+      .anticon {
+        font-size: 32px;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      p {
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
     }
   }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Responsive */
@@ -2678,7 +2777,8 @@ export default {
     flex-direction: row;
     gap: 8px;
 
-    .heatmap-box, .calendar-box {
+    .heatmap-box,
+    .calendar-box {
       flex: 1;
       min-width: 0;
     }
@@ -2691,8 +2791,16 @@ export default {
   .right-panel {
     .analysis-toolbar {
       flex-wrap: wrap;
-      .symbol-selector { width: 100% !important; max-width: none !important; }
-      .analyze-button, .history-button { flex: 1; }
+
+      .symbol-selector {
+        width: 100% !important;
+        max-width: none !important;
+      }
+
+      .analyze-button,
+      .history-button {
+        flex: 1;
+      }
     }
   }
 
@@ -2706,7 +2814,12 @@ export default {
     flex-direction: column;
     flex-wrap: wrap;
     align-items: center;
-    .hstat { width: 100%; max-width: 300px; flex: none; }
+
+    .hstat {
+      width: 100%;
+      max-width: 300px;
+      flex: none;
+    }
   }
 }
 
@@ -2723,8 +2836,12 @@ export default {
 
     .indicator-box {
       padding: 2px 5px;
-      .ind-value { font-size: 11px; }
+
+      .ind-value {
+        font-size: 11px;
+      }
     }
+
     .indices-marquee .index-item {
       font-size: 10px;
       padding: 2px 5px;
@@ -2821,8 +2938,14 @@ export default {
       padding: 5px 2px;
     }
 
-    .sc-num { font-size: 12px; }
-    .sc-label { font-size: 8px; letter-spacing: 0.2px; }
+    .sc-num {
+      font-size: 12px;
+    }
+
+    .sc-label {
+      font-size: 8px;
+      letter-spacing: 0.2px;
+    }
   }
 
   .placeholder-hero .hero-body {
@@ -2886,20 +3009,35 @@ export default {
     .indicator-box {
       background: #1a1a1c;
       border-color: rgba(255, 255, 255, 0.06);
-      .ind-label { color: #666; }
-      .ind-value { color: #d4d4d4; }
+
+      .ind-label {
+        color: #666;
+      }
+
+      .ind-value {
+        color: #d4d4d4;
+      }
     }
 
     .indices-marquee .index-item {
       background: #1a1a1c;
       border-color: rgba(255, 255, 255, 0.06);
-      .idx-symbol { color: #777; }
-      .idx-price { color: #d4d4d4; }
+
+      .idx-symbol {
+        color: #777;
+      }
+
+      .idx-price {
+        color: #d4d4d4;
+      }
     }
 
     .refresh-btn {
       color: #666;
-      &:hover { color: #d4d4d4; }
+
+      &:hover {
+        color: #d4d4d4;
+      }
     }
   }
 
@@ -2911,68 +3049,182 @@ export default {
     .panel-header {
       background: #141416;
       border-bottom-color: rgba(255, 255, 255, 0.05);
-      .panel-title { color: #ccc; }
+
+      .panel-title {
+        color: #ccc;
+      }
     }
+
     .panel-summary {
       background: #141416;
       border-bottom-color: rgba(255, 255, 255, 0.05);
-      .summary-chip { border-right-color: rgba(255, 255, 255, 0.05); }
-      .sc-num { color: #d4d4d4; }
-      .sc-label { color: #666; }
+
+      .summary-chip {
+        border-right-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .sc-num {
+        color: #d4d4d4;
+      }
+
+      .sc-label {
+        color: #666;
+      }
     }
+
     .batch-bar {
       background: #1c1c1c;
       border: 1px solid #2a2a2a;
       border-radius: 10px;
       margin: 8px 10px;
       margin-bottom: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
-    .batch-bar .batch-all-cb { color: #a0a0a8; }
+
+    .batch-bar .batch-all-cb {
+      color: #a0a0a8;
+    }
+
     .batch-bar .ant-btn:not(.ant-btn-primary) {
       background: #2a2a2c;
       border-color: #3a3a3c;
       color: #b0b0b8;
-      &:hover { background: #333336; border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); }
+
+      &:hover {
+        background: #333336;
+        border-color: var(--primary-color, #1890ff);
+        color: var(--primary-color, #1890ff);
+      }
     }
 
     .watchlist-list {
-      &::-webkit-scrollbar-thumb { background: #333; }
+      &::-webkit-scrollbar-thumb {
+        background: #333;
+      }
 
       .wl-card {
-        &:hover { background: #222224; border-color: rgba(255, 255, 255, 0.06); }
-        &.active { background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent); border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent); }
-        .wl-symbol { color: #e0e0e0; }
-        .wl-name { color: #666; }
-        .wl-market { color: #666; background: rgba(255, 255, 255, 0.06); }
-        .wl-price { color: #d4d4d4; }
-        .wl-pnl-qty { color: #666; }
-        .wl-task-badge.paused { background: rgba(255, 255, 255, 0.05); color: #666; }
-        .wl-task-next { color: #555; }
+        &:hover {
+          background: #222224;
+          border-color: rgba(255, 255, 255, 0.06);
+        }
+
+        &.active {
+          background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
+          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent);
+        }
+
+        .wl-symbol {
+          color: #e0e0e0;
+        }
+
+        .wl-name {
+          color: #666;
+        }
+
+        .wl-market {
+          color: #666;
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .wl-price {
+          color: #d4d4d4;
+        }
+
+        .wl-pnl-qty {
+          color: #666;
+        }
+
+        .wl-task-badge.paused {
+          background: rgba(255, 255, 255, 0.05);
+          color: #666;
+        }
+
+        .wl-task-next {
+          color: #555;
+        }
       }
+
       .wl-card-hover-actions {
         background: linear-gradient(90deg, transparent 0%, #222224 30%);
-        .wl-hover-btn { background: #1a1a1c; color: #888; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-        .wl-hover-btn:hover { color: var(--primary-color, #1890ff); background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent); }
-        .wl-hover-btn.danger:hover { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+
+        .wl-hover-btn {
+          background: #1a1a1c;
+          color: #888;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .wl-hover-btn:hover {
+          color: var(--primary-color, #1890ff);
+          background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+        }
+
+        .wl-hover-btn.danger:hover {
+          color: #f87171;
+          background: rgba(248, 113, 113, 0.1);
+        }
       }
-      .wl-card.active .wl-card-hover-actions { background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent) 30%); }
-      .watchlist-empty { color: #555; }
-      .we-icon { color: #333; }
+
+      .wl-card.active .wl-card-hover-actions {
+        background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent) 30%);
+      }
+
+      .watchlist-empty {
+        color: #555;
+      }
+
+      .we-icon {
+        color: #333;
+      }
     }
   }
 
   .placeholder-hero {
-    .hero-bg-grid { background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); }
-    .hero-badge { background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent); border-color: color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent); color: var(--primary-color, #1890ff); }
-    .hero-title { color: #e0e0e0; }
-    .hero-subtitle, .hero-hint { color: #777; }
-    .hstat { background: #1a1a1c; border-color: rgba(255,255,255,0.06); box-shadow: none; }
-    .hstat:hover { border-color: color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent); box-shadow: 0 4px 16px color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent); }
-    .hstat-icon { background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent); color: var(--primary-color, #1890ff); }
-    .hstat-val { color: #ddd; }
-    .hstat-label { color: #666; }
-    .hero-cta .ant-btn-primary { box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent); }
+    .hero-bg-grid {
+      background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+
+    .hero-badge {
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
+      color: var(--primary-color, #1890ff);
+    }
+
+    .hero-title {
+      color: #e0e0e0;
+    }
+
+    .hero-subtitle,
+    .hero-hint {
+      color: #777;
+    }
+
+    .hstat {
+      background: #1a1a1c;
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+    }
+
+    .hstat:hover {
+      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+    }
+
+    .hstat-icon {
+      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+      color: var(--primary-color, #1890ff);
+    }
+
+    .hstat-val {
+      color: #ddd;
+    }
+
+    .hstat-label {
+      color: #666;
+    }
+
+    .hero-cta .ant-btn-primary {
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent);
+    }
   }
 
   .watchlist-bar-legacy {
@@ -2982,9 +3234,20 @@ export default {
     .stock-chip {
       background: #1c1c1c;
       border-color: #2a2a2a;
-      &:hover, &.active { border-color: var(--primary-color, #1890ff); background: rgba(24, 144, 255, 0.08); }
-      .chip-symbol { color: #d4d4d4; }
-      .chip-price { color: #888; }
+
+      &:hover,
+      &.active {
+        border-color: var(--primary-color, #1890ff);
+        background: rgba(24, 144, 255, 0.08);
+      }
+
+      .chip-symbol {
+        color: #d4d4d4;
+      }
+
+      .chip-price {
+        color: #888;
+      }
     }
   }
 
@@ -3001,7 +3264,11 @@ export default {
           background: transparent;
           border-color: transparent;
           color: #666;
-          &:hover { color: #aaa; }
+
+          &:hover {
+            color: #aaa;
+          }
+
           &.ant-radio-button-wrapper-checked {
             background: #2a2a2c;
             color: #e8e8e8;
@@ -3016,17 +3283,34 @@ export default {
       border-color: rgba(255, 255, 255, 0.06);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
-      .box-title { color: #888; }
+      .box-title {
+        color: #888;
+      }
+
       .cal-item {
         border-bottom-color: rgba(255, 255, 255, 0.05);
-        .cal-date { color: #555; }
-        .cal-time { color: #777; }
-        .cal-name { color: #ccc; }
+
+        .cal-date {
+          color: #555;
+        }
+
+        .cal-time {
+          color: #777;
+        }
+
+        .cal-name {
+          color: #ccc;
+        }
       }
-      .cal-empty { color: #555; }
+
+      .cal-empty {
+        color: #555;
+      }
 
       .calendar-list {
-        &::-webkit-scrollbar-thumb { background: #333; }
+        &::-webkit-scrollbar-thumb {
+          background: #333;
+        }
       }
     }
   }
@@ -3044,7 +3328,11 @@ export default {
         background: #222224;
         border-color: rgba(255, 255, 255, 0.08);
         color: #ccc;
-        &:hover { border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, transparent); color: var(--primary-color, #1890ff); }
+
+        &:hover {
+          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, transparent);
+          color: var(--primary-color, #1890ff);
+        }
       }
     }
   }
@@ -3053,16 +3341,33 @@ export default {
     background: #1c1c1c;
     border-color: #2a2a2a;
     color: #d4d4d4;
-    &:hover { border-color: #1890ff; color: #1890ff; }
+
+    &:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
   }
 
-  .wl-change.up { background: rgba(74,222,128,0.10); }
-  .wl-change.down { background: rgba(248,113,113,0.10); }
+  .wl-change.up {
+    background: rgba(74, 222, 128, 0.10);
+  }
 
-  .panel-header-icon { color: #666; }
-  .panel-header-icon:hover { color: var(--primary-color, #1890ff); background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent); }
+  .wl-change.down {
+    background: rgba(248, 113, 113, 0.10);
+  }
 
-  .panel-summary { background: #141416; }
+  .panel-header-icon {
+    color: #666;
+  }
+
+  .panel-header-icon:hover {
+    color: var(--primary-color, #1890ff);
+    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+  }
+
+  .panel-summary {
+    background: #141416;
+  }
 
   .batch-bar {
     background: #1c1c1c !important;
@@ -3070,34 +3375,54 @@ export default {
     border-radius: 10px;
     margin: 8px 10px;
     margin-bottom: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
-  .batch-bar .batch-all-cb { color: #a0a0a8; }
+
+  .batch-bar .batch-all-cb {
+    color: #a0a0a8;
+  }
+
   .batch-bar .ant-btn:not(.ant-btn-primary) {
     background: #2a2a2c !important;
     border-color: #3a3a3c !important;
     color: #b0b0b8 !important;
-    &:hover { background: #333336 !important; border-color: var(--primary-color, #1890ff) !important; color: var(--primary-color, #1890ff) !important; }
+
+    &:hover {
+      background: #333336 !important;
+      border-color: var(--primary-color, #1890ff) !important;
+      color: var(--primary-color, #1890ff) !important;
+    }
   }
 
   .watchlist-bar-compat {
     background: #141414;
     border-top-color: #2a2a2a;
 
-    .bar-label { color: #888; }
+    .bar-label {
+      color: #888;
+    }
 
     .stock-chip {
       background: #1c1c1c;
       border-color: #2a2a2a;
 
-      &:hover, &.active {
+      &:hover,
+      &.active {
         border-color: var(--primary-color, #1890ff);
         background: rgba(24, 144, 255, 0.08);
       }
 
-      .chip-symbol { color: #d4d4d4; }
-      .chip-price { color: #888; }
-      .chip-remove { color: #666; }
+      .chip-symbol {
+        color: #d4d4d4;
+      }
+
+      .chip-price {
+        color: #888;
+      }
+
+      .chip-remove {
+        color: #666;
+      }
     }
   }
 
@@ -3107,6 +3432,7 @@ export default {
       border-color: #2a2a2a;
       color: #d4d4d4;
     }
+
     .wl-select-name {
       color: #888 !important;
       border-left-color: #333 !important;
@@ -3114,30 +3440,130 @@ export default {
   }
 
   ::v-deep {
-    .ant-tabs-bar { border-bottom-color: #2a2a2a; }
-    .ant-tabs-tab { color: #888; &:hover { color: #d4d4d4; } }
-    .ant-tabs-tab-active { color: #1890ff !important; }
-    .ant-tabs-ink-bar { background-color: #1890ff; }
-    .ant-input { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &::placeholder { color: #555; } }
-    .ant-input-number { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; .ant-input-number-handler-wrap { background: #1c1c1c; } }
-    .ant-select-selection { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
-    .ant-select-arrow { color: #666; }
-    .ant-form-item-label > label { color: #d4d4d4; }
-    .ant-checkbox-wrapper { color: #d4d4d4; }
-    .ant-radio-wrapper { color: #d4d4d4; }
-    .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: #1890ff; color: #1890ff; } }
-    .ant-alert { background: rgba(24,144,255,0.06); border-color: #2a2a2a; }
-    .ant-alert-message { color: #d4d4d4; }
-    .ant-tag { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
-    .ant-list-item { border-bottom-color: #2a2a2a; color: #d4d4d4; }
-    .ant-list-item-meta-title { color: #d4d4d4; }
-    .ant-list-item-meta-description { color: #888; }
-    .ant-empty-description { color: #666; }
-    .ant-tooltip-inner { background: #1c1c1c; }
-    .ant-badge-count { box-shadow: 0 0 0 1px #141414; }
-    .ant-popover-inner { background: #1c1c1c; }
-    .ant-popover-message { color: #d4d4d4; }
-    .ant-popover-arrow { border-color: #1c1c1c; }
+    .ant-tabs-bar {
+      border-bottom-color: #2a2a2a;
+    }
+
+    .ant-tabs-tab {
+      color: #888;
+
+      &:hover {
+        color: #d4d4d4;
+      }
+    }
+
+    .ant-tabs-tab-active {
+      color: #1890ff !important;
+    }
+
+    .ant-tabs-ink-bar {
+      background-color: #1890ff;
+    }
+
+    .ant-input {
+      background: #1c1c1c;
+      border-color: #2a2a2a;
+      color: #d4d4d4;
+
+      &::placeholder {
+        color: #555;
+      }
+    }
+
+    .ant-input-number {
+      background: #1c1c1c;
+      border-color: #2a2a2a;
+      color: #d4d4d4;
+
+      .ant-input-number-handler-wrap {
+        background: #1c1c1c;
+      }
+    }
+
+    .ant-select-selection {
+      background: #1c1c1c;
+      border-color: #2a2a2a;
+      color: #d4d4d4;
+    }
+
+    .ant-select-arrow {
+      color: #666;
+    }
+
+    .ant-form-item-label>label {
+      color: #d4d4d4;
+    }
+
+    .ant-checkbox-wrapper {
+      color: #d4d4d4;
+    }
+
+    .ant-radio-wrapper {
+      color: #d4d4d4;
+    }
+
+    .ant-btn-default {
+      background: #1c1c1c;
+      border-color: #2a2a2a;
+      color: #d4d4d4;
+
+      &:hover {
+        border-color: #1890ff;
+        color: #1890ff;
+      }
+    }
+
+    .ant-alert {
+      background: rgba(24, 144, 255, 0.06);
+      border-color: #2a2a2a;
+    }
+
+    .ant-alert-message {
+      color: #d4d4d4;
+    }
+
+    .ant-tag {
+      background: #1c1c1c;
+      border-color: #2a2a2a;
+      color: #d4d4d4;
+    }
+
+    .ant-list-item {
+      border-bottom-color: #2a2a2a;
+      color: #d4d4d4;
+    }
+
+    .ant-list-item-meta-title {
+      color: #d4d4d4;
+    }
+
+    .ant-list-item-meta-description {
+      color: #888;
+    }
+
+    .ant-empty-description {
+      color: #666;
+    }
+
+    .ant-tooltip-inner {
+      background: #1c1c1c;
+    }
+
+    .ant-badge-count {
+      box-shadow: 0 0 0 1px #141414;
+    }
+
+    .ant-popover-inner {
+      background: #1c1c1c;
+    }
+
+    .ant-popover-message {
+      color: #d4d4d4;
+    }
+
+    .ant-popover-arrow {
+      border-color: #1c1c1c;
+    }
   }
 }
 
@@ -3151,50 +3577,65 @@ export default {
   height: 100%;
   overflow: hidden;
 }
+
 .hero-bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
+
 .hero-bg-circle {
   position: absolute;
   border-radius: 50%;
   opacity: 0.5;
 }
+
 .hero-bg-circle.c1 {
   width: 320px;
   height: 320px;
   top: -80px;
   right: -60px;
-  background: radial-gradient(circle, rgba(24,144,255,0.10) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(24, 144, 255, 0.10) 0%, transparent 70%);
   animation: hero-float 6s ease-in-out infinite;
 }
+
 .hero-bg-circle.c2 {
   width: 240px;
   height: 240px;
   bottom: -40px;
   left: -40px;
-  background: radial-gradient(circle, rgba(114,46,209,0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(114, 46, 209, 0.08) 0%, transparent 70%);
   animation: hero-float 8s ease-in-out infinite reverse;
 }
+
 .hero-bg-grid {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(24,144,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(24,144,255,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(24, 144, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 144, 255, 0.03) 1px, transparent 1px);
   background-size: 32px 32px;
 }
+
 @keyframes hero-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
 }
+
 .hero-body {
   position: relative;
   text-align: center;
   padding: 40px 32px;
   max-width: 560px;
 }
+
 .hero-badge {
   display: inline-block;
   padding: 3px 12px;
@@ -3203,10 +3644,11 @@ export default {
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--primary-color, #1890ff);
-  background: rgba(24,144,255,0.08);
-  border: 1px solid rgba(24,144,255,0.2);
+  background: rgba(24, 144, 255, 0.08);
+  border: 1px solid rgba(24, 144, 255, 0.2);
   margin-bottom: 16px;
 }
+
 .hero-title {
   font-size: 26px;
   font-weight: 800;
@@ -3215,12 +3657,14 @@ export default {
   letter-spacing: -0.3px;
   line-height: 1.3;
 }
+
 .hero-subtitle {
   font-size: 14px;
   color: #64748b;
   margin-bottom: 32px;
   line-height: 1.5;
 }
+
 .hero-stats {
   display: flex;
   gap: 12px;
@@ -3228,6 +3672,7 @@ export default {
   margin-bottom: 32px;
   flex-wrap: nowrap;
 }
+
 .hstat {
   display: flex;
   align-items: center;
@@ -3236,17 +3681,19 @@ export default {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   flex: 1;
   min-width: 0;
   text-align: left;
   transition: all 0.25s;
 }
+
 .hstat:hover {
   border-color: var(--primary-color, #1890ff);
-  box-shadow: 0 4px 16px rgba(24,144,255,0.10);
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.10);
   transform: translateY(-2px);
 }
+
 .hstat-icon {
   display: flex;
   align-items: center;
@@ -3254,16 +3701,18 @@ export default {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(24,144,255,0.10) 0%, rgba(114,46,209,0.08) 100%);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.10) 0%, rgba(114, 46, 209, 0.08) 100%);
   font-size: 16px;
   color: var(--primary-color, #1890ff);
   flex-shrink: 0;
 }
+
 .hstat-body {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
+
 .hstat-val {
   font-size: 12px;
   font-weight: 700;
@@ -3273,6 +3722,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .hstat-label {
   font-size: 10px;
   color: #94a3b8;
@@ -3282,12 +3732,14 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .hero-cta {
   display: flex;
   gap: 12px;
   justify-content: center;
   margin-bottom: 16px;
 }
+
 .hero-cta .ant-btn {
   border-radius: 10px;
   font-weight: 600;
@@ -3295,9 +3747,11 @@ export default {
   padding: 0 24px;
   font-size: 14px;
 }
+
 .hero-cta .ant-btn-primary {
-  box-shadow: 0 4px 14px rgba(24,144,255,0.3);
+  box-shadow: 0 4px 14px rgba(24, 144, 255, 0.3);
 }
+
 .hero-hint {
   font-size: 12px;
   color: #94a3b8;
@@ -3309,6 +3763,7 @@ export default {
   align-items: center;
   gap: 4px;
 }
+
 .panel-header-icon {
   font-size: 15px;
   color: #94a3b8;
@@ -3317,9 +3772,10 @@ export default {
   border-radius: 6px;
   transition: color 0.2s, background 0.2s;
 }
+
 .panel-header-icon:hover {
   color: var(--primary-color, #1890ff);
-  background: rgba(24,144,255,0.08);
+  background: rgba(24, 144, 255, 0.08);
 }
 
 /* ===== Panel Summary ===== */
@@ -3329,6 +3785,7 @@ export default {
   padding: 0;
   border-bottom: 1px solid #f1f5f9;
 }
+
 .summary-chip {
   flex: 1;
   display: flex;
@@ -3337,7 +3794,11 @@ export default {
   padding: 8px 4px;
   border-right: 1px solid #f1f5f9;
 }
-.summary-chip:last-child { border-right: none; }
+
+.summary-chip:last-child {
+  border-right: none;
+}
+
 .sc-num {
   font-size: 14px;
   font-weight: 700;
@@ -3345,8 +3806,15 @@ export default {
   line-height: 1.2;
   font-family: 'SF Mono', Monaco, monospace;
 }
-.sc-num.up { color: #16a34a; }
-.sc-num.down { color: #dc2626; }
+
+.sc-num.up {
+  color: #16a34a;
+}
+
+.sc-num.down {
+  color: #dc2626;
+}
+
 .sc-label {
   font-size: 9px;
   color: #94a3b8;
@@ -3366,15 +3834,17 @@ export default {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   flex-wrap: wrap;
 }
+
 .batch-all-cb {
   font-size: 12px;
   font-weight: 500;
   color: #475569;
   margin-right: 4px;
 }
+
 .batch-bar .ant-btn {
   border-radius: 6px;
   font-size: 12px;
@@ -3384,15 +3854,25 @@ export default {
   flex-shrink: 0;
   transition: all 0.2s;
 }
+
 .batch-bar .ant-btn-primary {
   box-shadow: 0 1px 2px color-mix(in srgb, var(--primary-color, #1890ff) 20%, transparent);
-  &:hover { filter: brightness(1.05); }
+
+  &:hover {
+    filter: brightness(1.05);
+  }
 }
+
 .batch-bar .ant-btn:not(.ant-btn-primary) {
   background: #f8fafc;
   border-color: #e2e8f0;
   color: #64748b;
-  &:hover { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+  }
 }
 
 /* ===== Watchlist Card (wl-card) ===== */
@@ -3405,45 +3885,54 @@ export default {
   margin-bottom: 3px;
   border: 1px solid transparent;
 }
+
 .wl-card:hover {
   background: #f5f7fa;
   border-color: #e8ecf1;
 }
+
 .wl-card.active {
   background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #1890ff) 6%, #fff) 0%, color-mix(in srgb, var(--primary-color, #1890ff) 4%, #fff) 100%);
   border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent);
   box-shadow: 0 1px 4px color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
 }
+
 .wl-card-cb {
   position: absolute;
   top: 12px;
   left: 4px;
   z-index: 1;
 }
+
 .wl-card-body {
   transition: padding-left 0.2s;
 }
+
 .wl-card-body.with-cb {
   padding-left: 24px;
 }
+
 .wl-row-main {
   display: grid;
   grid-template-columns: 1fr 80px auto;
   align-items: center;
   gap: 4px;
 }
+
 .wl-info-left {
   display: flex;
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
 }
+
 .wl-symbol-line {
   display: flex;
   align-items: baseline;
   gap: 5px;
   overflow: hidden;
 }
+
 .wl-name {
   font-size: 11px;
   color: #94a3b8;
@@ -3453,12 +3942,14 @@ export default {
   text-overflow: ellipsis;
   margin-top: 1px;
 }
+
 .wl-info-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   white-space: nowrap;
 }
+
 .wl-symbol {
   font-size: 13px;
   font-weight: 700;
@@ -3467,6 +3958,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .wl-market {
   font-size: 9px;
   color: #94a3b8;
@@ -3476,24 +3968,29 @@ export default {
   border-radius: 3px;
   flex-shrink: 0;
 }
-.wl-spacer { }
+
+.wl-spacer {}
+
 .wl-sparkline-wrap {
   width: 80px;
   padding: 0 2px;
   display: flex;
   align-items: center;
   justify-content: center;
+
   .wl-sparkline {
     width: 100%;
     height: 20px;
   }
 }
+
 .wl-price {
   font-size: 12px;
   font-weight: 600;
   color: #0f172a;
   font-family: 'SF Mono', Monaco, monospace;
 }
+
 .wl-change {
   font-size: 10px;
   font-weight: 600;
@@ -3502,8 +3999,16 @@ export default {
   border-radius: 4px;
   margin-left: 4px;
 }
-.wl-change.up { color: #16a34a; background: rgba(22,163,74,0.08); }
-.wl-change.down { color: #dc2626; background: rgba(220,38,38,0.06); }
+
+.wl-change.up {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.wl-change.down {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.06);
+}
 
 .wl-row-pnl {
   display: flex;
@@ -3512,17 +4017,25 @@ export default {
   margin-top: 4px;
   font-family: 'SF Mono', Monaco, monospace;
 }
+
 .wl-pnl-qty {
   font-size: 10px;
   color: #94a3b8;
 }
+
 .wl-pnl-val {
   font-size: 10px;
   font-weight: 600;
   margin-left: auto;
 }
-.wl-pnl-val.up { color: #16a34a; }
-.wl-pnl-val.down { color: #dc2626; }
+
+.wl-pnl-val.up {
+  color: #16a34a;
+}
+
+.wl-pnl-val.down {
+  color: #dc2626;
+}
 
 .wl-row-task {
   display: flex;
@@ -3530,6 +4043,7 @@ export default {
   gap: 6px;
   margin-top: 4px;
 }
+
 .wl-task-badge {
   display: inline-flex;
   align-items: center;
@@ -3540,15 +4054,21 @@ export default {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .wl-task-badge.active {
   color: #16a34a;
-  background: rgba(22,163,74,0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
+
 .wl-task-badge.paused {
   color: #94a3b8;
   background: #f1f5f9;
 }
-.wl-task-badge:hover { opacity: 0.75; }
+
+.wl-task-badge:hover {
+  opacity: 0.75;
+}
+
 .wl-task-next {
   font-size: 10px;
   color: #94a3b8;
@@ -3571,13 +4091,16 @@ export default {
   border-radius: 0 8px 8px 0;
   pointer-events: none;
 }
+
 .wl-card:hover .wl-card-hover-actions {
   opacity: 1;
   pointer-events: auto;
 }
+
 .wl-card.active .wl-card-hover-actions {
   background: linear-gradient(90deg, transparent 0%, #e6f7ff 30%);
 }
+
 .wl-hover-btn {
   display: inline-flex;
   align-items: center;
@@ -3590,12 +4113,14 @@ export default {
   cursor: pointer;
   transition: all 0.15s;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
+
 .wl-hover-btn:hover {
   color: var(--primary-color, #1890ff);
   background: #e6f7ff;
 }
+
 .wl-hover-btn.danger:hover {
   color: #dc2626;
   background: #fef2f2;
@@ -3606,11 +4131,13 @@ export default {
   text-align: center;
   padding: 32px 16px;
 }
+
 .we-icon {
   font-size: 36px;
   color: #e2e8f0;
   margin-bottom: 12px;
 }
+
 .watchlist-empty p {
   font-size: 12px;
   color: #94a3b8;
@@ -3621,11 +4148,13 @@ export default {
 .batch-modal-summary {
   margin-bottom: 16px;
 }
+
 .batch-modal-summary p {
   font-size: 13px;
   color: #475569;
   margin-bottom: 8px;
 }
+
 .batch-symbols-preview {
   display: flex;
   flex-wrap: wrap;
@@ -3639,13 +4168,19 @@ export default {
   text-align: center;
   padding: 48px 16px;
   color: #94a3b8;
-  p { margin-top: 12px; font-size: 13px; }
+
+  p {
+    margin-top: 12px;
+    font-size: 13px;
+  }
 }
+
 .task-drawer-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+
 .task-item {
   padding: 14px 16px;
   border: 1px solid #e2e8f0;
@@ -3653,28 +4188,36 @@ export default {
   background: #fafafa;
   transition: box-shadow 0.2s;
 }
+
 .task-item:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
+
 .task-item-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
 }
+
 .task-item-name {
   font-size: 13px;
   font-weight: 600;
   color: #0f172a;
 }
+
 .task-item-meta {
   display: flex;
   gap: 16px;
   font-size: 12px;
   color: #64748b;
   margin-bottom: 10px;
-  .anticon { margin-right: 4px; }
+
+  .anticon {
+    margin-right: 4px;
+  }
 }
+
 .task-item-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3696,28 +4239,49 @@ export default {
     &.ant-btn-primary {
       background: var(--primary-color, #1890ff);
       border-color: var(--primary-color, #1890ff);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-      &:hover { filter: brightness(1.05); box-shadow: 0 2px 6px color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent); }
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+      &:hover {
+        filter: brightness(1.05);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
+      }
     }
+
     &.ant-btn-default {
       background: #f8fafc;
       border-color: #e2e8f0;
       color: #475569;
-      &:hover { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+
+      &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #334155;
+      }
     }
+
     &.ant-btn-danger {
       background: #fef2f2;
       border-color: #fecaca;
       color: #dc2626;
-      &:hover { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+
+      &:hover {
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+      }
     }
   }
 }
 
 /* Add Stock Modal */
 .add-stock-modal-content {
-  .market-tabs { margin-bottom: 16px; }
-  .symbol-search-section { margin-bottom: 24px; }
+  .market-tabs {
+    margin-bottom: 16px;
+  }
+
+  .symbol-search-section {
+    margin-bottom: 24px;
+  }
 
   .search-results-section,
   .hot-symbols-section {
@@ -3744,7 +4308,9 @@ export default {
       padding: 8px 12px;
       transition: background-color 0.3s;
 
-      &:hover { background-color: #f5f5f5; }
+      &:hover {
+        background-color: #f5f5f5;
+      }
 
       .symbol-item-content {
         display: flex;
@@ -3789,7 +4355,10 @@ export default {
     border-radius: 4px;
     margin: 3px 0;
 
-    &.short { width: 40px; height: 9px; }
+    &.short {
+      width: 40px;
+      height: 9px;
+    }
   }
 }
 
@@ -3810,7 +4379,10 @@ export default {
     border-radius: 3px;
     margin: 2px 0;
 
-    &.short { width: 50%; height: 8px; }
+    &.short {
+      width: 50%;
+      height: 8px;
+    }
   }
 }
 
@@ -3828,11 +4400,15 @@ export default {
     border-radius: 4px;
     flex: 1;
 
-    &.short { flex: none; width: 40px; }
+    &.short {
+      flex: none;
+      width: 40px;
+    }
   }
 }
 
-.indices-loading, .indices-empty {
+.indices-loading,
+.indices-empty {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3843,7 +4419,9 @@ export default {
 }
 
 .indices-loading {
-  .anticon { margin-right: 6px; }
+  .anticon {
+    margin-right: 6px;
+  }
 }
 
 .heatmap-empty {
@@ -3855,13 +4433,21 @@ export default {
 }
 
 @keyframes skeleton-pulse {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* 暗色主题下的骨架屏 */
 .theme-dark {
-  .skeleton-box, .skeleton-cell, .skeleton-item {
+
+  .skeleton-box,
+  .skeleton-cell,
+  .skeleton-item {
     .skeleton-text {
       background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
       background-size: 200% 100%;
@@ -3872,7 +4458,9 @@ export default {
     background: #1c1c1c !important;
   }
 
-  .indices-loading, .indices-empty, .heatmap-empty {
+  .indices-loading,
+  .indices-empty,
+  .heatmap-empty {
     color: #666;
   }
 }
@@ -3884,87 +4472,340 @@ export default {
   .ant-modal-content {
     background: #141414;
   }
+
   .ant-modal-header {
     background: #141414;
     border-bottom-color: #2a2a2a;
-    .ant-modal-title { color: #d4d4d4; }
+
+    .ant-modal-title {
+      color: #d4d4d4;
+    }
   }
-  .ant-modal-close-x { color: #888; }
+
+  .ant-modal-close-x {
+    color: #888;
+  }
+
   .ant-modal-body {
     background: #141414;
     color: #d4d4d4;
   }
+
   .ant-modal-footer {
     background: #141414;
     border-top-color: #2a2a2a;
-    .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: #1890ff; color: #1890ff; } }
+
+    .ant-btn-default {
+      background: #1c1c1c;
+      border-color: #2a2a2a;
+      color: #d4d4d4;
+
+      &:hover {
+        border-color: #1890ff;
+        color: #1890ff;
+      }
+    }
   }
-  .ant-form-item-label > label { color: #d4d4d4; }
-  .ant-input { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &::placeholder { color: #555; } }
-  .ant-input-number { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
-  .ant-select-selection { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
-  .ant-select-arrow { color: #666; }
-  .ant-checkbox-wrapper { color: #d4d4d4; }
-  .ant-radio-wrapper { color: #d4d4d4; }
-  .ant-tabs-bar { border-bottom-color: #2a2a2a; }
-  .ant-tabs-tab { color: #888; &:hover { color: #d4d4d4; } }
-  .ant-tabs-tab-active { color: #1890ff !important; }
-  .ant-tag { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
-  .ant-tag-blue { background: rgba(24,144,255,0.1); border-color: rgba(24,144,255,0.3); color: #1890ff; }
-  .ant-alert { background: rgba(24,144,255,0.06); border-color: #2a2a2a; }
-  .ant-alert-message { color: #d4d4d4; }
-  .ant-alert-info .ant-alert-icon { color: #1890ff; }
-  .ant-list-item { border-bottom-color: #2a2a2a; color: #d4d4d4; }
-  .ant-list-item-meta-title { color: #d4d4d4; }
-  .ant-list-item-meta-description { color: #888; }
-  .ant-empty-description { color: #666; }
-  p { color: #d4d4d4; }
+
+  .ant-form-item-label>label {
+    color: #d4d4d4;
+  }
+
+  .ant-input {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+    color: #d4d4d4;
+
+    &::placeholder {
+      color: #555;
+    }
+  }
+
+  .ant-input-number {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+    color: #d4d4d4;
+  }
+
+  .ant-select-selection {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+    color: #d4d4d4;
+  }
+
+  .ant-select-arrow {
+    color: #666;
+  }
+
+  .ant-checkbox-wrapper {
+    color: #d4d4d4;
+  }
+
+  .ant-radio-wrapper {
+    color: #d4d4d4;
+  }
+
+  .ant-tabs-bar {
+    border-bottom-color: #2a2a2a;
+  }
+
+  .ant-tabs-tab {
+    color: #888;
+
+    &:hover {
+      color: #d4d4d4;
+    }
+  }
+
+  .ant-tabs-tab-active {
+    color: #1890ff !important;
+  }
+
+  .ant-tag {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+    color: #d4d4d4;
+  }
+
+  .ant-tag-blue {
+    background: rgba(24, 144, 255, 0.1);
+    border-color: rgba(24, 144, 255, 0.3);
+    color: #1890ff;
+  }
+
+  .ant-alert {
+    background: rgba(24, 144, 255, 0.06);
+    border-color: #2a2a2a;
+  }
+
+  .ant-alert-message {
+    color: #d4d4d4;
+  }
+
+  .ant-alert-info .ant-alert-icon {
+    color: #1890ff;
+  }
+
+  .ant-list-item {
+    border-bottom-color: #2a2a2a;
+    color: #d4d4d4;
+  }
+
+  .ant-list-item-meta-title {
+    color: #d4d4d4;
+  }
+
+  .ant-list-item-meta-description {
+    color: #888;
+  }
+
+  .ant-empty-description {
+    color: #666;
+  }
+
+  p {
+    color: #d4d4d4;
+  }
+
   .add-stock-modal-content {
     color: #d4d4d4;
-    .section-title { color: #d4d4d4 !important; }
+
+    .section-title {
+      color: #d4d4d4 !important;
+    }
+
     .symbol-list {
       border-color: #2a2a2a;
       background: #1c1c1c;
+
       .symbol-list-item {
-        &:hover { background: #252525 !important; }
-        .symbol-code { color: #d4d4d4 !important; }
-        .symbol-name { color: #888 !important; }
+        &:hover {
+          background: #252525 !important;
+        }
+
+        .symbol-code {
+          color: #d4d4d4 !important;
+        }
+
+        .symbol-name {
+          color: #888 !important;
+        }
       }
     }
-    .selected-symbol-info strong { color: #d4d4d4; }
-    .selected-symbol-info span { color: #888 !important; }
+
+    .selected-symbol-info strong {
+      color: #d4d4d4;
+    }
+
+    .selected-symbol-info span {
+      color: #888 !important;
+    }
   }
-  .batch-modal-summary p { color: #d4d4d4; }
-  .batch-symbols-preview .ant-tag { background: rgba(24,144,255,0.1); border-color: rgba(24,144,255,0.3); color: #1890ff; }
-  .task-item { background: #1c1c1c; border-color: #2a2a2a; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); } }
-  .task-item-name { color: #d4d4d4; }
-  .task-item-meta { color: #888; }
-  .task-drawer-empty { color: #666; }
-  .history-item { background: #1c1c1c; border-color: #2a2a2a; }
-  .search-result-item { color: #d4d4d4; }
-  .search-result-item:hover { background: #1c1c1c; }
-  .search-result-name { color: #d4d4d4; }
-  .search-result-market { color: #888; }
+
+  .batch-modal-summary p {
+    color: #d4d4d4;
+  }
+
+  .batch-symbols-preview .ant-tag {
+    background: rgba(24, 144, 255, 0.1);
+    border-color: rgba(24, 144, 255, 0.3);
+    color: #1890ff;
+  }
+
+  .task-item {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .task-item-name {
+    color: #d4d4d4;
+  }
+
+  .task-item-meta {
+    color: #888;
+  }
+
+  .task-drawer-empty {
+    color: #666;
+  }
+
+  .history-item {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+  }
+
+  .search-result-item {
+    color: #d4d4d4;
+  }
+
+  .search-result-item:hover {
+    background: #1c1c1c;
+  }
+
+  .search-result-name {
+    color: #d4d4d4;
+  }
+
+  .search-result-market {
+    color: #888;
+  }
 }
+
 .qd-dark-drawer {
-  .ant-drawer-content { background: #141414; }
-  .ant-drawer-header { background: #141414; border-bottom-color: #2a2a2a; .ant-drawer-title { color: #d4d4d4; } .ant-drawer-close { color: #888; } }
-  .ant-drawer-body { background: #141414; color: #d4d4d4; }
-  .task-item { background: #1c1c1c; border-color: #2a2a2a; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); } }
-  .task-item-name { color: #d4d4d4; }
-  .task-item-meta { color: #888; }
-  .task-drawer-empty { color: #666; }
-  .task-item-actions .ant-btn {
-    &.ant-btn-primary { background: var(--primary-color, #1890ff); border-color: var(--primary-color, #1890ff); &:hover { filter: brightness(1.1); } }
-    &.ant-btn-default { background: #2a2a2c; border-color: #3a3a3c; color: #b0b0b8; &:hover { background: #333336; border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); } }
-    &.ant-btn-danger { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); color: #f87171; &:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.4); color: #fca5a5; } }
+  .ant-drawer-content {
+    background: #141414;
   }
-  .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; &:hover { border-color: #1890ff; color: #1890ff; } }
-  .ant-btn-danger { background: transparent; }
-  .ant-popover-inner { background: #1c1c1c; }
-  .ant-popover-message { color: #d4d4d4; }
-  .ant-popover-message-title { color: #d4d4d4; }
-  .ant-popover-buttons .ant-btn-default { background: #1c1c1c; border-color: #2a2a2a; color: #d4d4d4; }
+
+  .ant-drawer-header {
+    background: #141414;
+    border-bottom-color: #2a2a2a;
+
+    .ant-drawer-title {
+      color: #d4d4d4;
+    }
+
+    .ant-drawer-close {
+      color: #888;
+    }
+  }
+
+  .ant-drawer-body {
+    background: #141414;
+    color: #d4d4d4;
+  }
+
+  .task-item {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .task-item-name {
+    color: #d4d4d4;
+  }
+
+  .task-item-meta {
+    color: #888;
+  }
+
+  .task-drawer-empty {
+    color: #666;
+  }
+
+  .task-item-actions .ant-btn {
+    &.ant-btn-primary {
+      background: var(--primary-color, #1890ff);
+      border-color: var(--primary-color, #1890ff);
+
+      &:hover {
+        filter: brightness(1.1);
+      }
+    }
+
+    &.ant-btn-default {
+      background: #2a2a2c;
+      border-color: #3a3a3c;
+      color: #b0b0b8;
+
+      &:hover {
+        background: #333336;
+        border-color: var(--primary-color, #1890ff);
+        color: var(--primary-color, #1890ff);
+      }
+    }
+
+    &.ant-btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.18);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+      }
+    }
+  }
+
+  .ant-btn-default {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+    color: #d4d4d4;
+
+    &:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+  }
+
+  .ant-btn-danger {
+    background: transparent;
+  }
+
+  .ant-popover-inner {
+    background: #1c1c1c;
+  }
+
+  .ant-popover-message {
+    color: #d4d4d4;
+  }
+
+  .ant-popover-message-title {
+    color: #d4d4d4;
+  }
+
+  .ant-popover-buttons .ant-btn-default {
+    background: #1c1c1c;
+    border-color: #2a2a2a;
+    color: #d4d4d4;
+  }
 }
 </style>
 
@@ -3973,9 +4814,22 @@ export default {
 body.colorWeak .ant-select-dropdown,
 .qd-dark-modal .ant-select-dropdown {
   background: #1c1c1c;
-  .ant-select-dropdown-menu-item { color: #d4d4d4; }
-  .ant-select-dropdown-menu-item:hover { background: #252525; }
-  .ant-select-dropdown-menu-item-active { background: #252525; }
-  .ant-select-dropdown-menu-item-selected { background: rgba(24,144,255,0.1); color: #1890ff; }
+
+  .ant-select-dropdown-menu-item {
+    color: #d4d4d4;
+  }
+
+  .ant-select-dropdown-menu-item:hover {
+    background: #252525;
+  }
+
+  .ant-select-dropdown-menu-item-active {
+    background: #252525;
+  }
+
+  .ant-select-dropdown-menu-item-selected {
+    background: rgba(24, 144, 255, 0.1);
+    color: #1890ff;
+  }
 }
 </style>

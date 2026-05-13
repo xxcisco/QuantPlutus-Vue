@@ -3959,7 +3959,7 @@ export default {
   flex-wrap: wrap;
   gap: 16px;
   padding: 16px 18px;
-  margin-bottom: 16px;
+  margin: 12px 12px 16px;
   border: 1px solid rgba(24, 144, 255, 0.14);
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(24, 144, 255, 0.08) 0%, rgba(114, 46, 209, 0.06) 100%);
@@ -4103,6 +4103,7 @@ export default {
 @border-radius-sm: 8px;
 
 .trading-assistant {
+  display: flow-root;
   padding: 0px;
   height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
@@ -4110,6 +4111,7 @@ export default {
   .strategy-layout {
     height: calc(100vh - 120px);
     align-items: stretch;
+    margin: 0!important;
   }
 
   // 移动端适配

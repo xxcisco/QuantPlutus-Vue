@@ -1,5 +1,11 @@
 <template>
   <div class="main">
+    <div class="scene">
+      <div class="grid-plane">
+        <div class="grid-lines"></div>
+      </div>
+    </div>
+
     <div class="auth-intro">
       <div class="desc">AI driven quantitative insights for global markets</div>
     </div>
@@ -19,75 +25,46 @@
           <a-tab-pane key="login" :tab="$t('user.login.tab') || 'Login'">
             <!-- Login Method Switch -->
             <div class="login-method-switch">
-              <a
-                :class="{ active: loginMethod === 'password' }"
-                @click="loginMethod = 'password'"
-              >{{ $t('user.login.methodPassword') || 'Password' }}</a>
+              <a :class="{ active: loginMethod === 'password' }" @click="loginMethod = 'password'">{{
+                $t('user.login.methodPassword') || 'Password' }}</a>
               <a-divider type="vertical" />
-              <a
-                :class="{ active: loginMethod === 'code' }"
-                @click="loginMethod = 'code'"
-              >{{ $t('user.login.methodCode') || 'Email Code' }}</a>
+              <a :class="{ active: loginMethod === 'code' }" @click="loginMethod = 'code'">{{
+                $t('user.login.methodCode') || 'Email Code' }}</a>
             </div>
 
             <!-- Password Login Form -->
-            <a-form
-              v-show="loginMethod === 'password'"
-              id="formLogin"
-              class="auth-form"
-              ref="formLogin"
-              :form="loginForm"
-              @submit="handleLogin"
-            >
+            <a-form v-show="loginMethod === 'password'" id="formLogin" class="auth-form" ref="formLogin"
+              :form="loginForm" @submit="handleLogin">
               <a-alert v-if="loginError" type="error" showIcon style="margin-bottom: 24px;" :message="loginError" />
               <a-alert v-if="oauthError" type="error" showIcon style="margin-bottom: 24px;" :message="oauthError" />
 
               <a-form-item>
-                <a-input
-                  size="large"
-                  type="text"
-                  :placeholder="$t('user.login.username') || 'Username'"
-                  v-decorator="[
-                    'username',
-                    {rules: [{ required: true, message: $t('user.login.usernameRequired') || 'Please enter username' }], validateTrigger: 'blur'}
-                  ]"
-                >
-                  <a-icon slot="prefix" type="user" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                <a-input size="large" type="text" :placeholder="$t('user.login.username') || 'Username'" v-decorator="[
+                  'username',
+                  { rules: [{ required: true, message: $t('user.login.usernameRequired') || 'Please enter username' }], validateTrigger: 'blur' }
+                ]">
+                  <a-icon slot="prefix" type="user" :style="{ color: 'rgba(0,0,0,.25)' }" />
                 </a-input>
               </a-form-item>
 
               <a-form-item>
-                <a-input-password
-                  size="large"
-                  :placeholder="$t('user.login.password') || 'Password'"
-                  v-decorator="[
-                    'password',
-                    {rules: [{ required: true, message: $t('user.login.passwordRequired') || 'Please enter password' }], validateTrigger: 'blur'}
-                  ]"
-                >
-                  <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                <a-input-password size="large" :placeholder="$t('user.login.password') || 'Password'" v-decorator="[
+                  'password',
+                  { rules: [{ required: true, message: $t('user.login.passwordRequired') || 'Please enter password' }], validateTrigger: 'blur' }
+                ]">
+                  <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }" />
                 </a-input-password>
               </a-form-item>
 
               <!-- Turnstile for Login -->
-              <Turnstile
-                ref="loginTurnstile"
-                :siteKey="securityConfig.turnstile_site_key"
-                :enabled="securityConfig.turnstile_enabled"
-                @success="(t) => loginTurnstileToken = t"
-                @error="() => loginTurnstileToken = null"
-              />
+              <Turnstile ref="loginTurnstile" :siteKey="securityConfig.turnstile_site_key"
+                :enabled="securityConfig.turnstile_enabled" @success="(t) => loginTurnstileToken = t"
+                @error="() => loginTurnstileToken = null" />
 
               <a-form-item style="margin-top:24px">
-                <a-button
-                  size="large"
-                  type="primary"
-                  htmlType="submit"
-                  class="submit-button"
-                  :loading="loginLoading"
-                  :disabled="loginLoading || (securityConfig.turnstile_enabled && !loginTurnstileToken)"
-                  block
-                >{{ $t('user.login.submit') || 'Login' }}</a-button>
+                <a-button size="large" type="primary" htmlType="submit" class="submit-button" :loading="loginLoading"
+                  :disabled="loginLoading || (securityConfig.turnstile_enabled && !loginTurnstileToken)" block>{{
+                    $t('user.login.submit') || 'Login' }}</a-button>
               </a-form-item>
 
               <!-- Forgot Password Link -->
@@ -97,86 +74,59 @@
             </a-form>
 
             <!-- Email Code Login Form -->
-            <a-form
-              v-show="loginMethod === 'code'"
-              id="formCodeLogin"
-              class="auth-form"
-              ref="formCodeLogin"
-              :form="codeLoginForm"
-              @submit="handleCodeLogin"
-            >
-              <a-alert v-if="codeLoginError" type="error" showIcon style="margin-bottom: 24px;" :message="codeLoginError" />
+            <a-form v-show="loginMethod === 'code'" id="formCodeLogin" class="auth-form" ref="formCodeLogin"
+              :form="codeLoginForm" @submit="handleCodeLogin">
+              <a-alert v-if="codeLoginError" type="error" showIcon style="margin-bottom: 24px;"
+                :message="codeLoginError" />
               <a-alert v-if="oauthError" type="error" showIcon style="margin-bottom: 24px;" :message="oauthError" />
 
               <a-form-item>
-                <a-input
-                  size="large"
-                  type="email"
-                  :placeholder="$t('user.login.email') || 'Email'"
-                  v-decorator="[
-                    'email',
-                    {
-                      rules: [
-                        { required: true, message: $t('user.login.emailRequired') || 'Please enter email' },
-                        { type: 'email', message: $t('user.login.emailInvalid') || 'Invalid email format' }
-                      ],
-                      validateTrigger: 'blur'
-                    }
-                  ]"
-                >
-                  <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                <a-input size="large" type="email" :placeholder="$t('user.login.email') || 'Email'" v-decorator="[
+                  'email',
+                  {
+                    rules: [
+                      { required: true, message: $t('user.login.emailRequired') || 'Please enter email' },
+                      { type: 'email', message: $t('user.login.emailInvalid') || 'Invalid email format' }
+                    ],
+                    validateTrigger: 'blur'
+                  }
+                ]">
+                  <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }" />
                 </a-input>
               </a-form-item>
 
               <a-form-item>
                 <a-row :gutter="12">
                   <a-col :span="16">
-                    <a-input
-                      size="large"
-                      :placeholder="$t('user.login.verificationCode') || 'Verification Code'"
+                    <a-input size="large" :placeholder="$t('user.login.verificationCode') || 'Verification Code'"
                       v-decorator="[
                         'code',
                         {
                           rules: [{ required: true, message: $t('user.login.codeRequired') || 'Please enter verification code' }],
                           validateTrigger: 'blur'
                         }
-                      ]"
-                    >
-                      <a-icon slot="prefix" type="safety-certificate" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                      ]">
+                      <a-icon slot="prefix" type="safety-certificate" :style="{ color: 'rgba(0,0,0,.25)' }" />
                     </a-input>
                   </a-col>
                   <a-col :span="8">
-                    <a-button
-                      size="large"
-                      block
-                      :loading="codeLoginSendingCode"
-                      :disabled="codeLoginSendingCode || codeLoginCountdown > 0"
-                      @click="handleCodeLoginSendCode"
-                    >
+                    <a-button size="large" block :loading="codeLoginSendingCode"
+                      :disabled="codeLoginSendingCode || codeLoginCountdown > 0" @click="handleCodeLoginSendCode">
                       {{ codeLoginCountdown > 0 ? `${codeLoginCountdown}s` : ($t('user.login.sendCode') || 'Send') }}
                     </a-button>
                   </a-col>
                 </a-row>
               </a-form-item>
 
-              <Turnstile
-                ref="codeLoginTurnstile"
-                :siteKey="securityConfig.turnstile_site_key"
-                :enabled="securityConfig.turnstile_enabled"
-                @success="(t) => codeLoginTurnstileToken = t"
-                @error="() => codeLoginTurnstileToken = null"
-              />
+              <Turnstile ref="codeLoginTurnstile" :siteKey="securityConfig.turnstile_site_key"
+                :enabled="securityConfig.turnstile_enabled" @success="(t) => codeLoginTurnstileToken = t"
+                @error="() => codeLoginTurnstileToken = null" />
 
               <a-form-item style="margin-top:24px">
-                <a-button
-                  size="large"
-                  type="primary"
-                  htmlType="submit"
-                  class="submit-button"
+                <a-button size="large" type="primary" htmlType="submit" class="submit-button"
                   :loading="codeLoginLoading"
                   :disabled="codeLoginLoading || (securityConfig.turnstile_enabled && !codeLoginTurnstileToken)"
-                  block
-                >{{ $t('user.login.submit') || 'Login' }}</a-button>
+                  block>{{ $t('user.login.submit') || 'Login' }}</a-button>
               </a-form-item>
 
               <div class="code-login-hint">
@@ -189,24 +139,22 @@
             <div v-if="hasOAuth" class="oauth-section">
               <a-divider>{{ $t('user.login.orLoginWith') || 'Or login with' }}</a-divider>
               <div class="oauth-buttons">
-                <a-button
-                  v-if="securityConfig.oauth_google_enabled"
-                  class="oauth-btn google-btn"
-                  @click="handleGoogleLogin"
-                >
+                <a-button v-if="securityConfig.oauth_google_enabled" class="oauth-btn google-btn"
+                  @click="handleGoogleLogin">
                   <svg class="oauth-icon" viewBox="0 0 24 24" width="18" height="18">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    <path fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
                   Google
                 </a-button>
-                <a-button
-                  v-if="securityConfig.oauth_github_enabled"
-                  class="oauth-btn github-btn"
-                  @click="handleGitHubLogin"
-                >
+                <a-button v-if="securityConfig.oauth_github_enabled" class="oauth-btn github-btn"
+                  @click="handleGitHubLogin">
                   <a-icon type="github" />
                   GitHub
                 </a-button>
@@ -215,34 +163,26 @@
           </a-tab-pane>
 
           <!-- Register Tab -->
-          <a-tab-pane v-if="securityConfig.registration_enabled" key="register" :tab="$t('user.register.tab') || 'Register'">
-            <a-form
-              id="formRegister"
-              class="auth-form"
-              ref="formRegister"
-              :form="registerForm"
-              @submit="handleRegister"
-            >
-              <a-alert v-if="registerError" type="error" showIcon style="margin-bottom: 24px;" :message="registerError" />
+          <a-tab-pane v-if="securityConfig.registration_enabled" key="register"
+            :tab="$t('user.register.tab') || 'Register'">
+            <a-form id="formRegister" class="auth-form" ref="formRegister" :form="registerForm"
+              @submit="handleRegister">
+              <a-alert v-if="registerError" type="error" showIcon style="margin-bottom: 24px;"
+                :message="registerError" />
 
               <!-- Email -->
               <a-form-item>
-                <a-input
-                  size="large"
-                  type="email"
-                  :placeholder="$t('user.register.email') || 'Email'"
-                  v-decorator="[
-                    'email',
-                    {
-                      rules: [
-                        { required: true, message: $t('user.register.emailRequired') || 'Please enter email' },
-                        { type: 'email', message: $t('user.register.emailInvalid') || 'Invalid email format' }
-                      ],
-                      validateTrigger: 'blur'
-                    }
-                  ]"
-                >
-                  <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                <a-input size="large" type="email" :placeholder="$t('user.register.email') || 'Email'" v-decorator="[
+                  'email',
+                  {
+                    rules: [
+                      { required: true, message: $t('user.register.emailRequired') || 'Please enter email' },
+                      { type: 'email', message: $t('user.register.emailInvalid') || 'Invalid email format' }
+                    ],
+                    validateTrigger: 'blur'
+                  }
+                ]">
+                  <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }" />
                 </a-input>
               </a-form-item>
 
@@ -250,28 +190,20 @@
               <a-form-item>
                 <a-row :gutter="12">
                   <a-col :span="16">
-                    <a-input
-                      size="large"
-                      :placeholder="$t('user.register.verificationCode') || 'Verification Code'"
+                    <a-input size="large" :placeholder="$t('user.register.verificationCode') || 'Verification Code'"
                       v-decorator="[
                         'code',
                         {
                           rules: [{ required: true, message: $t('user.register.codeRequired') || 'Please enter verification code' }],
                           validateTrigger: 'blur'
                         }
-                      ]"
-                    >
-                      <a-icon slot="prefix" type="safety-certificate" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                      ]">
+                      <a-icon slot="prefix" type="safety-certificate" :style="{ color: 'rgba(0,0,0,.25)' }" />
                     </a-input>
                   </a-col>
                   <a-col :span="8">
-                    <a-button
-                      size="large"
-                      block
-                      :loading="registerSendingCode"
-                      :disabled="registerSendingCode || registerCountdown > 0"
-                      @click="handleRegisterSendCode"
-                    >
+                    <a-button size="large" block :loading="registerSendingCode"
+                      :disabled="registerSendingCode || registerCountdown > 0" @click="handleRegisterSendCode">
                       {{ registerCountdown > 0 ? `${registerCountdown}s` : ($t('user.register.sendCode') || 'Send') }}
                     </a-button>
                   </a-col>
@@ -280,32 +212,24 @@
 
               <!-- Username -->
               <a-form-item>
-                <a-input
-                  size="large"
-                  :placeholder="$t('user.register.username') || 'Username'"
-                  v-decorator="[
-                    'username',
-                    {
-                      rules: [
-                        { required: true, message: $t('user.register.usernameRequired') || 'Please enter username' },
-                        { min: 3, max: 30, message: $t('user.register.usernameLength') || 'Username must be 3-30 characters' },
-                        { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: $t('user.register.usernamePattern') || 'Start with letter, letters/numbers/underscore only' }
-                      ],
-                      validateTrigger: 'blur'
-                    }
-                  ]"
-                >
-                  <a-icon slot="prefix" type="user" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                <a-input size="large" :placeholder="$t('user.register.username') || 'Username'" v-decorator="[
+                  'username',
+                  {
+                    rules: [
+                      { required: true, message: $t('user.register.usernameRequired') || 'Please enter username' },
+                      { min: 3, max: 30, message: $t('user.register.usernameLength') || 'Username must be 3-30 characters' },
+                      { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: $t('user.register.usernamePattern') || 'Start with letter, letters/numbers/underscore only' }
+                    ],
+                    validateTrigger: 'blur'
+                  }
+                ]">
+                  <a-icon slot="prefix" type="user" :style="{ color: 'rgba(0,0,0,.25)' }" />
                 </a-input>
               </a-form-item>
 
               <!-- Password with requirements popover -->
               <a-form-item>
-                <a-popover
-                  placement="rightTop"
-                  :trigger="['focus']"
-                  :visible="regPwdFocused && !regPwdValid"
-                >
+                <a-popover placement="rightTop" :trigger="['focus']" :visible="regPwdFocused && !regPwdValid">
                   <template slot="content">
                     <div class="password-requirements">
                       <div :class="{ valid: regHasMinLength }">
@@ -326,13 +250,8 @@
                       </div>
                     </div>
                   </template>
-                  <a-input-password
-                    size="large"
-                    :placeholder="$t('user.register.password') || 'Password'"
-                    @focus="regPwdFocused = true"
-                    @blur="regPwdFocused = false"
-                    @change="checkRegPassword"
-                    v-decorator="[
+                  <a-input-password size="large" :placeholder="$t('user.register.password') || 'Password'"
+                    @focus="regPwdFocused = true" @blur="regPwdFocused = false" @change="checkRegPassword" v-decorator="[
                       'password',
                       {
                         rules: [
@@ -341,18 +260,15 @@
                         ],
                         validateTrigger: 'blur'
                       }
-                    ]"
-                  >
-                    <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                    ]">
+                    <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }" />
                   </a-input-password>
                 </a-popover>
               </a-form-item>
 
               <!-- Confirm Password -->
               <a-form-item>
-                <a-input-password
-                  size="large"
-                  :placeholder="$t('user.register.confirmPassword') || 'Confirm Password'"
+                <a-input-password size="large" :placeholder="$t('user.register.confirmPassword') || 'Confirm Password'"
                   v-decorator="[
                     'confirmPassword',
                     {
@@ -362,31 +278,20 @@
                       ],
                       validateTrigger: 'blur'
                     }
-                  ]"
-                >
-                  <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                  ]">
+                  <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }" />
                 </a-input-password>
               </a-form-item>
 
               <!-- Turnstile for Register -->
-              <Turnstile
-                ref="registerTurnstile"
-                :siteKey="securityConfig.turnstile_site_key"
-                :enabled="securityConfig.turnstile_enabled"
-                @success="(t) => registerTurnstileToken = t"
-                @error="() => registerTurnstileToken = null"
-              />
+              <Turnstile ref="registerTurnstile" :siteKey="securityConfig.turnstile_site_key"
+                :enabled="securityConfig.turnstile_enabled" @success="(t) => registerTurnstileToken = t"
+                @error="() => registerTurnstileToken = null" />
 
               <a-form-item style="margin-top:24px">
-                <a-button
-                  size="large"
-                  type="primary"
-                  htmlType="submit"
-                  class="submit-button"
-                  :loading="registerLoading"
-                  :disabled="registerLoading || (securityConfig.turnstile_enabled && !registerTurnstileToken)"
-                  block
-                >{{ $t('user.register.submit') || 'Create Account' }}</a-button>
+                <a-button size="large" type="primary" htmlType="submit" class="submit-button" :loading="registerLoading"
+                  :disabled="registerLoading || (securityConfig.turnstile_enabled && !registerTurnstileToken)" block>{{
+                    $t('user.register.submit') || 'Create Account' }}</a-button>
               </a-form-item>
             </a-form>
           </a-tab-pane>
@@ -414,101 +319,64 @@
     </div>
 
     <!-- Reset Password Modal -->
-    <a-modal
-      v-model="showResetModal"
-      :title="$t('user.resetPassword.title') || 'Reset Password'"
-      :footer="null"
-      :width="420"
-      :destroyOnClose="true"
-      @cancel="resetResetModal"
-    >
+    <a-modal v-model="showResetModal" :title="$t('user.resetPassword.title') || 'Reset Password'" :footer="null"
+      :width="420" :destroyOnClose="true" @cancel="resetResetModal">
       <!-- Step 1: Email & Code -->
-      <a-form
-        v-if="resetStep === 1"
-        class="auth-form"
-        :form="resetForm"
-        @submit="handleResetVerify"
-      >
+      <a-form v-if="resetStep === 1" class="auth-form" :form="resetForm" @submit="handleResetVerify">
         <a-alert v-if="resetError" type="error" showIcon style="margin-bottom: 24px;" :message="resetError" />
 
         <a-form-item>
-          <a-input
-            size="large"
-            type="email"
-            :placeholder="$t('user.resetPassword.email') || 'Email'"
-            v-decorator="[
-              'email',
-              {
-                rules: [
-                  { required: true, message: $t('user.resetPassword.emailRequired') || 'Please enter email' },
-                  { type: 'email', message: $t('user.resetPassword.emailInvalid') || 'Invalid email format' }
-                ],
-                validateTrigger: 'blur'
-              }
-            ]"
-          >
-            <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+          <a-input size="large" type="email" :placeholder="$t('user.resetPassword.email') || 'Email'" v-decorator="[
+            'email',
+            {
+              rules: [
+                { required: true, message: $t('user.resetPassword.emailRequired') || 'Please enter email' },
+                { type: 'email', message: $t('user.resetPassword.emailInvalid') || 'Invalid email format' }
+              ],
+              validateTrigger: 'blur'
+            }
+          ]">
+            <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }" />
           </a-input>
         </a-form-item>
 
         <a-form-item>
           <a-row :gutter="12">
             <a-col :span="16">
-              <a-input
-                size="large"
-                :placeholder="$t('user.resetPassword.verificationCode') || 'Verification Code'"
+              <a-input size="large" :placeholder="$t('user.resetPassword.verificationCode') || 'Verification Code'"
                 v-decorator="[
                   'code',
                   {
                     rules: [{ required: true, message: $t('user.resetPassword.codeRequired') || 'Please enter verification code' }],
                     validateTrigger: 'blur'
                   }
-                ]"
-              >
-                <a-icon slot="prefix" type="safety-certificate" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+                ]">
+                <a-icon slot="prefix" type="safety-certificate" :style="{ color: 'rgba(0,0,0,.25)' }" />
               </a-input>
             </a-col>
             <a-col :span="8">
-              <a-button
-                size="large"
-                block
-                :loading="resetSendingCode"
-                :disabled="resetSendingCode || resetCountdown > 0"
-                @click="handleResetSendCode"
-              >
+              <a-button size="large" block :loading="resetSendingCode"
+                :disabled="resetSendingCode || resetCountdown > 0" @click="handleResetSendCode">
                 {{ resetCountdown > 0 ? `${resetCountdown}s` : ($t('user.resetPassword.sendCode') || 'Send') }}
               </a-button>
             </a-col>
           </a-row>
         </a-form-item>
 
-        <Turnstile
-          ref="resetTurnstile"
-          :siteKey="securityConfig.turnstile_site_key"
-          :enabled="securityConfig.turnstile_enabled"
-          @success="(t) => resetTurnstileToken = t"
-          @error="() => resetTurnstileToken = null"
-        />
+        <Turnstile ref="resetTurnstile" :siteKey="securityConfig.turnstile_site_key"
+          :enabled="securityConfig.turnstile_enabled" @success="(t) => resetTurnstileToken = t"
+          @error="() => resetTurnstileToken = null" />
 
         <a-form-item style="margin-top:24px">
-          <a-button
-            size="large"
-            type="primary"
-            htmlType="submit"
-            class="submit-button"
-            :disabled="securityConfig.turnstile_enabled && !resetTurnstileToken"
-            block
-          >{{ $t('user.resetPassword.next') || 'Next' }}</a-button>
+          <a-button size="large" type="primary" htmlType="submit" class="submit-button"
+            :disabled="securityConfig.turnstile_enabled && !resetTurnstileToken" block>{{ $t('user.resetPassword.next')
+              ||
+              'Next' }}</a-button>
         </a-form-item>
       </a-form>
 
       <!-- Step 2: New Password -->
-      <a-form
-        v-if="resetStep === 2"
-        class="auth-form"
-        :form="resetPwdForm"
-        @submit="handleResetPassword"
-      >
+      <a-form v-if="resetStep === 2" class="auth-form" :form="resetPwdForm" @submit="handleResetPassword">
         <a-alert v-if="resetError" type="error" showIcon style="margin-bottom: 24px;" :message="resetError" />
 
         <div class="email-display">
@@ -517,11 +385,7 @@
         </div>
 
         <a-form-item>
-          <a-popover
-            placement="rightTop"
-            :trigger="['focus']"
-            :visible="resetPwdFocused && !resetPwdValid"
-          >
+          <a-popover placement="rightTop" :trigger="['focus']" :visible="resetPwdFocused && !resetPwdValid">
             <template slot="content">
               <div class="password-requirements">
                 <div :class="{ valid: resetHasMinLength }">
@@ -542,13 +406,8 @@
                 </div>
               </div>
             </template>
-            <a-input-password
-              size="large"
-              :placeholder="$t('user.resetPassword.newPassword') || 'New Password'"
-              @focus="resetPwdFocused = true"
-              @blur="resetPwdFocused = false"
-              @change="checkResetPassword"
-              v-decorator="[
+            <a-input-password size="large" :placeholder="$t('user.resetPassword.newPassword') || 'New Password'"
+              @focus="resetPwdFocused = true" @blur="resetPwdFocused = false" @change="checkResetPassword" v-decorator="[
                 'new_password',
                 {
                   rules: [
@@ -557,17 +416,14 @@
                   ],
                   validateTrigger: 'blur'
                 }
-              ]"
-            >
-              <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+              ]">
+              <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }" />
             </a-input-password>
           </a-popover>
         </a-form-item>
 
         <a-form-item>
-          <a-input-password
-            size="large"
-            :placeholder="$t('user.resetPassword.confirmPassword') || 'Confirm Password'"
+          <a-input-password size="large" :placeholder="$t('user.resetPassword.confirmPassword') || 'Confirm Password'"
             v-decorator="[
               'confirm_password',
               {
@@ -577,21 +433,14 @@
                 ],
                 validateTrigger: 'blur'
               }
-            ]"
-          >
-            <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }"/>
+            ]">
+            <a-icon slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }" />
           </a-input-password>
         </a-form-item>
 
         <a-form-item style="margin-top:24px">
-          <a-button
-            size="large"
-            type="primary"
-            htmlType="submit"
-            class="submit-button"
-            :loading="resetLoading"
-            block
-          >{{ $t('user.resetPassword.submit') || 'Reset Password' }}</a-button>
+          <a-button size="large" type="primary" htmlType="submit" class="submit-button" :loading="resetLoading" block>{{
+            $t('user.resetPassword.submit') || 'Reset Password' }}</a-button>
         </a-form-item>
 
         <div class="auth-links">
@@ -604,11 +453,8 @@
 
       <!-- Step 3: Success -->
       <div v-if="resetStep === 3" class="success-panel">
-        <a-result
-          status="success"
-          :title="$t('user.resetPassword.successTitle') || 'Password Reset Successful'"
-          :sub-title="$t('user.resetPassword.successSubtitle') || 'You can now login with your new password'"
-        >
+        <a-result status="success" :title="$t('user.resetPassword.successTitle') || 'Password Reset Successful'"
+          :sub-title="$t('user.resetPassword.successSubtitle') || 'You can now login with your new password'">
           <template #extra>
             <a-button type="primary" @click="showResetModal = false; activeTab = 'login'">
               {{ $t('user.resetPassword.goToLogin') || 'Go to Login' }}
@@ -633,7 +479,7 @@ export default {
   components: {
     Turnstile
   },
-  data () {
+  data() {
     return {
       activeTab: 'login',
       showLegal: false,
@@ -709,17 +555,17 @@ export default {
     }
   },
   computed: {
-    hasOAuth () {
+    hasOAuth() {
       return this.securityConfig.oauth_google_enabled || this.securityConfig.oauth_github_enabled
     },
-    regPwdValid () {
+    regPwdValid() {
       return this.regHasMinLength && this.regHasUppercase && this.regHasLowercase && this.regHasNumber
     },
-    resetPwdValid () {
+    resetPwdValid() {
       return this.resetHasMinLength && this.resetHasUppercase && this.resetHasLowercase && this.resetHasNumber
     }
   },
-  created () {
+  created() {
     this.loadSecurityConfig()
     this.handleOAuthCallback()
     // Extract referral code after route is ready
@@ -728,12 +574,12 @@ export default {
     })
   },
   watch: {
-    '$route.query' () {
+    '$route.query'() {
       // Re-extract referral code when route query changes
       this.extractReferralCode()
     }
   },
-  beforeDestroy () {
+  beforeDestroy() {
     if (this.codeLoginCountdownTimer) clearInterval(this.codeLoginCountdownTimer)
     if (this.registerCountdownTimer) clearInterval(this.registerCountdownTimer)
     if (this.resetCountdownTimer) clearInterval(this.resetCountdownTimer)
@@ -741,7 +587,7 @@ export default {
   methods: {
     ...mapActions(['Login', 'Logout']),
 
-    async loadSecurityConfig () {
+    async loadSecurityConfig() {
       try {
         const res = await getSecurityConfig()
         if (res.code === 1 && res.data) {
@@ -752,7 +598,7 @@ export default {
       }
     },
 
-    extractReferralCode () {
+    extractReferralCode() {
       // Extract referral code from URL: ?ref=123 or &ref=123
       // Support both regular query params and hash-based routing
       const urlParams = new URLSearchParams(window.location.search)
@@ -780,7 +626,7 @@ export default {
       }
     },
 
-    handleOAuthCallback () {
+    handleOAuthCallback() {
       const urlParams = new URLSearchParams(window.location.search)
       const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
       const oauthToken = urlParams.get('oauth_token') || hashParams.get('oauth_token')
@@ -814,7 +660,7 @@ export default {
     },
 
     // ==================== Password Login ====================
-    handleLogin (e) {
+    handleLogin(e) {
       e.preventDefault()
       this.legalError = false
       if (!this.legalAgreed) {
@@ -850,7 +696,7 @@ export default {
     },
 
     // ==================== Email Code Login ====================
-    async handleCodeLoginSendCode () {
+    async handleCodeLoginSendCode() {
       this.codeLoginForm.validateFields(['email'], async (err, values) => {
         if (err) return
 
@@ -878,7 +724,7 @@ export default {
       })
     },
 
-    startCodeLoginCountdown () {
+    startCodeLoginCountdown() {
       this.codeLoginCountdown = 60
       this.codeLoginCountdownTimer = setInterval(() => {
         this.codeLoginCountdown--
@@ -889,7 +735,7 @@ export default {
       }, 1000)
     },
 
-    handleCodeLogin (e) {
+    handleCodeLogin(e) {
       e.preventDefault()
       this.legalError = false
       if (!this.legalAgreed) {
@@ -1018,7 +864,7 @@ export default {
     },
 
     // ==================== Register ====================
-    checkRegPassword (e) {
+    checkRegPassword(e) {
       const password = e.target.value || ''
       this.regHasMinLength = password.length >= 8
       this.regHasUppercase = /[A-Z]/.test(password)
@@ -1026,7 +872,7 @@ export default {
       this.regHasNumber = /[0-9]/.test(password)
     },
 
-    validateRegPassword (rule, value, callback) {
+    validateRegPassword(rule, value, callback) {
       if (!value) { callback(); return }
       if (value.length < 8) { callback(new Error(this.$t('user.register.pwdMinLength') || 'At least 8 characters')); return }
       if (!/[A-Z]/.test(value)) { callback(new Error(this.$t('user.register.pwdUppercase') || 'At least one uppercase letter')); return }
@@ -1035,7 +881,7 @@ export default {
       callback()
     },
 
-    validateRegConfirmPassword (rule, value, callback) {
+    validateRegConfirmPassword(rule, value, callback) {
       const password = this.registerForm.getFieldValue('password')
       if (value && value !== password) {
         callback(new Error(this.$t('user.register.passwordMismatch') || 'Passwords do not match'))
@@ -1044,7 +890,7 @@ export default {
       }
     },
 
-    async handleRegisterSendCode () {
+    async handleRegisterSendCode() {
       this.registerForm.validateFields(['email'], async (err, values) => {
         if (err) return
 
@@ -1072,7 +918,7 @@ export default {
       })
     },
 
-    startRegisterCountdown () {
+    startRegisterCountdown() {
       this.registerCountdown = 60
       this.registerCountdownTimer = setInterval(() => {
         this.registerCountdown--
@@ -1083,7 +929,7 @@ export default {
       }, 1000)
     },
 
-    handleRegister (e) {
+    handleRegister(e) {
       e.preventDefault()
       this.legalError = false
       if (!this.legalAgreed) {
@@ -1155,8 +1001,8 @@ export default {
                   // 如果没有角色信息，设置一个默认角色对象，避免路由守卫卡住
                   roles = [{ id: 'default', permissionList: [] }]
                 }
-              this.$store.commit('SET_ROLES', roles)
-              storage.set(USER_ROLES, roles, expiresAt)
+                this.$store.commit('SET_ROLES', roles)
+                storage.set(USER_ROLES, roles, expiresAt)
               }
 
               // 确保 roles 已经被正确设置（使用 Vue.nextTick 确保状态已更新）
@@ -1216,7 +1062,7 @@ export default {
     },
 
     // ==================== Reset Password ====================
-    resetResetModal () {
+    resetResetModal() {
       this.resetStep = 1
       this.resetError = ''
       this.resetEmail = ''
@@ -1228,7 +1074,7 @@ export default {
       }
     },
 
-    async handleResetSendCode () {
+    async handleResetSendCode() {
       this.resetForm.validateFields(['email'], async (err, values) => {
         if (err) return
 
@@ -1256,7 +1102,7 @@ export default {
       })
     },
 
-    startResetCountdown () {
+    startResetCountdown() {
       this.resetCountdown = 60
       this.resetCountdownTimer = setInterval(() => {
         this.resetCountdown--
@@ -1267,7 +1113,7 @@ export default {
       }, 1000)
     },
 
-    handleResetVerify (e) {
+    handleResetVerify(e) {
       e.preventDefault()
       this.resetError = ''
 
@@ -1280,7 +1126,7 @@ export default {
       })
     },
 
-    checkResetPassword (e) {
+    checkResetPassword(e) {
       const password = e.target.value || ''
       this.resetHasMinLength = password.length >= 8
       this.resetHasUppercase = /[A-Z]/.test(password)
@@ -1288,7 +1134,7 @@ export default {
       this.resetHasNumber = /[0-9]/.test(password)
     },
 
-    validateResetPassword (rule, value, callback) {
+    validateResetPassword(rule, value, callback) {
       if (!value) { callback(); return }
       if (value.length < 8) { callback(new Error(this.$t('user.register.pwdMinLength') || 'At least 8 characters')); return }
       if (!/[A-Z]/.test(value)) { callback(new Error(this.$t('user.register.pwdUppercase') || 'At least one uppercase letter')); return }
@@ -1297,7 +1143,7 @@ export default {
       callback()
     },
 
-    validateResetConfirmPassword (rule, value, callback) {
+    validateResetConfirmPassword(rule, value, callback) {
       const password = this.resetPwdForm.getFieldValue('new_password')
       if (value && value !== password) {
         callback(new Error(this.$t('user.register.passwordMismatch') || 'Passwords do not match'))
@@ -1306,7 +1152,7 @@ export default {
       }
     },
 
-    async handleResetPassword (e) {
+    async handleResetPassword(e) {
       e.preventDefault()
       this.resetError = ''
 
@@ -1340,11 +1186,11 @@ export default {
     },
 
     // ==================== OAuth ====================
-    handleGoogleLogin () {
+    handleGoogleLogin() {
       window.location.href = getGoogleOAuthUrl()
     },
 
-    handleGitHubLogin () {
+    handleGitHubLogin() {
       window.location.href = getGitHubOAuthUrl()
     }
   }
@@ -1358,7 +1204,6 @@ export default {
   align-items: center;
   justify-content: center;
   min-height: 100%;
-  padding: 40px 0;
 
   .auth-intro {
     text-align: center;
@@ -1522,16 +1367,19 @@ export default {
       justify-content: space-between;
       line-height: 20px;
     }
+
     .legal-title {
       font-size: 13px;
       font-weight: 600;
       color: rgba(0, 0, 0, 0.75);
     }
+
     .legal-toggle {
       font-size: 12px;
       color: #1890ff;
       cursor: pointer;
     }
+
     .legal-content {
       margin-top: 8px;
       font-size: 12px;
@@ -1579,7 +1427,7 @@ export default {
 .password-requirements {
   font-size: 13px;
 
-  > div {
+  >div {
     display: flex;
     align-items: center;
     gap: 8px;
