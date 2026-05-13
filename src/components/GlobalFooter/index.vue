@@ -2,13 +2,19 @@
   <div :class="footerCls">
     <global-footer class="footer custom-render">
       <template #links>
-        <a @click="showLegal = true" style="cursor: pointer;">{{ $t('user.login.legal.title') }} © 2025-2026 NEXTFlutus</a>
+        <a
+          v-if="brandConfig.legal && brandConfig.legal.user_agreement_url"
+          :href="brandConfig.legal.user_agreement_url"
+          target="_blank"
+          rel="noopener noreferrer"
+        >{{ $t('user.login.legal.title') }} {{ brandConfig.copyright }}</a>
+        <a v-else @click="showLegal = true" style="cursor: pointer;">{{ $t('user.login.legal.title') }} {{ brandConfig.copyright }}</a>
       </template>
     </global-footer>
 
     <a-modal :visible="showLegal" :title="$t('user.login.legal.title')" :footer="null" @cancel="showLegal = false">
       <div :class="['legal-content', { 'legal-content-dark': isDarkTheme }]">
-        {{ $t('user.login.legal.content') }}
+        {{ (brandConfig.legal && brandConfig.legal.user_agreement_text) || $t('user.login.legal.content') }}
       </div>
       <div style="margin-top: 12px; text-align: right;">
         <a-button type="primary" @click="showLegal = false">OK</a-button>
@@ -18,6 +24,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import { GlobalFooter } from '@ant-design-vue/pro-layout'
 import { baseMixin } from '@/store/app-mixin'
 
@@ -33,11 +40,12 @@ export default {
     }
   },
   computed: {
-    // 判断是否为暗黑主题
+    ...mapState({
+      brandConfig: state => state.brand.config
+    }),
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
-    // Footer 容器类名
     footerCls () {
       return {
         'footer-wrapper': true,

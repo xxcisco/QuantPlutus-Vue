@@ -15,6 +15,7 @@
         @stop="handleStopBot"
         @edit="handleEditBot"
         @delete="handleDeleteBot"
+        @clone-as-script="handleCloneAsScript"
         @close="viewMode = 'list'; selectedBot = null"
       />
     </template>
@@ -69,6 +70,23 @@
           @delete="handleDeleteBot"
         />
       </div>
+
+      <!--
+        Subtle "escape hatch" link to the hidden /strategy-script page.
+        We intentionally do NOT make this a button or card — the wizard above
+        is the recommended path for 95% of users. This single line of small
+        muted text is enough for devs who specifically want raw Python.
+      -->
+      <div class="advanced-script-entry">
+        <a-icon type="code" class="advanced-script-entry__icon" />
+        <span class="advanced-script-entry__text">
+          {{ $t('trading-bot.advanced.scriptEntry.prefix') }}
+        </span>
+        <a class="advanced-script-entry__link" @click="goToScriptStrategies">
+          {{ $t('trading-bot.advanced.scriptEntry.linkText') }}
+          <a-icon type="arrow-right" />
+        </a>
+      </div>
     </template>
 
     <!-- 创建/编辑向导弹窗 -->
@@ -101,7 +119,7 @@
 
 <script>
 import { baseMixin } from '@/store/app-mixin'
-import { getStrategyList, startStrategy, stopStrategy, deleteStrategy } from '@/api/strategy'
+import { getStrategyList, startStrategy, stopStrategy, deleteStrategy, createStrategy } from '@/api/strategy'
 import { getUserInfo } from '@/api/login'
 import BotTypeCards from './components/BotTypeCards.vue'
 import BotCreateWizard from './components/BotCreateWizard.vue'
@@ -320,6 +338,99 @@ export default {
           this.loadBots()
         }
       })
+    },
+    /**
+     * Jump to the (hidden) script-strategy page. This is the only first-class
+     * entry into `/strategy-script` from the sidebar-visible UI now that the
+     * route is `hidden: true`.
+     */
+    goToScriptStrategies () {
+      this.$router.push({ path: '/strategy-script' })
+    },
+    /**
+     * Clone the current bot as an editable Python "script" strategy.
+     *
+     * Why this exists:
+     *   The trading-bot UI is a guided wizard with locked parameters. Power
+     *   users who want to add custom logic on top of e.g. a grid bot used to
+     *   have to rewrite everything from scratch. This handler takes the
+     *   already-generated `strategy_code` out of the bot row and saves it as
+     *   a brand new ScriptStrategy that the user can edit freely on the
+     *   `/strategy-script` page.
+     *
+     * Safety choices:
+     *   - execution_mode is forced to 'signal' (paper / notification only)
+     *     even if the source bot was live. Users must explicitly flip it to
+     *     'live' after reviewing the cloned code. This avoids accidentally
+     *     spinning up a second live bot trading the same symbol.
+     *   - We don't copy exchange credentials or signal channels — those are
+     *     forms the user has to confirm. They survive as defaults in the
+     *     clone's trading_config but are otherwise re-prompted.
+     *   - We never mutate the source bot.
+     */
+    handleCloneAsScript (bot) {
+      if (!bot) return
+      const code = bot.strategy_code
+      if (!code || typeof code !== 'string' || !code.trim()) {
+        this.$message.warning(this.$t('trading-bot.cloneAsScript.noCode'))
+        return
+      }
+      this.$confirm({
+        title: this.$t('trading-bot.cloneAsScript.confirmTitle'),
+        content: this.$t('trading-bot.cloneAsScript.confirmContent', { name: bot.strategy_name }),
+        okText: this.$t('trading-bot.cloneAsScript.confirmOk'),
+        cancelText: this.$t('trading-bot.cloneAsScript.confirmCancel'),
+        onOk: async () => {
+          const tc = bot.trading_config || {}
+          // Deep-copy so the new row never shares object identity with the
+          // source bot — otherwise an edit on one would silently mutate the
+          // other (both are Vue-reactive references).
+          const tradingConfig = JSON.parse(JSON.stringify(tc))
+          // Bot-only knobs are dead weight inside a script strategy.
+          delete tradingConfig.bot_type
+          delete tradingConfig.bot_params
+          // Pre-fill capital/timeframe/symbol from the source bot.
+          const payload = {
+            user_id: this.userId,
+            strategy_name: `${bot.strategy_name} ${this.$t('trading-bot.cloneAsScript.suffix')}`,
+            strategy_type: 'ScriptStrategy',
+            strategy_mode: 'script',
+            strategy_code: code,
+            market_category: bot.market_category || tc.market_category || 'crypto',
+            // Always start the clone in signal mode for safety; user can flip to live after review.
+            execution_mode: 'signal',
+            notification_config: bot.notification_config || { channels: [], targets: {} },
+            trading_config: tradingConfig
+          }
+          try {
+            const res = await createStrategy(payload)
+            if (res && res.code === 1) {
+              const newId = res.data && res.data.id
+              const h = this.$createElement
+              const link = newId ? h('a', {
+                attrs: { href: `/strategy-script?strategy_id=${newId}&mode=edit` },
+                on: {
+                  click: (e) => {
+                    e.preventDefault()
+                    this.$router.push({ path: '/strategy-script', query: { strategy_id: String(newId), mode: 'edit' } })
+                  }
+                }
+              }, this.$t('trading-bot.cloneAsScript.openLink')) : null
+              this.$notification.success({
+                message: this.$t('trading-bot.cloneAsScript.successTitle'),
+                description: link
+                  ? h('span', [this.$t('trading-bot.cloneAsScript.successDesc'), ' ', link])
+                  : this.$t('trading-bot.cloneAsScript.successDesc'),
+                duration: 6
+              })
+            } else {
+              this.$message.error((res && res.msg) || this.$t('trading-bot.cloneAsScript.failed'))
+            }
+          } catch (e) {
+            this.$message.error(e.message || this.$t('trading-bot.cloneAsScript.failed'))
+          }
+        }
+      })
     }
   }
 }
@@ -329,6 +440,47 @@ export default {
 .trading-bot {
   padding: 20px;
   min-height: calc(100vh - 120px);
+}
+
+/*
+ * Small muted "Need full Python control?" line beneath the bot list.
+ * Sized down on purpose — see template comment near `.advanced-script-entry`.
+ */
+.advanced-script-entry {
+  margin-top: 24px;
+  padding: 10px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  &__icon {
+    color: rgba(0, 0, 0, 0.25);
+    font-size: 12px;
+  }
+
+  &__text {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  &__link {
+    color: #1890ff;
+    cursor: pointer;
+    transition: color 0.2s;
+
+    .anticon {
+      margin-left: 2px;
+      font-size: 10px;
+    }
+
+    &:hover {
+      color: #40a9ff;
+    }
+  }
 }
 
 .page-header {
@@ -435,6 +587,17 @@ export default {
 // Dark theme
 .trading-bot.theme-dark {
   background: #141414;
+
+  .advanced-script-entry {
+    color: rgba(255, 255, 255, 0.35);
+
+    &__icon { color: rgba(255, 255, 255, 0.25); }
+    &__text { color: rgba(255, 255, 255, 0.45); }
+    &__link {
+      color: #177ddc;
+      &:hover { color: #3c9ae8; }
+    }
+  }
 
   .page-header {
     .page-title {

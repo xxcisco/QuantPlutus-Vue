@@ -18,8 +18,8 @@
         <div class="top">
           <div class="header">
             <a href="/">
-              <img src="~@/assets/logo.png" class="logo" alt="logo">
-              <!-- <span class="title">NEXTFlutus</span> -->
+              <img :src="loginLogo" class="logo" :alt="brandConfig.app_name">
+              <!-- <span class="title">{{ brandConfig.app_name }}</span> -->
             </a>
           </div>
           <!-- <div class="desc">
@@ -33,15 +33,21 @@
 
         <div class="footer">
           <div class="copyright">
-            Copyright &copy; 2025-2026 NEXTFlutus.com
+            {{ brandConfig.copyright }}
             <div style="width: 70%; text-align: center; margin-left: 15%; margin-top: 10px;">
-              <a @click="toggleRisk" style="color: #1890ff; cursor: pointer;">
+              <a
+                v-if="brandConfig.legal && brandConfig.legal.privacy_policy_url"
+                :href="brandConfig.legal.privacy_policy_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="color: #1890ff; cursor: pointer;"
+              >{{ $t('user.login.privacy.view') }}</a>
+              <a v-else @click="toggleRisk" style="color: #1890ff; cursor: pointer;">
                 {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
               </a>
-              <div v-if="showRisk"
-                style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.65); line-height: 1.6; text-align: left;">
+              <div v-if="showRisk && !(brandConfig.legal && brandConfig.legal.privacy_policy_url)" style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.65); line-height: 1.6; text-align: left;">
                 <div style="font-weight: 600; margin-bottom: 6px;">{{ $t('user.login.privacy.title') }}</div>
-                {{ $t('user.login.privacy.content') }}
+                {{ (brandConfig.legal && brandConfig.legal.privacy_policy_text) || $t('user.login.privacy.content') }}
               </div>
             </div>
           </div>
@@ -52,8 +58,10 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import { deviceMixin } from '@/store/device-mixin'
 import SelectLang from '@/components/SelectLang'
+import defaultLogo from '@/assets/logo.png'
 
 export default {
   name: 'UserLayout',
@@ -64,6 +72,17 @@ export default {
   data() {
     return {
       showRisk: false
+    }
+  },
+  computed: {
+    ...mapState({
+      brandConfig: state => state.brand.config
+    }),
+    // Logo on the login / register screen: prefer the light-theme brand URL,
+    // fall back to the bundled asset so the page never renders a broken image.
+    loginLogo () {
+      const remote = this.brandConfig && this.brandConfig.logos && this.brandConfig.logos.light
+      return remote || defaultLogo
     }
   },
   methods: {

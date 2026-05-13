@@ -26,18 +26,156 @@
     </div>
 
     <a-spin :spinning="loading">
-      <div class="settings-content">
-        <a-collapse v-model="activeKeys" :bordered="false" class="settings-collapse">
-          <a-collapse-panel v-for="(group, groupKey) in sortedSchema" :key="groupKey">
-            <template slot="header">
-              <span class="panel-header">
-                <a-icon :type="group.icon || getGroupIcon(groupKey)" class="panel-icon-left" />
-                <span class="panel-title">{{ getGroupTitle(groupKey, group.title) }}</span>
-              </span>
-            </template>
+      <div class="settings-layout">
+        <!-- 左侧分组导航 -->
+        <aside class="settings-nav">
+          <div class="settings-search">
+            <a-input
+              v-model="searchKeyword"
+              :placeholder="searchPlaceholder"
+              allowClear
+            >
+              <a-icon slot="prefix" type="search" />
+            </a-input>
+          </div>
+          <a-menu
+            mode="inline"
+            :selected-keys="[activeGroupKey]"
+            class="settings-menu"
+            @click="onMenuClick"
+          >
+            <a-menu-item
+              v-for="(group, groupKey) in sortedSchema"
+              :key="groupKey"
+            >
+              <a-icon :type="group.icon || getGroupIcon(groupKey)" />
+              <span>{{ getGroupTitle(groupKey, group.title) }}</span>
+            </a-menu-item>
+          </a-menu>
+        </aside>
+
+        <!-- 右侧详情区 -->
+        <section class="settings-detail">
+          <!-- 搜索模式：摊平展示所有命中项 -->
+          <div v-if="searchKeyword.trim()" class="settings-detail-inner">
+            <div class="detail-header">
+              <a-icon type="search" class="detail-icon" />
+              <h3 class="detail-title">
+                {{ searchResultsTitle }}
+              </h3>
+            </div>
+            <a-empty
+              v-if="searchResults.length === 0"
+              :description="emptySearchLabel"
+              style="margin-top: 48px;"
+            />
+            <a-form v-else :form="form" layout="vertical" class="settings-form">
+              <a-row :gutter="24">
+                <a-col
+                  v-for="entry in searchResults"
+                  :key="entry.item.key"
+                  :xs="24"
+                  :sm="24"
+                  :md="12"
+                  :lg="12"
+                >
+                  <div class="search-result-group-tag">
+                    <a-icon :type="getGroupIcon(entry.groupKey)" />
+                    {{ getGroupTitle(entry.groupKey, entry.groupTitle) }}
+                  </div>
+                  <a-form-item>
+                    <template slot="label">
+                      <span class="form-label-with-tooltip">
+                        <span class="label-text">{{ getItemLabel(entry.groupKey, entry.item) }}</span>
+                        <a-tooltip v-if="entry.item.description" placement="top">
+                          <template slot="title">
+                            {{ getItemDescription(entry.groupKey, entry.item) }}
+                          </template>
+                          <a-icon type="question-circle" class="help-icon" />
+                        </a-tooltip>
+                        <a
+                          v-if="entry.item.link"
+                          :href="entry.item.link"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="api-link"
+                          @click.stop
+                        >
+                          <a-icon type="link" />
+                          {{ getLinkText(entry.item.link_text) }}
+                        </a>
+                      </span>
+                    </template>
+                    <template v-if="entry.item.type === 'text'">
+                      <a-input
+                        v-decorator="[entry.item.key, { initialValue: getFieldValue(entry.groupKey, entry.item.key) }]"
+                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                        allowClear
+                      />
+                    </template>
+                    <template v-else-if="entry.item.type === 'password'">
+                      <div class="password-field">
+                        <a-input
+                          v-decorator="[entry.item.key, { initialValue: getFieldValue(entry.groupKey, entry.item.key) }]"
+                          :type="passwordVisible[entry.item.key] ? 'text' : 'password'"
+                          :placeholder="$t('settings.inputApiKey')"
+                          allowClear
+                        >
+                          <a-icon
+                            slot="suffix"
+                            :type="passwordVisible[entry.item.key] ? 'eye' : 'eye-invisible'"
+                            @click="togglePasswordVisible(entry.item.key)"
+                            style="cursor: pointer"
+                          />
+                        </a-input>
+                      </div>
+                    </template>
+                    <template v-else-if="entry.item.type === 'number'">
+                      <a-input-number
+                        v-decorator="[entry.item.key, { initialValue: getNumberValue(entry.groupKey, entry.item.key, entry.item.default) }]"
+                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : ''"
+                        style="width: 100%"
+                      />
+                    </template>
+                    <template v-else-if="entry.item.type === 'boolean'">
+                      <a-switch
+                        v-decorator="[entry.item.key, { valuePropName: 'checked', initialValue: getBoolValue(entry.groupKey, entry.item.key, entry.item.default) }]"
+                      />
+                    </template>
+                    <template v-else-if="entry.item.type === 'select'">
+                      <a-select
+                        v-decorator="[entry.item.key, { initialValue: getFieldValue(entry.groupKey, entry.item.key) || entry.item.default }]"
+                        :placeholder="entry.item.default ? `${$t('settings.default')}: ${entry.item.default}` : $t('settings.pleaseSelect')"
+                      >
+                        <a-select-option
+                          v-for="opt in getSelectOptions(entry.item)"
+                          :key="opt.value"
+                          :value="opt.value"
+                        >
+                          {{ opt.label }}
+                        </a-select-option>
+                      </a-select>
+                    </template>
+                    <div class="field-default" v-if="entry.item.default && entry.item.type !== 'boolean' && entry.item.type !== 'password'">
+                      {{ $t('settings.default') }}: {{ entry.item.default }}
+                    </div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+            </a-form>
+          </div>
+
+          <!-- 正常模式：只显示当前选中分组 -->
+          <div v-else-if="currentGroup" class="settings-detail-inner">
+            <div class="detail-header">
+              <a-icon :type="currentGroup.icon || getGroupIcon(activeGroupKey)" class="detail-icon" />
+              <h3 class="detail-title">
+                {{ getGroupTitle(activeGroupKey, currentGroup.title) }}
+              </h3>
+            </div>
 
             <!-- AI 组特殊：显示 OpenRouter 余额查询卡片 -->
-            <div v-if="groupKey === 'ai'" class="openrouter-balance-card">
+            <div v-if="activeGroupKey === 'ai'" class="openrouter-balance-card">
               <a-card size="small" :bordered="false">
                 <div class="balance-header">
                   <span class="balance-title">
@@ -96,15 +234,16 @@
                   :sm="24"
                   :md="12"
                   :lg="12"
-                  v-for="item in group.items"
-                  :key="item.key">
+                  v-for="item in currentGroup.items"
+                  :key="item.key"
+                >
                   <a-form-item>
                     <template slot="label">
                       <span class="form-label-with-tooltip">
-                        <span class="label-text">{{ getItemLabel(groupKey, item) }}</span>
+                        <span class="label-text">{{ getItemLabel(activeGroupKey, item) }}</span>
                         <a-tooltip v-if="item.description" placement="top">
                           <template slot="title">
-                            {{ getItemDescription(groupKey, item) }}
+                            {{ getItemDescription(activeGroupKey, item) }}
                           </template>
                           <a-icon type="question-circle" class="help-icon" />
                         </a-tooltip>
@@ -121,20 +260,17 @@
                         </a>
                       </span>
                     </template>
-                    <!-- 文本输入 -->
                     <template v-if="item.type === 'text'">
                       <a-input
-                        v-decorator="[item.key, { initialValue: getFieldValue(groupKey, item.key) }]"
+                        v-decorator="[item.key, { initialValue: getFieldValue(activeGroupKey, item.key) }]"
                         :placeholder="item.default ? `${$t('settings.default')}: ${item.default}` : ''"
                         allowClear
                       />
                     </template>
-
-                    <!-- 密码输入 -->
                     <template v-else-if="item.type === 'password'">
                       <div class="password-field">
                         <a-input
-                          v-decorator="[item.key, { initialValue: getFieldValue(groupKey, item.key) }]"
+                          v-decorator="[item.key, { initialValue: getFieldValue(activeGroupKey, item.key) }]"
                           :type="passwordVisible[item.key] ? 'text' : 'password'"
                           :placeholder="$t('settings.inputApiKey')"
                           allowClear
@@ -148,27 +284,21 @@
                         </a-input>
                       </div>
                     </template>
-
-                    <!-- 数字输入 -->
                     <template v-else-if="item.type === 'number'">
                       <a-input-number
-                        v-decorator="[item.key, { initialValue: getNumberValue(groupKey, item.key, item.default) }]"
+                        v-decorator="[item.key, { initialValue: getNumberValue(activeGroupKey, item.key, item.default) }]"
                         :placeholder="item.default ? `${$t('settings.default')}: ${item.default}` : ''"
                         style="width: 100%"
                       />
                     </template>
-
-                    <!-- 布尔开关 -->
                     <template v-else-if="item.type === 'boolean'">
                       <a-switch
-                        v-decorator="[item.key, { valuePropName: 'checked', initialValue: getBoolValue(groupKey, item.key, item.default) }]"
+                        v-decorator="[item.key, { valuePropName: 'checked', initialValue: getBoolValue(activeGroupKey, item.key, item.default) }]"
                       />
                     </template>
-
-                    <!-- 下拉选择 -->
                     <template v-else-if="item.type === 'select'">
                       <a-select
-                        v-decorator="[item.key, { initialValue: getFieldValue(groupKey, item.key) || item.default }]"
+                        v-decorator="[item.key, { initialValue: getFieldValue(activeGroupKey, item.key) || item.default }]"
                         :placeholder="item.default ? `${$t('settings.default')}: ${item.default}` : $t('settings.pleaseSelect')"
                       >
                         <a-select-option
@@ -180,7 +310,6 @@
                         </a-select-option>
                       </a-select>
                     </template>
-
                     <div class="field-default" v-if="item.default && item.type !== 'boolean' && item.type !== 'password'">
                       {{ $t('settings.default') }}: {{ item.default }}
                     </div>
@@ -188,8 +317,8 @@
                 </a-col>
               </a-row>
             </a-form>
-          </a-collapse-panel>
-        </a-collapse>
+          </div>
+        </section>
       </div>
     </a-spin>
 
@@ -219,7 +348,12 @@ export default {
       saving: false,
       schema: {},
       values: {},
-      activeKeys: ['auth', 'ai', 'trading'],
+      // The vertically-listed group currently selected in the left nav.
+      // Defaults to the first group in ``sortedSchema`` once data arrives.
+      activeGroupKey: '',
+      // Free-text search across every group / item. Non-empty value switches
+      // the right-side detail pane into "search results" mode.
+      searchKeyword: '',
       passwordVisible: {},
       showRestartTip: false,
       // OpenRouter 余额
@@ -244,6 +378,47 @@ export default {
         sorted[key] = value
       }
       return sorted
+    },
+    // Currently selected group object (right-side detail content).
+    currentGroup () {
+      return this.sortedSchema[this.activeGroupKey] || null
+    },
+    // Flattened, filtered search hits. Match is case-insensitive against the
+    // localized label, the localized description and the raw ENV key, so
+    // operators can search by either UI text or .env name.
+    searchResults () {
+      const kw = this.searchKeyword.trim().toLowerCase()
+      if (!kw) return []
+      const out = []
+      for (const [groupKey, group] of Object.entries(this.sortedSchema)) {
+        for (const item of (group.items || [])) {
+          const label = (this.getItemLabel(groupKey, item) || '').toLowerCase()
+          const desc = (this.getItemDescription(groupKey, item) || '').toLowerCase()
+          const key = (item.key || '').toLowerCase()
+          if (label.includes(kw) || desc.includes(kw) || key.includes(kw)) {
+            out.push({ groupKey, groupTitle: group.title, item })
+          }
+        }
+      }
+      return out
+    },
+    // Localized strings — $t returns the key itself when missing, so we
+    // detect that explicitly to fall back to English.
+    searchPlaceholder () {
+      const k = 'settings.search.placeholder'
+      const t = this.$t(k)
+      return (t && t !== k) ? t : 'Search settings…'
+    },
+    searchResultsTitle () {
+      const k = 'settings.search.results'
+      const t = this.$t(k)
+      const tpl = (t && t !== k) ? t : 'Search results ({count})'
+      return tpl.replace('{count}', String(this.searchResults.length))
+    },
+    emptySearchLabel () {
+      const k = 'settings.search.empty'
+      const t = this.$t(k)
+      return (t && t !== k) ? t : 'No matching settings'
     }
   },
   beforeCreate () {
@@ -253,6 +428,13 @@ export default {
     this.loadSettings()
   },
   methods: {
+    // Left-nav click: switch the currently displayed group.  Clearing the
+    // search keyword on group change matches user intent ("I navigated, I'm
+    // not in search-mode anymore").
+    onMenuClick ({ key }) {
+      this.activeGroupKey = key
+      this.searchKeyword = ''
+    },
     // 兼容后端 schema options 两种格式：
     // - string[]: ['openrouter','openai', ...]
     // - {value,label}[]: [{value:'openrouter',label:'OpenRouter'}, ...]
@@ -292,6 +474,14 @@ export default {
         if (valuesRes.code === 1) {
           this.values = valuesRes.data
         }
+
+        // After a fresh load: if no group has been picked yet (first mount)
+        // or the previously active key disappeared, fall back to the first
+        // group in display order.  This avoids a blank right pane.
+        const keys = Object.keys(this.sortedSchema)
+        if (keys.length && (!this.activeGroupKey || !keys.includes(this.activeGroupKey))) {
+          this.activeGroupKey = keys[0]
+        }
       } catch (error) {
         this.$message.error(this.$t('settings.loadFailed'))
       } finally {
@@ -319,6 +509,10 @@ export default {
 
     getGroupIcon (groupKey) {
       const icons = {
+        brand: 'crown',
+        contact: 'customer-service',
+        social: 'team',
+        legal: 'safety-certificate',
         auth: 'lock',
         email: 'mail',
         sms: 'phone',
@@ -435,12 +629,14 @@ export default {
           const res = await saveSettings(data)
           if (res.code === 1) {
             this.$message.success(res.msg || this.$t('settings.saveSuccess'))
-            // 显示重启提示
             if (res.data && res.data.requires_restart) {
               this.showRestartTip = true
             }
-            // 重新加载配置
             this.loadSettings()
+            // Brand / contact / social / legal live under the same .env. Refresh
+            // the global brand store so logo / footer / version label reflect
+            // the change without a hard reload.
+            this.$store.dispatch('LoadBrandConfig', { force: true }).catch(() => {})
           } else {
             this.$message.error(res.msg || this.$t('settings.saveFailed'))
           }
@@ -496,8 +692,116 @@ export default {
     }
   }
 
-  .settings-content {
+  .settings-layout {
+    display: flex;
+    gap: 20px;
     margin-bottom: 80px;
+    align-items: flex-start;
+  }
+
+  .settings-nav {
+    flex: 0 0 240px;
+    position: sticky;
+    top: 88px;
+    background: #fff;
+    border-radius: @border-radius;
+    box-shadow: @card-shadow;
+    padding: 16px 0;
+    max-height: calc(100vh - 200px);
+    overflow: auto;
+
+    .settings-search {
+      padding: 0 16px 12px;
+
+      /deep/ .ant-input-affix-wrapper {
+        border-radius: 8px;
+      }
+    }
+
+    .settings-menu {
+      border: none;
+      background: transparent;
+
+      /deep/ .ant-menu-item {
+        margin: 4px 8px;
+        border-radius: 8px;
+        height: 40px;
+        line-height: 40px;
+        padding-left: 16px !important;
+        color: #475569;
+        font-weight: 500;
+
+        .anticon {
+          color: #94a3b8;
+        }
+
+        &:hover {
+          background: rgba(24, 144, 255, 0.06);
+          color: @primary-color;
+          .anticon { color: @primary-color; }
+        }
+
+        &.ant-menu-item-selected {
+          background: linear-gradient(135deg, rgba(24, 144, 255, 0.10), rgba(19, 194, 194, 0.08));
+          color: @primary-color;
+          font-weight: 600;
+          .anticon { color: @primary-color; }
+
+          &::after { display: none; }
+        }
+      }
+    }
+  }
+
+  .settings-detail {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: #fff;
+    border-radius: @border-radius;
+    box-shadow: @card-shadow;
+    padding: 24px;
+
+    .settings-detail-inner {
+      width: 100%;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .detail-icon {
+        font-size: 20px;
+        color: @primary-color;
+      }
+
+      .detail-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e3a5f;
+      }
+    }
+
+    .search-result-group-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+      padding: 2px 8px;
+      background: rgba(24, 144, 255, 0.08);
+      color: @primary-color;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+
+      .anticon {
+        font-size: 11px;
+      }
+    }
   }
 
   // OpenRouter 余额查询卡片
@@ -545,60 +849,6 @@ export default {
       color: #8c8c8c;
       font-size: 13px;
       padding: 8px 0;
-    }
-  }
-
-  .settings-collapse {
-    background: transparent;
-
-    /deep/ .ant-collapse-item {
-      margin-bottom: 16px;
-      border: none;
-      border-radius: @border-radius;
-      overflow: hidden;
-      background: #fff;
-      box-shadow: @card-shadow;
-
-      .ant-collapse-header {
-        font-size: 16px;
-        font-weight: 600;
-        color: #1e3a5f;
-        padding: 16px 24px;
-        padding-left: 48px;
-        background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
-        border-bottom: 1px solid #f0f0f0;
-        display: flex;
-        align-items: center;
-
-        .ant-collapse-arrow {
-          color: @primary-color;
-          left: 20px;
-        }
-
-        .panel-header {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          flex: 1;
-
-          .panel-icon-left {
-            font-size: 18px;
-            color: @primary-color;
-          }
-
-          .panel-title {
-            font-size: 16px;
-          }
-        }
-      }
-
-      .ant-collapse-content {
-        border-top: none;
-
-        .ant-collapse-content-box {
-          padding: 24px;
-        }
-      }
     }
   }
 
@@ -727,33 +977,42 @@ export default {
       }
     }
 
-    .settings-collapse {
-      /deep/ .ant-collapse-item {
-        background: #1c1c1c;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    .settings-nav {
+      background: #1c1c1c;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-        .ant-collapse-header {
-          background: linear-gradient(135deg, #252525 0%, #1c1c1c 100%);
-          color: #e0e6ed;
-          border-bottom-color: rgba(255, 255, 255, 0.06);
+      /deep/ .ant-menu-item {
+        color: #c9d1d9;
+        .anticon { color: #8b949e; }
 
-          .panel-header {
-            .panel-icon-left {
-              color: #58a6ff;
-            }
-            .panel-title {
-              color: #e0e6ed;
-            }
-          }
+        &:hover {
+          background: rgba(88, 166, 255, 0.12);
+          color: #58a6ff;
+          .anticon { color: #58a6ff; }
         }
 
-        .ant-collapse-content {
-          background: #1c1c1c;
-
-          .ant-collapse-content-box {
-            background: #1c1c1c;
-          }
+        &.ant-menu-item-selected {
+          background: linear-gradient(135deg, rgba(88, 166, 255, 0.18), rgba(19, 194, 194, 0.10));
+          color: #58a6ff;
+          .anticon { color: #58a6ff; }
         }
+      }
+    }
+
+    .settings-detail {
+      background: #1c1c1c;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+
+      .detail-header {
+        border-bottom-color: rgba(255, 255, 255, 0.08);
+
+        .detail-icon { color: #58a6ff; }
+        .detail-title { color: #e0e6ed; }
+      }
+
+      .search-result-group-tag {
+        background: rgba(88, 166, 255, 0.18);
+        color: #58a6ff;
       }
     }
 
@@ -842,6 +1101,22 @@ export default {
 @media (max-width: 768px) {
   .settings-page {
     padding: 16px;
+
+    .settings-layout {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .settings-nav {
+      flex: 0 0 auto;
+      position: static;
+      width: 100%;
+      max-height: 280px;
+    }
+
+    .settings-detail {
+      padding: 16px;
+    }
 
     .settings-footer {
       left: 0;

@@ -38,8 +38,14 @@
           <a-radio-button value="free">{{ $t('community.freeOnly') }}</a-radio-button>
           <a-radio-button value="paid">{{ $t('community.paidOnly') }}</a-radio-button>
         </a-radio-group>
-        <!-- 排序 -->
-        <a-select v-model="filters.sortBy" style="width: 140px" @change="handleFilterChange">
+        <!--
+          Sort. Default = composite score, so high-quality indicators
+          surface to the top of page 1 without the user having to
+          discover the option. The other modes are still useful
+          (newest = "what's new", hot = "what's everyone using").
+        -->
+        <a-select v-model="filters.sortBy" style="width: 160px" @change="handleFilterChange">
+          <a-select-option value="score">{{ $t('community.sortScore') }}</a-select-option>
           <a-select-option value="newest">{{ $t('community.sortNewest') }}</a-select-option>
           <a-select-option value="hot">{{ $t('community.sortHot') }}</a-select-option>
           <a-select-option value="rating">{{ $t('community.sortRating') }}</a-select-option>
@@ -283,7 +289,11 @@ export default {
       filters: {
         keyword: '',
         pricingType: '',
-        sortBy: 'newest'
+        // 'score' = composite multi-factor scoring (return / sharpe /
+        // drawdown / win-rate / stability), see backend
+        // services/community_service.py::_summarise_indicator_runs.
+        // Default landing puts the best-scoring indicators on page 1.
+        sortBy: 'score'
       },
       pagination: {
         current: 1,

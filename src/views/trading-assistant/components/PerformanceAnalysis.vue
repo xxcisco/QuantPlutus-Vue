@@ -35,6 +35,51 @@
           </div>
           <div ref="dailyChart" class="chart-container chart-container--compact"></div>
         </div>
+
+        <div class="chart-card deviation-card">
+          <div class="chart-card-head">
+            <span class="chart-card-title">{{ $t('trading-assistant.performance.dryRunDeviation') }}</span>
+            <span class="chart-card-sub">{{ $t('trading-assistant.performance.dryRunDeviationHint') }}</span>
+            <a-tooltip v-if="deviationReport && deviationReport.verdict" :title="$t('trading-assistant.performance.dryRunVerdict.' + (deviationReport.verdict.level || 'unknown'))">
+              <a-tag :color="deviationVerdictColor" class="deviation-verdict-tag">{{ deviationVerdictLabel }}</a-tag>
+            </a-tooltip>
+          </div>
+          <a-spin :spinning="deviationLoading">
+            <div v-if="deviationReport && deviationReport.summary && deviationReport.summary.sampleSize > 0">
+              <div class="deviation-summary-grid">
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunAvgSlippage') }}</span>
+                  <strong :class="deviationSlippageClass(deviationReport.summary.avgSlippageBps)">{{ formatBps(deviationReport.summary.avgSlippageBps) }}</strong>
+                </div>
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunMedianSlippage') }}</span>
+                  <strong :class="deviationSlippageClass(deviationReport.summary.medianSlippageBps)">{{ formatBps(deviationReport.summary.medianSlippageBps) }}</strong>
+                </div>
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunP90Slippage') }}</span>
+                  <strong :class="deviationSlippageClass(deviationReport.summary.p90SlippageBps)">{{ formatBps(deviationReport.summary.p90SlippageBps) }}</strong>
+                </div>
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunMaxSlippage') }}</span>
+                  <strong :class="deviationSlippageClass(deviationReport.summary.maxAdverseSlippageBps)">{{ formatBps(deviationReport.summary.maxAdverseSlippageBps) }}</strong>
+                </div>
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunTotalCost') }}</span>
+                  <strong>{{ formatMoney(deviationReport.summary.totalSlippageCost) }}</strong>
+                </div>
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunAvgLatency') }}</span>
+                  <strong>{{ formatSeconds(deviationReport.summary.avgLatencySeconds) }}</strong>
+                </div>
+                <div class="deviation-summary-cell">
+                  <span class="deviation-summary-label">{{ $t('trading-assistant.performance.dryRunSamples') }}</span>
+                  <strong>{{ deviationReport.summary.matchedTrades }} / {{ deviationReport.summary.sampleSize }}</strong>
+                </div>
+              </div>
+            </div>
+            <a-empty v-else-if="!deviationLoading" :description="$t('trading-assistant.performance.dryRunEmpty')" class="strategy-tab-empty deviation-empty" />
+          </a-spin>
+        </div>
       </div>
 
       <a-empty
@@ -47,7 +92,7 @@
 </template>
 
 <script>
-import { getStrategyEquityCurve, getStrategyTrades } from '@/api/strategy'
+import { getStrategyDryRunDeviation, getStrategyEquityCurve, getStrategyTrades } from '@/api/strategy'
 
 export default {
   name: 'PerformanceAnalysis',
@@ -64,7 +109,9 @@ export default {
       stepReturns: [],
       stepLabels: [],
       equityChartInstance: null,
-      dailyChartInstance: null
+      dailyChartInstance: null,
+      deviationLoading: false,
+      deviationReport: null
     }
   },
   computed: {
@@ -148,6 +195,23 @@ export default {
           valueClass: ''
         }
       ]
+    },
+    deviationVerdictLabel () {
+      const level = (this.deviationReport && this.deviationReport.verdict && this.deviationReport.verdict.level) || 'unknown'
+      const map = {
+        good: this.$t('trading-assistant.performance.dryRunVerdictGood'),
+        warn: this.$t('trading-assistant.performance.dryRunVerdictWarn'),
+        bad: this.$t('trading-assistant.performance.dryRunVerdictBad'),
+        unknown: this.$t('trading-assistant.performance.dryRunVerdictUnknown')
+      }
+      return map[level] || map.unknown
+    },
+    deviationVerdictColor () {
+      const level = (this.deviationReport && this.deviationReport.verdict && this.deviationReport.verdict.level) || 'unknown'
+      if (level === 'good') return 'green'
+      if (level === 'warn') return 'orange'
+      if (level === 'bad') return 'red'
+      return 'default'
     }
   },
   watch: {
@@ -178,9 +242,53 @@ export default {
       if (v < 0) return 'metric-val-neg'
       return ''
     },
+    formatBps (value) {
+      if (value == null || isNaN(value)) return '—'
+      const v = Number(value)
+      const sign = v > 0 ? '+' : ''
+      return `${sign}${v.toFixed(1)} bps`
+    },
+    formatMoney (value) {
+      if (value == null || isNaN(value)) return '—'
+      const v = Number(value)
+      const sign = v < 0 ? '-' : ''
+      return `${sign}$${Math.abs(v).toFixed(2)}`
+    },
+    formatSeconds (value) {
+      if (value == null || isNaN(value)) return '—'
+      const v = Number(value)
+      if (v < 60) return `${v.toFixed(1)} s`
+      if (v < 3600) return `${(v / 60).toFixed(1)} min`
+      return `${(v / 3600).toFixed(1)} h`
+    },
+    deviationSlippageClass (value) {
+      if (value == null || isNaN(value)) return ''
+      const v = Number(value)
+      if (v >= 30) return 'deviation-value--bad'
+      if (v >= 10) return 'deviation-value--warn'
+      if (v <= -10) return 'deviation-value--good'
+      return ''
+    },
+    async loadDeviationReport () {
+      if (!this.strategyId) return
+      this.deviationLoading = true
+      try {
+        const res = await getStrategyDryRunDeviation(this.strategyId)
+        if (res && res.code === 1) {
+          this.deviationReport = res.data || null
+        } else {
+          this.deviationReport = null
+        }
+      } catch (e) {
+        this.deviationReport = null
+      } finally {
+        this.deviationLoading = false
+      }
+    },
     async loadData () {
       if (!this.strategyId) return
       this.loading = true
+      this.loadDeviationReport()
       try {
         const [curveRes, tradesRes] = await Promise.all([
           getStrategyEquityCurve(this.strategyId),
@@ -656,5 +764,60 @@ export default {
   .strategy-tab-empty /deep/ .ant-empty-description {
     color: rgba(255, 255, 255, 0.35);
   }
+
+  .deviation-summary-cell {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.06);
+    strong {
+      color: #e6edf3;
+    }
+    .deviation-summary-label {
+      color: rgba(255, 255, 255, 0.45);
+    }
+  }
+}
+
+.deviation-card {
+  margin-top: 16px;
+}
+.deviation-verdict-tag {
+  margin-left: auto;
+  font-weight: 500;
+}
+.deviation-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 12px 4px 4px;
+}
+.deviation-summary-cell {
+  background: rgba(0, 0, 0, 0.025);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  .deviation-summary-label {
+    font-size: 12px;
+    color: #8c8c8c;
+  }
+  strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: #262626;
+  }
+}
+.deviation-value--good {
+  color: #389e0d !important;
+}
+.deviation-value--warn {
+  color: #d48806 !important;
+}
+.deviation-value--bad {
+  color: #cf1322 !important;
+}
+.deviation-empty {
+  padding: 12px 0;
 }
 </style>

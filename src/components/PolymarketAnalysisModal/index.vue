@@ -25,6 +25,7 @@
               :rows="3"
               :disabled="analyzing"
               @pressEnter="handleAnalyze"
+              @input="clearCandidates"
             />
             <div class="input-actions">
               <a-button
@@ -38,6 +39,47 @@
               >
                 {{ $t('polymarket.analysis.analyzeButton') }}
               </a-button>
+            </div>
+
+            <!-- 模糊匹配候选列表（HTTP 409） -->
+            <div class="disambiguation-section" v-if="candidates.length > 0">
+              <a-alert
+                :message="$t('polymarket.analysis.multipleMatched')"
+                :description="$t('polymarket.analysis.multipleMatchedTip')"
+                type="warning"
+                show-icon
+                style="margin-top: 16px; margin-bottom: 12px;"
+              />
+              <div class="candidate-list">
+                <div
+                  v-for="(c, idx) in candidates"
+                  :key="c.market_id || idx"
+                  class="candidate-item"
+                >
+                  <div class="candidate-main">
+                    <div class="candidate-question" :title="c.question">{{ c.question }}</div>
+                    <a-button
+                      v-if="c.polymarket_url"
+                      type="link"
+                      size="small"
+                      icon="link"
+                      :href="c.polymarket_url"
+                      target="_blank"
+                    >
+                      {{ $t('polymarket.analysis.viewOnPolymarket') }}
+                    </a-button>
+                  </div>
+                  <a-button
+                    type="primary"
+                    size="small"
+                    :disabled="analyzing"
+                    :loading="analyzing && pickedCandidateId === c.market_id"
+                    @click="useCandidate(c)"
+                  >
+                    {{ $t('polymarket.analysis.useThisMarket') }}
+                  </a-button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -225,6 +267,8 @@ export default {
       inputText: '',
       analyzing: false,
       analysisResult: null,
+      candidates: [],
+      pickedCandidateId: null,
       activeTab: 'analyze',
       historyLoading: false,
       historyList: [],
@@ -255,6 +299,7 @@ export default {
 
       this.analyzing = true
       this.analysisResult = null
+      this.candidates = []
 
       analyzePolymarketMarket({
         input: this.inputText.trim(),
@@ -267,7 +312,6 @@ export default {
           } else {
             if (res.msg === 'Insufficient credits') {
               this.$message.error(this.$t('polymarket.analysis.insufficientCredits'))
-              // 跳转到充值页面
               this.$router.push('/billing')
             } else {
               this.$message.error(res.msg || this.$t('polymarket.analysis.failed'))
@@ -275,29 +319,78 @@ export default {
           }
         })
         .catch(err => {
-          console.error('Polymarket analysis error:', err)
-          if (err.response && err.response.data && err.response.data.msg === 'Insufficient credits') {
-            this.$message.error(this.$t('polymarket.analysis.insufficientCredits'))
-            this.$router.push('/billing')
-          } else {
-            this.$message.error(this.$t('polymarket.analysis.failed'))
-          }
+          this.handleAnalyzeError(err)
         })
         .finally(() => {
           this.analyzing = false
+          this.pickedCandidateId = null
         })
+    },
+    handleAnalyzeError (err) {
+      console.error('Polymarket analysis error:', err)
+      const response = err && err.response
+      const status = response && response.status
+      const data = response && response.data
+      const serverMsg = data && (data.msg || data.message)
+
+      if (data && serverMsg === 'Insufficient credits') {
+        this.$message.error(this.$t('polymarket.analysis.insufficientCredits'))
+        this.$router.push('/billing')
+        return
+      }
+
+      // 后端 409：多个候选市场，让用户挑一个
+      if (status === 409 && data && data.data && Array.isArray(data.data.candidates) && data.data.candidates.length > 0) {
+        this.candidates = data.data.candidates
+        this.$message.warning(this.$t('polymarket.analysis.multipleMatched'))
+        return
+      }
+
+      // 后端 404：精确找不到市场
+      if (status === 404) {
+        this.$message.error(serverMsg || this.$t('polymarket.analysis.marketNotFound'))
+        return
+      }
+
+      // 后端 400：URL 解析失败
+      if (status === 400) {
+        this.$message.error(serverMsg || this.$t('polymarket.analysis.urlNotParseable'))
+        return
+      }
+
+      this.$message.error(serverMsg || this.$t('polymarket.analysis.failed'))
+    },
+    useCandidate (candidate) {
+      if (!candidate) return
+      // 优先使用 polymarket_url（最精确），其次用 market_id
+      const next = candidate.polymarket_url || candidate.market_id
+      if (!next) {
+        this.$message.error(this.$t('polymarket.analysis.failed'))
+        return
+      }
+      this.inputText = next
+      this.candidates = []
+      this.pickedCandidateId = candidate.market_id || null
+      this.handleAnalyze()
+    },
+    clearCandidates () {
+      if (this.candidates.length > 0) {
+        this.candidates = []
+      }
     },
     handleNewAnalysis () {
       this.inputText = ''
       this.analysisResult = null
+      this.candidates = []
     },
     handleClose () {
       this.$emit('close')
-      // 延迟重置，避免关闭动画时闪烁
       setTimeout(() => {
         this.inputText = ''
         this.analysisResult = null
         this.analyzing = false
+        this.candidates = []
+        this.pickedCandidateId = null
       }, 300)
     },
     getStatusColor (status) {
@@ -433,6 +526,46 @@ export default {
   .input-section {
     .input-actions {
       margin-top: 12px;
+    }
+
+    .disambiguation-section {
+      .candidate-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .candidate-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        background: #fafafa;
+        transition: border-color 0.2s, background-color 0.2s;
+      }
+      .candidate-item:hover {
+        border-color: #1890ff;
+        background: #f0f7ff;
+      }
+      .candidate-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .candidate-question {
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.85);
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
     }
   }
 
@@ -657,6 +790,20 @@ export default {
         .reasoning-text {
           color: #d4d4d4;
         }
+      }
+    }
+
+    .input-section .disambiguation-section {
+      .candidate-item {
+        background: #1c1c1c;
+        border-color: #2a2a2a;
+      }
+      .candidate-item:hover {
+        background: #232a33;
+        border-color: #58a6ff;
+      }
+      .candidate-question {
+        color: #e5e5e5;
       }
     }
 }

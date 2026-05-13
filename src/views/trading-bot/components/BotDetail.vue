@@ -45,6 +45,24 @@
           >
             <a-icon type="edit" /> {{ $t('trading-bot.action.edit') }}
           </a-button>
+          <!--
+            "Clone as code" escape hatch. The button is hidden unless the bot
+            already has a Python `strategy_code` saved (it always should, but
+            we guard against legacy rows). The actual cloning is owned by the
+            parent (trading-bot/index.vue) so we just emit and let it decide
+            how to confirm + call the API + handle the success toast.
+          -->
+          <a-tooltip
+            v-if="bot && bot.strategy_code"
+            :title="$t('trading-bot.cloneAsScript.tooltip')"
+          >
+            <a-button
+              icon="code-sandbox"
+              @click="$emit('clone-as-script', bot)"
+            >
+              {{ $t('trading-bot.action.cloneAsScript') }}
+            </a-button>
+          </a-tooltip>
           <a-button
             type="danger"
             ghost

@@ -4,19 +4,29 @@
       <a-avatar size="small" :src="currentUser.avatar" class="antd-pro-global-header-index-avatar" />
       <span>{{ currentUser.name }}</span>
     </span>
-    <template #overlay>
-      <a-menu class="ant-pro-drop-down menu" :selected-keys="[]">
-        <a-menu-item key="profile" @click="handleProfile">
-          <a-icon type="user" />
-          {{ $t('menu.profile') || 'My Profile' }}
-        </a-menu-item>
-        <a-menu-divider />
-        <a-menu-item key="logout" @click="handleLogout">
-          <a-icon type="logout" />
-          {{ $t('menu.account.logout') }}
-        </a-menu-item>
-      </a-menu>
-    </template>
+    <!--
+      ant-design-vue 1.x (Vue 2) only recognises the legacy ``slot="overlay"``
+      attribute here; using the Vue 2.6 ``<template #overlay>`` shorthand
+      silently degrades to a default slot, which renders the menu items
+      inline next to the avatar inside the flex header. Keep this attribute
+      style and the explicit ``mode="vertical"`` on the menu as a belt-and-
+      braces guarantee the dropdown stays vertical.
+    -->
+    <a-menu slot="overlay" mode="vertical" class="ant-pro-drop-down menu" :selected-keys="[]">
+      <a-menu-item key="profile" @click="handleProfile">
+        <a-icon type="user" />
+        {{ $t('menu.profile') || 'My Profile' }}
+      </a-menu-item>
+      <a-menu-item key="exchanges" @click="handleExchanges">
+        <a-icon type="api" />
+        {{ $t('menu.account.myExchanges') || $t('profile.exchange.title') || 'My Exchanges' }}
+      </a-menu-item>
+      <a-menu-divider />
+      <a-menu-item key="logout" @click="handleLogout">
+        <a-icon type="logout" />
+        {{ $t('menu.account.logout') }}
+      </a-menu-item>
+    </a-menu>
   </a-dropdown>
   <span v-else>
     <a-spin size="small" :style="{ marginLeft: 8, marginRight: 8 }" />
@@ -41,6 +51,12 @@ export default {
   methods: {
     handleProfile () {
       this.$router.push({ name: 'Profile' })
+    },
+    handleExchanges () {
+      // Deep-link straight to the Exchange Config tab inside Profile so
+      // users don't have to hunt for it in the tab strip. Profile reads
+      // ``$route.query.tab`` on mount and on subsequent navigations.
+      this.$router.push({ name: 'Profile', query: { tab: 'exchange' } }).catch(() => {})
     },
     handleLogout (e) {
       Modal.confirm({

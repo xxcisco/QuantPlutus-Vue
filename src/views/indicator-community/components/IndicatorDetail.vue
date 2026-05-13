@@ -58,31 +58,155 @@
             <p class="description">{{ detail.description || $t('community.noDescription') }}</p>
           </div>
 
-          <!-- 实盘表现 -->
+          <!--
+            Performance panel.
+
+            Layout, top to bottom:
+              1. Headline KPIs (8 cells, 2x4 grid): composite score,
+                 backtest total return / sharpe / max drawdown / profit
+                 factor / win rate, plus live strategy count and live
+                 trade count. Each cell has a small "BT" or "Live" tag
+                 so users can't accidentally read a backtest number as
+                 a live-trading number.
+              2. Applicable range tags (symbols + timeframes) so users
+                 immediately see "this thing has only ever been
+                 backtested on BTC 4h, not Forex daily".
+              3. Best-backtest equity curve panel (echarts), with the
+                 run's symbol/timeframe/return/drawdown printed beneath
+                 the chart title so the chart isn't context-less.
+          -->
           <div class="section" v-if="performance">
             <h3>{{ $t('community.performance') }}</h3>
+
             <div class="performance-grid">
-              <div class="perf-item">
-                <div class="perf-label">{{ $t('community.strategyCount') }}</div>
-                <div class="perf-value">{{ performance.strategy_count }}</div>
+              <div class="perf-item perf-item--score">
+                <div class="perf-label">
+                  {{ $t('community.compositeScore') }}
+                  <a-tooltip :title="$t('community.scoreTooltipBase')">
+                    <a-icon type="info-circle" />
+                  </a-tooltip>
+                </div>
+                <div class="perf-value">
+                  {{ formatScore(performance.score) }}
+                  <span class="perf-unit">/ 100</span>
+                </div>
               </div>
               <div class="perf-item">
-                <div class="perf-label">{{ $t('community.tradeCount') }}</div>
-                <div class="perf-value">{{ performance.trade_count }}</div>
+                <div class="perf-label">
+                  {{ $t('community.totalReturn') }}
+                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
+                </div>
+                <div class="perf-value" :class="toneClass(performance.total_return)">
+                  {{ formatPercent(performance.total_return) }}
+                </div>
               </div>
               <div class="perf-item">
-                <div class="perf-label">{{ $t('community.winRate') }}</div>
+                <div class="perf-label">
+                  {{ $t('community.sharpe') }}
+                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
+                </div>
+                <div class="perf-value" :class="toneClass(performance.sharpe, 1)">
+                  {{ formatNumber(performance.sharpe, 2) }}
+                </div>
+              </div>
+              <div class="perf-item">
+                <div class="perf-label">
+                  {{ $t('community.maxDrawdown') }}
+                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
+                </div>
+                <div class="perf-value negative">
+                  {{ formatPercent(performance.max_drawdown) }}
+                </div>
+              </div>
+              <div class="perf-item">
+                <div class="perf-label">
+                  {{ $t('community.profitFactor') }}
+                  <a-tag class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
+                </div>
+                <div class="perf-value" :class="toneClass(performance.profit_factor - 1)">
+                  {{ formatNumber(performance.profit_factor, 2) }}
+                </div>
+              </div>
+              <div class="perf-item">
+                <div class="perf-label">
+                  {{ $t('community.winRate') }}
+                  <a-tag v-if="performance.live_trade_count > 0" class="src-tag src-tag--live">{{ $t('community.sourceLive') }}</a-tag>
+                  <a-tag v-else class="src-tag src-tag--bt">{{ $t('community.sourceBacktest') }}</a-tag>
+                </div>
                 <div class="perf-value" :class="performance.win_rate >= 50 ? 'positive' : 'negative'">
-                  {{ performance.win_rate }}%
+                  {{ formatNumber(performance.win_rate, 2) }}%
                 </div>
               </div>
               <div class="perf-item">
-                <div class="perf-label">{{ $t('community.totalProfit') }}</div>
-                <div class="perf-value" :class="performance.total_profit >= 0 ? 'positive' : 'negative'">
-                  {{ performance.total_profit >= 0 ? '+' : '' }}{{ performance.total_profit }}
+                <div class="perf-label">
+                  {{ $t('community.liveStrategies') }}
+                  <a-tag class="src-tag src-tag--live">{{ $t('community.sourceLive') }}</a-tag>
                 </div>
+                <div class="perf-value">{{ performance.live_strategy_count || 0 }}</div>
+              </div>
+              <div class="perf-item">
+                <div class="perf-label">
+                  {{ $t('community.liveTrades') }}
+                  <a-tag class="src-tag src-tag--live">{{ $t('community.sourceLive') }}</a-tag>
+                </div>
+                <div class="perf-value">{{ performance.live_trade_count || 0 }}</div>
               </div>
             </div>
+
+            <!-- 适用范围 -->
+            <div v-if="hasApplicable" class="applicable-row">
+              <div class="applicable-row__label">{{ $t('community.applicableSymbols') }}</div>
+              <div class="applicable-row__tags">
+                <a-tag
+                  v-for="sym in performance.applicable_symbols"
+                  :key="`sym-${sym}`"
+                  class="tag-symbol"
+                >{{ sym }}</a-tag>
+                <span v-if="!(performance.applicable_symbols || []).length" class="applicable-row__empty">—</span>
+              </div>
+            </div>
+            <div v-if="hasApplicable" class="applicable-row">
+              <div class="applicable-row__label">{{ $t('community.applicableTimeframes') }}</div>
+              <div class="applicable-row__tags">
+                <a-tag
+                  v-for="tf in performance.applicable_timeframes"
+                  :key="`tf-${tf}`"
+                  class="tag-tf"
+                >{{ tf }}</a-tag>
+                <span v-if="!(performance.applicable_timeframes || []).length" class="applicable-row__empty">—</span>
+              </div>
+            </div>
+
+            <!-- 净值曲线 -->
+            <div v-if="hasEquityCurve" class="equity-card">
+              <div class="equity-card__head">
+                <div class="equity-card__title">{{ $t('community.equityCurveTitle') }}</div>
+                <div v-if="performance.best_run_meta" class="equity-card__meta">
+                  <a-tag class="tag-symbol">{{ performance.best_run_meta.symbol }}</a-tag>
+                  <a-tag class="tag-tf">{{ performance.best_run_meta.timeframe }}</a-tag>
+                  <span class="equity-card__meta-sep">·</span>
+                  <span :class="toneClass(performance.best_run_meta.total_return)">
+                    {{ formatPercent(performance.best_run_meta.total_return) }}
+                  </span>
+                  <span class="equity-card__meta-sep">·</span>
+                  <span class="negative">
+                    {{ $t('community.maxDrawdown') }}
+                    {{ formatPercent(performance.best_run_meta.max_drawdown) }}
+                  </span>
+                </div>
+              </div>
+              <div ref="equityChart" class="equity-card__chart"></div>
+              <div class="equity-card__hint">
+                {{ $t('community.equityCurveHint') }}
+              </div>
+            </div>
+            <a-alert
+              v-else-if="performance.sample_size > 0"
+              type="info"
+              show-icon
+              :message="$t('community.equityCurveMissing')"
+              style="margin-top: 16px;"
+            />
           </div>
 
           <!-- 评论区域 -->
@@ -193,10 +317,27 @@ export default {
         page: 1
       },
       myComment: null,
-      imageError: false
+      imageError: false,
+      // Equity-curve echarts instance. Lazy-loaded on first render
+      // (see ``renderEquityChart``) so we don't pull echarts into the
+      // initial bundle if the user never opens the indicator detail.
+      // NB: vue/no-reserved-keys forbids leading underscores in data —
+      // these are private-by-convention only; ``equityChart`` (no Inst
+      // suffix) would collide with the template ref name.
+      equityChartInst: null,
+      equityResizeHandler: null
     }
   },
   computed: {
+    hasEquityCurve () {
+      return this.performance && Array.isArray(this.performance.equity_curve) &&
+        this.performance.equity_curve.length > 1
+    },
+    hasApplicable () {
+      if (!this.performance) return false
+      return (this.performance.applicable_symbols || []).length > 0 ||
+        (this.performance.applicable_timeframes || []).length > 0
+    },
     // 头部背景样式
     headerStyle () {
       if (!this.detail) return {}
@@ -238,12 +379,16 @@ export default {
       }
     }
   },
+  beforeDestroy () {
+    this.disposeEquityChart()
+  },
   methods: {
     resetData () {
       this.detail = null
       this.performance = null
       this.comments = { items: [], total: 0, page: 1 }
       this.myComment = null
+      this.disposeEquityChart()
     },
 
     async loadDetail () {
@@ -273,9 +418,106 @@ export default {
         })
         if (res.code === 1) {
           this.performance = res.data
+          // Equity curve has to render *after* the DOM cell exists, and
+          // echarts is dynamically imported to keep the indicator-market
+          // entry chunk small. We don't await the import here — fire and
+          // forget; if the user closes the modal before it finishes,
+          // ``disposeEquityChart`` is a no-op on a missing instance.
+          this.$nextTick(() => {
+            if (this.hasEquityCurve) this.renderEquityChart()
+          })
         }
       } catch (e) {
         console.error('Load performance failed:', e)
+      }
+    },
+
+    async renderEquityChart () {
+      const el = this.$refs.equityChart
+      if (!el) return
+      try {
+        const echarts = await import('echarts')
+        this.disposeEquityChart()
+        const inst = echarts.init(el)
+        const points = this.performance.equity_curve || []
+        // Backend currently emits ``equity`` as a normalized series. We
+        // accept both raw numbers and {timestamp, equity} dicts so that
+        // backend schema can evolve without breaking this view.
+        const xs = points.map((p, i) => {
+          if (typeof p === 'object' && p !== null) {
+            return p.date || p.timestamp || String(i)
+          }
+          return String(i)
+        })
+        const ys = points.map(p => {
+          if (typeof p === 'object' && p !== null) {
+            return parseFloat(p.equity != null ? p.equity : p.value) || 0
+          }
+          return parseFloat(p) || 0
+        })
+        // Start the area-fill at the baseline value (typically 1 for
+        // normalized equity, or initial capital) so a flat-line series
+        // doesn't look like it shot to infinity.
+        const baseline = ys.length ? ys[0] : 0
+        inst.setOption({
+          grid: { left: 50, right: 16, top: 16, bottom: 32 },
+          tooltip: {
+            trigger: 'axis',
+            confine: true,
+            axisPointer: { type: 'cross' }
+          },
+          xAxis: {
+            type: 'category',
+            data: xs,
+            boundaryGap: false,
+            axisLabel: { fontSize: 11 }
+          },
+          yAxis: {
+            type: 'value',
+            scale: true,
+            axisLabel: { fontSize: 11 }
+          },
+          series: [{
+            name: this.$t('community.equityCurveTitle'),
+            type: 'line',
+            smooth: true,
+            showSymbol: false,
+            data: ys,
+            lineStyle: { width: 2, color: '#1890ff' },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(24, 144, 255, 0.32)' },
+                  { offset: 1, color: 'rgba(24, 144, 255, 0.02)' }
+                ]
+              },
+              origin: baseline
+            }
+          }]
+        })
+        this.equityChartInst = inst
+        // Modal width is fixed-ish but the chart still needs to resize
+        // when the page chrome reflows (e.g. zooming, dev tools).
+        this.equityResizeHandler = () => inst.resize()
+        window.addEventListener('resize', this.equityResizeHandler)
+      } catch (e) {
+        console.error('Equity chart render failed:', e)
+      }
+    },
+
+    disposeEquityChart () {
+      if (this.equityResizeHandler) {
+        window.removeEventListener('resize', this.equityResizeHandler)
+        this.equityResizeHandler = null
+      }
+      if (this.equityChartInst) {
+        try { this.equityChartInst.dispose() } catch (e) { /* noop */ }
+        this.equityChartInst = null
       }
     },
 
@@ -448,6 +690,31 @@ export default {
       if (!dateStr) return '-'
       const d = new Date(dateStr)
       return d.toLocaleDateString()
+    },
+    formatNumber (val, digits) {
+      const v = parseFloat(val)
+      if (isNaN(v)) return '—'
+      return v.toFixed(digits == null ? 2 : digits)
+    },
+    formatPercent (val) {
+      const v = parseFloat(val)
+      if (isNaN(v)) return '—'
+      const sign = v > 0 ? '+' : ''
+      return `${sign}${v.toFixed(2)}%`
+    },
+    formatScore (val) {
+      const v = parseFloat(val)
+      if (isNaN(v)) return '—'
+      return v.toFixed(0)
+    },
+    // Generic tone class. ``positiveThreshold`` lets callers say "Sharpe
+    // is only good if ≥ 1" without re-implementing the rule.
+    toneClass (val, positiveThreshold = 0) {
+      const v = parseFloat(val)
+      if (isNaN(v)) return ''
+      if (v > positiveThreshold) return 'positive'
+      if (v < 0) return 'negative'
+      return ''
     }
   }
 }
@@ -582,32 +849,138 @@ export default {
     .performance-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+      gap: 12px;
 
       .perf-item {
         text-align: center;
-        padding: 12px;
+        padding: 12px 8px;
         background: #f5f5f5;
         border-radius: 8px;
 
         .perf-label {
           font-size: 12px;
-          color: rgba(0, 0, 0, 0.45);
+          color: rgba(0, 0, 0, 0.55);
           margin-bottom: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          flex-wrap: wrap;
+
+          .anticon { font-size: 12px; color: rgba(0, 0, 0, 0.35); }
+
+          .src-tag {
+            margin: 0;
+            font-size: 10px;
+            line-height: 14px;
+            padding: 0 4px;
+            border: none;
+
+            &--bt { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+            &--live { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
+          }
         }
 
         .perf-value {
           font-size: 18px;
           font-weight: 600;
+          color: rgba(0, 0, 0, 0.85);
 
-          &.positive {
-            color: #52c41a;
+          .perf-unit {
+            font-size: 11px;
+            font-weight: 400;
+            color: rgba(0, 0, 0, 0.45);
+            margin-left: 2px;
           }
 
-          &.negative {
-            color: #f5222d;
-          }
+          &.positive { color: #52c41a; }
+          &.negative { color: #f5222d; }
         }
+
+        &--score {
+          background: linear-gradient(135deg, rgba(245, 175, 25, 0.12) 0%, rgba(241, 39, 17, 0.08) 100%);
+          .perf-value { color: #d4380d; }
+        }
+      }
+    }
+
+    .applicable-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+
+      &__label {
+        flex-shrink: 0;
+        color: rgba(0, 0, 0, 0.5);
+        width: 80px;
+      }
+      &__tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+
+        .ant-tag {
+          margin: 0;
+          font-size: 11px;
+          border: none;
+        }
+        .tag-symbol { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+        .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
+      }
+      &__empty {
+        color: rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .equity-card {
+      margin-top: 16px;
+      padding: 16px;
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+
+      &__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      &__title {
+        font-size: 14px;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.85);
+      }
+      &__meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        flex-wrap: wrap;
+
+        .ant-tag {
+          margin: 0;
+          font-size: 11px;
+          border: none;
+        }
+        .tag-symbol { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+        .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
+        .positive { color: #52c41a; font-weight: 600; }
+        .negative { color: #f5222d; font-weight: 600; }
+      }
+      &__meta-sep { color: rgba(0, 0, 0, 0.25); }
+      &__chart {
+        width: 100%;
+        height: 220px;
+      }
+      &__hint {
+        margin-top: 4px;
+        font-size: 11px;
+        color: rgba(0, 0, 0, 0.4);
+        line-height: 1.6;
       }
     }
   }
@@ -688,12 +1061,47 @@ body.dark,
         background: #262626;
 
         .perf-label {
-          color: rgba(255, 255, 255, 0.45);
+          color: rgba(255, 255, 255, 0.55);
+          .anticon { color: rgba(255, 255, 255, 0.35); }
+          .src-tag {
+            &--bt { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+            &--live { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+          }
         }
 
         .perf-value {
           color: rgba(255, 255, 255, 0.88);
+          .perf-unit { color: rgba(255, 255, 255, 0.45); }
         }
+
+        &--score {
+          background: linear-gradient(135deg, rgba(245, 175, 25, 0.18) 0%, rgba(241, 39, 17, 0.12) 100%);
+          .perf-value { color: #ffa940; }
+        }
+      }
+
+      .applicable-row {
+        &__label { color: rgba(255, 255, 255, 0.5); }
+        &__tags {
+          .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+          .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+        }
+        &__empty { color: rgba(255, 255, 255, 0.3); }
+      }
+
+      .equity-card {
+        background: #262626;
+        border-color: #303030;
+
+        &__title { color: rgba(255, 255, 255, 0.88); }
+        &__meta {
+          .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+          .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+          .positive { color: #95de64; }
+          .negative { color: #ff7875; }
+        }
+        &__meta-sep { color: rgba(255, 255, 255, 0.25); }
+        &__hint { color: rgba(255, 255, 255, 0.4); }
       }
     }
 

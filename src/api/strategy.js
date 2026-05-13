@@ -17,6 +17,7 @@ const api = {
   trades: '/api/strategies/trades',
   positions: '/api/strategies/positions',
   equityCurve: '/api/strategies/equityCurve',
+  dryRunDeviation: '/api/strategies/dry-run-deviation',
   notifications: '/api/strategies/notifications',
   unreadNotificationCount: '/api/strategies/notifications/unread-count',
   verifyCode: '/api/strategies/verify-code',
@@ -226,6 +227,19 @@ export function getStrategyEquityCurve (id) {
     url: api.equityCurve,
     method: 'get',
     params: { id }
+  })
+}
+
+/**
+ * Live vs backtest deviation report for a strategy.
+ * @param {number} id - strategy id
+ * @param {number} [limit=200] - max trades to analyse
+ */
+export function getStrategyDryRunDeviation (id, limit = 200) {
+  return request({
+    url: api.dryRunDeviation,
+    method: 'get',
+    params: { id, limit }
   })
 }
 

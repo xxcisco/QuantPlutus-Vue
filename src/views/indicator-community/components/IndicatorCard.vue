@@ -30,12 +30,61 @@
       <div v-else-if="indicator.is_purchased" class="purchased-tag">
         <a-icon type="check-circle" /> {{ $t('community.purchased') }}
       </div>
+
+      <!--
+        Composite-score badge (top-left of cover). Only shown when the
+        indicator actually has backtest data behind it; a brand-new
+        indicator with no successful runs reports score=0 and we hide
+        the badge entirely rather than misleading users with "0 分".
+      -->
+      <a-tooltip v-if="hasScore" :title="scoreTooltip">
+        <div class="score-badge" :class="scoreBadgeClass">
+          <a-icon type="trophy" theme="filled" />
+          <span class="score-num">{{ scoreLabel }}</span>
+        </div>
+      </a-tooltip>
     </div>
 
     <!-- 内容 -->
     <div class="card-content">
       <h3 class="card-title" :title="indicator.name">{{ indicator.name }}</h3>
       <p class="card-desc">{{ indicator.description || $t('community.noDescription') }}</p>
+
+      <!--
+        Backtest KPI strip: return / sharpe / drawdown. Numbers come from
+        the median across all this indicator's successful backtests, so
+        a single lucky run can't game the card. ``hasKpi`` (any of the
+        three is non-zero OR sample_size > 0) gates the whole strip — we
+        don't want to show "+0.00% / 0.00 / -0.00%" on indicators that
+        nobody's backtested yet, that just looks broken.
+      -->
+      <div v-if="hasKpi" class="card-kpi">
+        <div class="kpi-cell">
+          <div class="kpi-label">{{ $t('community.totalReturn') }}</div>
+          <div class="kpi-value" :class="returnToneClass">{{ formatPercent(indicator.total_return) }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">{{ $t('community.sharpe') }}</div>
+          <div class="kpi-value" :class="sharpeToneClass">{{ formatNumber(indicator.sharpe, 2) }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-label">{{ $t('community.maxDrawdown') }}</div>
+          <div class="kpi-value kpi-dd">{{ formatPercent(indicator.max_drawdown) }}</div>
+        </div>
+      </div>
+
+      <!--
+        "Applicable" range tags: distilled from the symbols/timeframes
+        the author has successfully backtested. We cap at 2 visible
+        entries each and roll the rest into a "+N" indicator to keep
+        cards from blowing up vertically.
+      -->
+      <div v-if="hasApplicable" class="card-tags">
+        <a-tag v-for="sym in visibleSymbols" :key="`s-${sym}`" class="tag-symbol">{{ sym }}</a-tag>
+        <a-tag v-if="extraSymbolCount > 0" class="tag-extra">+{{ extraSymbolCount }}</a-tag>
+        <a-tag v-for="tf in visibleTimeframes" :key="`t-${tf}`" class="tag-tf">{{ tf }}</a-tag>
+        <a-tag v-if="extraTimeframeCount > 0" class="tag-extra">+{{ extraTimeframeCount }}</a-tag>
+      </div>
 
       <!-- 作者信息 -->
       <div class="card-author">
@@ -119,12 +168,96 @@ export default {
       return {
         background: (!this.indicator.preview_image || this.imageError) ? this.coverGradient : '#f5f5f5'
       }
+    },
+    // === Score badge ===
+    scoreNumber () {
+      const v = parseFloat(this.indicator.score)
+      return isNaN(v) ? 0 : v
+    },
+    hasScore () {
+      // Hide the trophy entirely on indicators with no scoring evidence.
+      // sample_size also gates this because score=0 can happen with
+      // sample_size>0 too (a truly bad indicator) — that case still
+      // deserves the badge, it's just a low score.
+      return (this.indicator.sample_size || 0) > 0
+    },
+    scoreLabel () {
+      return this.scoreNumber.toFixed(0)
+    },
+    scoreBadgeClass () {
+      // Thresholds match StrategyScoringService's scoring band roughly:
+      // 80+ excellent, 60-80 solid, 40-60 mediocre, <40 weak.
+      const s = this.scoreNumber
+      if (s >= 80) return 'score-badge--top'
+      if (s >= 60) return 'score-badge--good'
+      if (s >= 40) return 'score-badge--mid'
+      return 'score-badge--low'
+    },
+    scoreTooltip () {
+      const n = this.indicator.sample_size || 0
+      const base = this.$t('community.scoreTooltipBase')
+      const sample = this.$t('community.scoreTooltipSample', { n })
+      return `${base} ${sample}`
+    },
+    // === KPI strip ===
+    hasKpi () {
+      const i = this.indicator
+      // We show the strip if there's at least one signal of real backtest
+      // evidence. ``sample_size`` is the cleanest gate; the value
+      // fallback covers older API responses that don't return it yet.
+      return (i.sample_size || 0) > 0 ||
+        parseFloat(i.total_return || 0) !== 0 ||
+        parseFloat(i.sharpe || 0) !== 0 ||
+        parseFloat(i.max_drawdown || 0) !== 0
+    },
+    returnToneClass () {
+      const v = parseFloat(this.indicator.total_return) || 0
+      if (v > 0) return 'kpi-pos'
+      if (v < 0) return 'kpi-neg'
+      return ''
+    },
+    sharpeToneClass () {
+      const v = parseFloat(this.indicator.sharpe) || 0
+      if (v >= 1) return 'kpi-pos'
+      if (v < 0) return 'kpi-neg'
+      return ''
+    },
+    // === Applicable range tags ===
+    visibleSymbols () {
+      return (this.indicator.applicable_symbols || []).slice(0, 2)
+    },
+    extraSymbolCount () {
+      return Math.max(0, (this.indicator.applicable_symbols || []).length - 2)
+    },
+    visibleTimeframes () {
+      return (this.indicator.applicable_timeframes || []).slice(0, 2)
+    },
+    extraTimeframeCount () {
+      return Math.max(0, (this.indicator.applicable_timeframes || []).length - 2)
+    },
+    hasApplicable () {
+      return (this.indicator.applicable_symbols || []).length > 0 ||
+        (this.indicator.applicable_timeframes || []).length > 0
     }
   },
   methods: {
     formatRating (rating) {
       const r = parseFloat(rating) || 0
       return r > 0 ? r.toFixed(1) : '-'
+    },
+    formatNumber (val, digits) {
+      const v = parseFloat(val)
+      if (isNaN(v)) return '—'
+      return v.toFixed(digits == null ? 2 : digits)
+    },
+    // Percent values arrive from the backend already in 0..100 scale (e.g.
+    // 12.5 means +12.5%). max_drawdown is negative by convention so we
+    // don't need to flip it.
+    formatPercent (val) {
+      const v = parseFloat(val)
+      if (isNaN(v)) return '—'
+      const sign = v > 0 ? '+' : ''
+      return `${sign}${v.toFixed(2)}%`
     },
     handleImageError () {
       this.imageError = true
@@ -251,6 +384,35 @@ export default {
     .purchased-tag {
       background: rgba(82, 196, 26, 0.85);
     }
+
+    // Composite-score trophy badge (top-left of cover).
+    // Position next to vip-free-tag (which also sits top-left); when both
+    // exist the vip-free tag wins the corner and the score badge slides
+    // down. Use a tiered colour so the eye can scan the leaderboard.
+    .score-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 3px 8px 3px 6px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 3;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(4px);
+
+      .anticon { font-size: 12px; }
+      .score-num { letter-spacing: 0.5px; }
+
+      &--top { background: linear-gradient(135deg, #f5af19, #f12711); }
+      &--good { background: linear-gradient(135deg, #36d1dc, #5b86e5); }
+      &--mid { background: linear-gradient(135deg, #8e8e8e, #b4b4b4); }
+      &--low { background: rgba(0, 0, 0, 0.55); }
+    }
   }
 
   .vip-free-tag {
@@ -292,6 +454,63 @@ export default {
       -webkit-box-orient: vertical;
       line-height: 1.5;
       min-height: 36px;
+    }
+
+    // KPI strip (return / sharpe / drawdown). Three equal-width columns
+    // with light background so it visually reads as one chunk rather
+    // than three loose numbers next to the description.
+    .card-kpi {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      padding: 6px 8px;
+      margin: 4px 0 8px;
+      background: rgba(0, 0, 0, 0.025);
+      border-radius: 6px;
+
+      .kpi-cell {
+        text-align: center;
+        min-width: 0;
+      }
+      .kpi-label {
+        font-size: 10px;
+        color: rgba(0, 0, 0, 0.4);
+        line-height: 1.4;
+      }
+      .kpi-value {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.75);
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &.kpi-pos { color: #389e0d; }
+        &.kpi-neg, &.kpi-dd { color: #cf1322; }
+      }
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 8px;
+
+      .ant-tag {
+        margin: 0;
+        font-size: 11px;
+        line-height: 18px;
+        padding: 0 6px;
+        border: none;
+      }
+      .tag-symbol { background: rgba(24, 144, 255, 0.08); color: #1890ff; }
+      .tag-tf { background: rgba(82, 196, 26, 0.08); color: #389e0d; }
+      .tag-extra {
+        background: rgba(0, 0, 0, 0.04);
+        color: rgba(0, 0, 0, 0.45);
+        font-weight: 600;
+      }
     }
 
     .card-author {
@@ -351,6 +570,22 @@ export default {
 
     .card-stats .stat-item {
       color: rgba(255, 255, 255, 0.45);
+    }
+
+    .card-kpi {
+      background: rgba(255, 255, 255, 0.04);
+      .kpi-label { color: rgba(255, 255, 255, 0.4); }
+      .kpi-value {
+        color: rgba(255, 255, 255, 0.78);
+        &.kpi-pos { color: #95de64; }
+        &.kpi-neg, &.kpi-dd { color: #ff7875; }
+      }
+    }
+
+    .card-tags {
+      .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+      .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+      .tag-extra { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.45); }
     }
   }
 }

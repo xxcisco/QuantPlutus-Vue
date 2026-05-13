@@ -190,6 +190,79 @@
               </a-form>
             </a-tab-pane>
 
+            <!-- Exchange Config Tab (交易所配置) — promoted to 2nd position so
+                 users see it immediately after Basic Info. The red dot badge
+                 highlights the tab when the user has not bound any exchange. -->
+            <a-tab-pane key="exchange">
+              <template slot="tab">
+                <span class="exchange-tab-title">
+                  <a-icon type="api" />
+                  {{ $t('profile.exchange.title') || '交易所配置' }}
+                  <a-badge
+                    v-if="exchangeTabUnbound"
+                    dot
+                    :offset="[4, -2]"
+                    :title="$t('profile.exchange.notConfiguredHint') || '尚未绑定任何交易所'"
+                  />
+                </span>
+              </template>
+              <div class="exchange-config-section">
+                <a-alert
+                  :message="$t('profile.exchange.hint')"
+                  type="info"
+                  showIcon
+                  style="margin-bottom: 16px"
+                />
+                <div style="margin-bottom: 16px; text-align: right;">
+                  <a-button style="margin-right: 12px" @click="openExchangeSignupModal">
+                    <a-icon type="rocket" />
+                    {{ $t('profile.exchange.openAccount') }}
+                  </a-button>
+                  <a-button type="primary" icon="plus" @click="openAddExchangeModal">
+                    {{ $t('profile.exchange.addAccount') }}
+                  </a-button>
+                </div>
+                <a-table
+                  :columns="exchangeColumns"
+                  :dataSource="exchangeCredentials"
+                  :loading="exchangeLoading"
+                  :rowKey="record => record.id"
+                  :locale="{ emptyText: $t('profile.exchange.noAccounts') || '暂无交易所账户，请点击上方按钮添加' }"
+                  size="small"
+                >
+                  <template slot="exchange_id" slot-scope="text, record">
+                    <span style="text-transform: capitalize; font-weight: 500;">{{ getExchangeDisplayName(text) }}</span>
+                    <a-tag
+                      v-if="record.enable_demo_trading"
+                      color="orange"
+                      size="small"
+                      style="margin-left: 6px;"
+                    >
+                      {{ $t('profile.exchange.demoTag') }}
+                    </a-tag>
+                  </template>
+                  <template slot="api_key_hint" slot-scope="text, record">
+                    <span class="credential-hint">{{ text || record.name || '-' }}</span>
+                  </template>
+                  <template slot="created_at" slot-scope="text">
+                    {{ formatTime(text) }}
+                  </template>
+                  <template slot="action" slot-scope="text, record">
+                    <a-popconfirm
+                      :title="$t('profile.exchange.deleteConfirm')"
+                      @confirm="handleDeleteCredential(record.id)"
+                      :okText="$t('common.confirm')"
+                      :cancelText="$t('common.cancel')"
+                    >
+                      <a-button type="danger" size="small" ghost icon="delete">
+                        {{ $t('common.delete') }}
+                      </a-button>
+                    </a-popconfirm>
+                  </template>
+                </a-table>
+              </div>
+            </a-tab-pane>
+
             <!-- Change Password Tab -->
             <a-tab-pane key="password" :tab="$t('profile.changePassword') || 'Change Password'">
               <a-form :form="passwordForm" layout="vertical" class="password-form">
@@ -432,17 +505,38 @@
                     <a-input
                       v-decorator="['webhook_url', { initialValue: notificationSettings.webhook_url }]"
                       :placeholder="$t('profile.notifications.webhookPlaceholder') || 'https://your-server.com/webhook'"
+                      @change="handleWebhookUrlChange"
                     >
                       <a-icon slot="prefix" type="api" />
                     </a-input>
                     <div class="field-hint">
                       <a-icon type="info-circle" />
-                      <span>{{ $t('profile.notifications.webhookHint') || '自定义 Webhook 地址，将以 POST JSON 方式推送通知' }}</span>
+                      <span>{{ $t('profile.notifications.webhookHint') || '自定义 Webhook 地址，将以 POST JSON 方式推送通知。系统会自动识别飞书 / 钉钉 / 企微 / Slack 链接并转换为对应格式。' }}</span>
+                    </div>
+                    <!--
+                      Show a real-time "detected dialect" badge under the URL
+                      input. This is the single most-asked-for hint by users —
+                      they want immediate visual confirmation that the system
+                      recognised their Feishu/DingTalk/WeCom/Slack link and
+                      will speak the right protocol, instead of silently
+                      POSTing a generic JSON envelope that the bot rejects.
+                    -->
+                    <div v-if="webhookDialect && webhookDialect !== 'generic'" class="webhook-dialect">
+                      <a-tag :color="webhookDialectColor">
+                        <a-icon :type="webhookDialectIcon" />
+                        {{ webhookDialectLabel }}
+                      </a-tag>
+                      <span class="webhook-dialect__hint">
+                        {{ $t('profile.notifications.webhookDialectHint') || '已自动识别该平台，无需手动适配 payload 格式' }}
+                      </span>
                     </div>
                   </a-form-item>
 
                   <!-- Webhook Token -->
-                  <a-form-item :label="$t('profile.notifications.webhookToken') || 'Webhook Token（可选）'">
+                  <a-form-item
+                    v-if="webhookDialect === 'generic' || !notificationSettings.webhook_url"
+                    :label="$t('profile.notifications.webhookToken') || 'Webhook Token（可选）'"
+                  >
                     <a-input-password
                       v-decorator="['webhook_token', { initialValue: notificationSettings.webhook_token }]"
                       :placeholder="$t('profile.notifications.webhookTokenPlaceholder') || '用于验证请求的 Bearer Token'"
@@ -452,6 +546,23 @@
                     <div class="field-hint">
                       <a-icon type="info-circle" />
                       <span>{{ $t('profile.notifications.webhookTokenHint') || '将作为 Authorization: Bearer Token 发送到 Webhook' }}</span>
+                    </div>
+                  </a-form-item>
+
+                  <!-- Webhook Signing Secret (Feishu / DingTalk / Generic) -->
+                  <a-form-item
+                    v-if="webhookSupportsSigning"
+                    :label="webhookSigningSecretLabel"
+                  >
+                    <a-input-password
+                      v-decorator="['webhook_signing_secret', { initialValue: notificationSettings.webhook_signing_secret }]"
+                      :placeholder="$t('profile.notifications.webhookSigningSecretPlaceholder') || '加签密钥（可选）'"
+                    >
+                      <a-icon slot="prefix" type="safety" />
+                    </a-input-password>
+                    <div class="field-hint">
+                      <a-icon type="info-circle" />
+                      <span>{{ webhookSigningSecretHint }}</span>
                     </div>
                   </a-form-item>
 
@@ -466,65 +577,6 @@
                     </a-button>
                   </a-form-item>
                 </a-form>
-              </div>
-            </a-tab-pane>
-
-            <!-- Exchange Config Tab (交易所配置) -->
-            <a-tab-pane key="exchange" :tab="$t('profile.exchange.title') || '交易所配置'">
-              <div class="exchange-config-section">
-                <a-alert
-                  :message="$t('profile.exchange.hint')"
-                  type="info"
-                  showIcon
-                  style="margin-bottom: 16px"
-                />
-                <div style="margin-bottom: 16px; text-align: right;">
-                  <a-button style="margin-right: 12px" @click="openExchangeSignupModal">
-                    <a-icon type="rocket" />
-                    {{ $t('profile.exchange.openAccount') }}
-                  </a-button>
-                  <a-button type="primary" icon="plus" @click="openAddExchangeModal">
-                    {{ $t('profile.exchange.addAccount') }}
-                  </a-button>
-                </div>
-                <a-table
-                  :columns="exchangeColumns"
-                  :dataSource="exchangeCredentials"
-                  :loading="exchangeLoading"
-                  :rowKey="record => record.id"
-                  :locale="{ emptyText: $t('profile.exchange.noAccounts') || '暂无交易所账户，请点击上方按钮添加' }"
-                  size="small"
-                >
-                  <template slot="exchange_id" slot-scope="text, record">
-                    <span style="text-transform: capitalize; font-weight: 500;">{{ getExchangeDisplayName(text) }}</span>
-                    <a-tag
-                      v-if="record.enable_demo_trading"
-                      color="orange"
-                      size="small"
-                      style="margin-left: 6px;"
-                    >
-                      {{ $t('profile.exchange.demoTag') }}
-                    </a-tag>
-                  </template>
-                  <template slot="api_key_hint" slot-scope="text, record">
-                    <span class="credential-hint">{{ text || record.name || '-' }}</span>
-                  </template>
-                  <template slot="created_at" slot-scope="text">
-                    {{ formatTime(text) }}
-                  </template>
-                  <template slot="action" slot-scope="text, record">
-                    <a-popconfirm
-                      :title="$t('profile.exchange.deleteConfirm')"
-                      @confirm="handleDeleteCredential(record.id)"
-                      :okText="$t('common.confirm')"
-                      :cancelText="$t('common.cancel')"
-                    >
-                      <a-button type="danger" size="small" ghost icon="delete">
-                        {{ $t('common.delete') }}
-                      </a-button>
-                    </a-popconfirm>
-                  </template>
-                </a-table>
               </div>
             </a-tab-pane>
 
@@ -701,13 +753,17 @@ export default {
         phone: '',
         discord_webhook: '',
         webhook_url: '',
-        webhook_token: ''
+        webhook_token: '',
+        webhook_signing_secret: ''
       },
       savingNotifications: false,
       testingNotification: false,
       // Exchange config
       exchangeCredentials: [],
       exchangeLoading: false,
+      // True only after the first /credentials fetch returns. Used to gate
+      // the "unbound" red-dot badge so it doesn't flash on first render.
+      exchangeLoaded: false,
       showAddExchangeModal: false,
       showExchangeSignupModal: false,
       exchangeSignupCards: [
@@ -827,6 +883,13 @@ export default {
       const ref = this.referralData.referral_code || this.profile.id
       return `${baseUrl}#/user/login?ref=${ref}`
     },
+    // Show a red-dot badge on the Exchange tab title when the user has
+    // finished an initial fetch and has zero credentials, nudging them to
+    // bind an account. We gate on ``exchangeLoaded`` to avoid flashing the
+    // dot before the first request returns.
+    exchangeTabUnbound () {
+      return this.exchangeLoaded && this.exchangeCredentials.length === 0
+    },
     exchangeColumns () {
       return [
         {
@@ -858,6 +921,78 @@ export default {
           scopedSlots: { customRender: 'action' }
         }
       ]
+    },
+    // ---- Webhook dialect detection (mirrors backend logic in
+    // signal_notifier.py::_detect_webhook_dialect). Keep the patterns
+    // in sync if either side changes.
+    webhookDialect () {
+      const u = (this.notificationSettings.webhook_url || '').toLowerCase()
+      if (!u) return ''
+      if (
+        u.includes('open.feishu.cn/open-apis/bot/v2/hook/') ||
+        u.includes('open.larksuite.com/open-apis/bot/v2/hook/') ||
+        u.includes('open.larkoffice.com/open-apis/bot/v2/hook/') ||
+        u.includes('www.larksuite.com/open-apis/bot/v2/hook/')
+      ) return 'feishu'
+      if (u.includes('oapi.dingtalk.com/robot/send')) return 'dingtalk'
+      if (u.includes('qyapi.weixin.qq.com/cgi-bin/webhook/send')) return 'wecom'
+      if (u.includes('hooks.slack.com/services/')) return 'slack'
+      return 'generic'
+    },
+    webhookDialectLabel () {
+      switch (this.webhookDialect) {
+        case 'feishu': return this.$t('profile.notifications.dialectFeishu') || '飞书 / Lark 自定义机器人'
+        case 'dingtalk': return this.$t('profile.notifications.dialectDingtalk') || '钉钉自定义机器人'
+        case 'wecom': return this.$t('profile.notifications.dialectWecom') || '企业微信群机器人'
+        case 'slack': return this.$t('profile.notifications.dialectSlack') || 'Slack Incoming Webhook'
+        default: return this.$t('profile.notifications.dialectGeneric') || '自定义 / 自托管 Webhook'
+      }
+    },
+    webhookDialectColor () {
+      switch (this.webhookDialect) {
+        case 'feishu': return 'blue'
+        case 'dingtalk': return 'cyan'
+        case 'wecom': return 'green'
+        case 'slack': return 'purple'
+        default: return 'default'
+      }
+    },
+    webhookDialectIcon () {
+      switch (this.webhookDialect) {
+        case 'feishu':
+        case 'wecom':
+        case 'dingtalk':
+        case 'slack':
+          return 'message'
+        default: return 'api'
+      }
+    },
+    // Signing-secret box is only shown for dialects that actually
+    // support signing. Slack/WeCom embed the secret in the URL so an
+    // extra field would only confuse users.
+    webhookSupportsSigning () {
+      return ['feishu', 'dingtalk', 'generic', ''].includes(this.webhookDialect)
+    },
+    webhookSigningSecretLabel () {
+      const base = this.$t('profile.notifications.webhookSigningSecret') || 'Webhook 加签密钥'
+      const tag = this.webhookDialect === 'feishu'
+        ? this.$t('profile.notifications.signingFeishuTag') || '（飞书加签）'
+        : this.webhookDialect === 'dingtalk'
+          ? this.$t('profile.notifications.signingDingtalkTag') || '（钉钉加签）'
+          : ''
+      return base + tag
+    },
+    webhookSigningSecretHint () {
+      if (this.webhookDialect === 'feishu') {
+        return this.$t('profile.notifications.signingFeishuHint') ||
+          '飞书机器人「安全设置 → 签名校验」处生成的 secret。系统会按飞书算法把 timestamp + sign 写入消息 body。'
+      }
+      if (this.webhookDialect === 'dingtalk') {
+        return this.$t('profile.notifications.signingDingtalkHint') ||
+          '钉钉机器人「安全设置 → 加签」处生成的 secret。系统会按钉钉算法把 timestamp 和 sign 追加到 URL。'
+      }
+      return this.$t('profile.notifications.signingGenericHint') ||
+        '可选。用于 HMAC-SHA256 签名，作为 X-QD-Signature 头部下发，接收端可验签防伪造。'
     }
   },
   watch: {
@@ -874,6 +1009,20 @@ export default {
       if (val === 'exchange' && this.exchangeCredentials.length === 0) {
         this.loadExchangeCredentials()
       }
+      // Mirror the active tab into ``?tab=xxx`` so URLs are shareable and
+      // browser back/forward preserves state. Compare first to avoid a
+      // navigation loop with the $route watcher below.
+      if (this.$route.query.tab !== val) {
+        this.$router.replace({
+          query: { ...this.$route.query, tab: val }
+        }).catch(() => {})
+      }
+    },
+    // Respond to deep links like /profile?tab=exchange (e.g. from the avatar
+    // dropdown, an email link, or pasted URL). Allowed tabs are whitelisted so
+    // a random ?tab=foo can't break the UI.
+    '$route.query.tab' (val) {
+      this.applyTabFromQuery(val)
     }
   },
   beforeCreate () {
@@ -882,8 +1031,15 @@ export default {
     this.notificationForm = this.$form.createForm(this, { name: 'notification' })
   },
   mounted () {
+    // Honour deep links — sets activeTab before any data loads so we can
+    // jump straight to a specific tab (e.g. /profile?tab=exchange).
+    this.applyTabFromQuery(this.$route.query.tab)
     this.loadProfile()
     this.loadReferrals()
+    // Pre-fetch exchange credentials regardless of active tab so the
+    // red-dot "not configured" badge is accurate on first render. Cheap
+    // request, fires once.
+    this.loadExchangeCredentials()
   },
   beforeDestroy () {
     if (this.pwdCodeTimer) {
@@ -891,6 +1047,15 @@ export default {
     }
   },
   methods: {
+    // Whitelist of tabs we accept from ``?tab=xxx``. Anything else is a no-op
+    // so a malformed link can't put the page in a weird state.
+    applyTabFromQuery (rawTab) {
+      const allowed = ['basic', 'exchange', 'password', 'credits', 'notifications', 'referrals']
+      if (rawTab && allowed.includes(rawTab) && this.activeTab !== rawTab) {
+        this.activeTab = rawTab
+      }
+    },
+
     async loadProfile () {
       this.loading = true
       try {
@@ -1236,6 +1401,7 @@ export default {
         this.$message.error('Failed to load exchange accounts')
       } finally {
         this.exchangeLoading = false
+        this.exchangeLoaded = true
       }
     },
 
@@ -1302,7 +1468,8 @@ export default {
             phone: res.data.phone || '',
             discord_webhook: res.data.discord_webhook || '',
             webhook_url: res.data.webhook_url || '',
-            webhook_token: res.data.webhook_token || ''
+            webhook_token: res.data.webhook_token || '',
+            webhook_signing_secret: res.data.webhook_signing_secret || ''
           }
           // Update form values
           this.$nextTick(() => {
@@ -1314,7 +1481,8 @@ export default {
               phone: this.notificationSettings.phone,
               discord_webhook: this.notificationSettings.discord_webhook,
               webhook_url: this.notificationSettings.webhook_url,
-              webhook_token: this.notificationSettings.webhook_token
+              webhook_token: this.notificationSettings.webhook_token,
+              webhook_signing_secret: this.notificationSettings.webhook_signing_secret
             })
           })
         }
@@ -1342,6 +1510,15 @@ export default {
       return e ? `${channel}: ${e}` : ''
     },
 
+    // Keep our reactive ``notificationSettings.webhook_url`` in sync with
+    // what the user is currently typing so the dialect badge updates
+    // live (the form decorator owns the actual value, but the computed
+    // properties read from notificationSettings).
+    handleWebhookUrlChange (e) {
+      const v = (e && e.target && typeof e.target.value !== 'undefined') ? e.target.value : ''
+      this.notificationSettings.webhook_url = v || ''
+    },
+
     handleSaveNotifications () {
       this.notificationForm.validateFields(async (err, values) => {
         if (err) return
@@ -1356,7 +1533,8 @@ export default {
             phone: values.phone || '',
             discord_webhook: values.discord_webhook || '',
             webhook_url: values.webhook_url || '',
-            webhook_token: values.webhook_token || ''
+            webhook_token: values.webhook_token || '',
+            webhook_signing_secret: values.webhook_signing_secret || ''
           })
           if (res.code === 1) {
             this.$message.success(this.$t('profile.notifications.saveSuccess') || '通知设置保存成功')
@@ -1460,6 +1638,19 @@ export default {
 
 <style lang="less" scoped>
 @primary-color: #1890ff;
+
+// Promoted "Exchange Config" tab — keep icon, label and the red-dot badge
+// visually aligned and let the icon adopt the primary color when the tab
+// is active so the entry stays discoverable at a glance.
+.exchange-tab-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  .anticon {
+    color: @primary-color;
+  }
+}
 
 .profile-page {
   padding: 24px;
@@ -1644,6 +1835,24 @@ export default {
 
         .anticon {
           font-size: 12px;
+        }
+      }
+
+      // Live "detected dialect" badge under the webhook URL input.
+      // Sits on the same row as a hint string so users see at a glance
+      // that the system understood their URL and won't fall back to
+      // the generic JSON envelope (which Feishu et al would reject).
+      .webhook-dialect {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+
+        .ant-tag { margin: 0; }
+        &__hint {
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.55);
         }
       }
 

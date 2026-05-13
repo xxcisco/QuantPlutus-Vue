@@ -846,7 +846,15 @@
                             </a-select>
                           </a-form-item>
                         </a-col>
-                        <a-col :xs="24" :sm="24" :md="12" :lg="12"></a-col>
+                        <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                          <a-form-item :label="$t('trading-assistant.form.strictMode')">
+                            <a-switch
+                              v-decorator="['strict_mode', { valuePropName: 'checked', initialValue: false }]" />
+                            <div class="form-item-hint" style="margin-top: 4px;">
+                              {{ $t('trading-assistant.form.strictModeHint') }}
+                            </div>
+                          </a-form-item>
+                        </a-col>
                       </a-row>
 
                     </div><!-- / trading params -->
@@ -2846,7 +2854,8 @@ export default {
           trade_direction: tc.trade_direction || 'long',
           timeframe: tc.timeframe || '1H',
           market_type: (tc.market_type === 'futures' ? 'swap' : (tc.market_type || 'swap')),
-          enable_ai_filter: aiFilterEnabled
+          enable_ai_filter: aiFilterEnabled,
+          strict_mode: !!tc.strict_mode
         })
       }
     },
@@ -3851,6 +3860,11 @@ export default {
                 // Order execution settings moved to backend env config (ORDER_MODE, MAKER_WAIT_SEC, MAKER_OFFSET_BPS)
                 margin_mode: 'cross',
                 signal_mode: 'confirmed',
+                // Strict mode forces backtest-equivalent semantics on the live
+                // executor: drop in-progress bar (no last-bar repaint) AND use
+                // confirmed exit signals. Eliminates same-bar repaint drift at
+                // the cost of one bar of execution delay.
+                strict_mode: !!values.strict_mode,
                 // 风控与仓位：来自指标源码 # @strategy（与指标 IDE / 后端 StrategyConfigParser 一致）
                 take_profit_pct: riskFromCode.take_profit_pct,
                 stop_loss_pct: riskFromCode.stop_loss_pct,

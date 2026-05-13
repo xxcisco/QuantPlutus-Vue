@@ -1805,6 +1805,13 @@ registerOverlay({
       createPointFigures: ({ coordinates, overlay }) => {
         const { text } = overlay.extendData || {}
         const color = overlay.extendData?.color || '#555555'
+        // `markerStyle === 'dashed'` is used by the indicator IDE to render a
+        // "signal bar" marker alongside the regular "execution bar" marker.
+        // Visual: hollow box with dashed border + lower-opacity fill, so the
+        // user can see the two-bar offset that exists when signalTiming is
+        // `next_bar_open` (signal fires on bar t, executes at t+1 open).
+        const markerStyle = overlay.extendData?.markerStyle || 'solid'
+        const isDashed = markerStyle === 'dashed'
 
         // 1. 获取信号点坐标
         if (!coordinates[0]) return []
@@ -1838,6 +1845,53 @@ registerOverlay({
         const circleY = anchorY // 圆点位置：K线的High或Low
         const lineStartY = circleY // 连线起点：圆点位置
         const lineEndY = isBuy ? boxY : (boxY + boxHeight) // 连线终点：标签框边缘
+
+        if (isDashed) {
+          // Signal-bar marker: hollow box + dashed border + faded text.
+          return [
+            {
+              type: 'line',
+              attrs: {
+                coordinates: [
+                  { x, y: lineStartY },
+                  { x, y: lineEndY }
+                ]
+              },
+              styles: { style: 'stroke', color: color, dashedValue: [2, 2] },
+              ignoreEvent: true
+            },
+            {
+              type: 'circle',
+              attrs: { x, y: circleY, r: 3 },
+              styles: { style: 'stroke', color: color, lineWidth: 1.5 },
+              ignoreEvent: true
+            },
+            {
+              type: 'rect',
+              attrs: {
+                x: x - boxWidth / 2,
+                y: boxY,
+                width: boxWidth,
+                height: boxHeight,
+                r: 4
+              },
+              styles: { style: 'stroke_fill', color: 'rgba(255,255,255,0.0)', borderColor: color, borderSize: 1, borderDashedValue: [3, 2] },
+              ignoreEvent: true
+            },
+            {
+              type: 'text',
+              attrs: {
+                x: x,
+                y: boxY + boxHeight / 2,
+                text: textStr,
+                align: 'center',
+                baseline: 'middle'
+              },
+              styles: { color: color, size: fontSize, weight: 'normal' },
+              ignoreEvent: true
+            }
+          ]
+        }
 
         return [
           // 1. 虚线 (从圆点连到标签框)

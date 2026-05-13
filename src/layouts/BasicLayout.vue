@@ -13,8 +13,8 @@
 
       <template #menuHeaderRender>
         <div class="sidebar-logo-wrapper" :class="{ 'sidebar-logo-wrapper--collapsed': collapsed }">
-          <img v-if="collapsed" :src="slogoImg" class="sidebar-logo sidebar-logo--collapsed" alt="NEXTFlutus" />
-          <img v-else :src="currentLogo" class="sidebar-logo" alt="NEXTFlutus" />
+          <img v-if="collapsed" :src="collapsedLogo" class="sidebar-logo sidebar-logo--collapsed" :alt="brandConfig.app_name" />
+          <img v-else :src="currentLogo" class="sidebar-logo" :alt="brandConfig.app_name" />
         </div>
       </template>
       <!-- 1.0.0+ 版本 pro-layout 提供 API,
@@ -31,7 +31,7 @@
       <!-- 用户协议弹窗 -->
       <a-modal :visible="showLegalModal" :footer="null" :title="$t('menu.footer.userAgreement')" @cancel="showLegalModal = false" :width="800">
         <div style="max-height: 60vh; overflow: auto; white-space: pre-wrap; line-height: 1.8; padding: 16px;">
-          {{ menuFooterConfig.legal.user_agreement || $t('user.login.legal.content') }}
+          {{ menuFooterConfig.legal.user_agreement_text || $t('user.login.legal.content') }}
         </div>
         <div style="margin-top: 12px; text-align: right;">
           <a-button type="primary" @click="showLegalModal = false">OK</a-button>
@@ -41,7 +41,7 @@
       <!-- 隐私条例弹窗 -->
       <a-modal :visible="showPrivacyModal" :footer="null" :title="$t('menu.footer.privacyPolicy')" @cancel="showPrivacyModal = false" :width="800">
         <div style="max-height: 60vh; overflow: auto; white-space: pre-wrap; line-height: 1.8; padding: 16px;">
-          {{ menuFooterConfig.legal.privacy_policy || $t('user.login.privacy.content') }}
+          {{ menuFooterConfig.legal.privacy_policy_text || $t('user.login.privacy.content') }}
         </div>
         <div style="margin-top: 12px; text-align: right;">
           <a-button type="primary" @click="showPrivacyModal = false">OK</a-button>
@@ -107,9 +107,21 @@
         <!-- 用户协议和隐私条例 -->
         <div class="footer-section">
           <div class="section-links">
-            <a @click="showLegalModal = true">{{ $t('menu.footer.userAgreement') }}</a>
+            <a
+              v-if="menuFooterConfig.legal.user_agreement_url"
+              :href="menuFooterConfig.legal.user_agreement_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ $t('menu.footer.userAgreement') }}</a>
+            <a v-else @click="showLegalModal = true">{{ $t('menu.footer.userAgreement') }}</a>
             <span class="separator">&</span>
-            <a @click="showPrivacyModal = true">{{ $t('menu.footer.privacyPolicy') }}</a>
+            <a
+              v-if="menuFooterConfig.legal.privacy_policy_url"
+              :href="menuFooterConfig.legal.privacy_policy_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ $t('menu.footer.privacyPolicy') }}</a>
+            <a v-else @click="showPrivacyModal = true">{{ $t('menu.footer.privacyPolicy') }}</a>
           </div>
         </div>
 
@@ -164,7 +176,6 @@ export default {
   },
   data () {
     return {
-      slogoImg,
       // preview.pro.antdv.com only use.
       isProPreviewSite: process.env.VUE_APP_PREVIEW === 'true' && process.env.NODE_ENV !== 'development',
       // end
@@ -204,27 +215,6 @@ export default {
       isDrawerOpen: false,
       // drawer 是否正在动画中（手机端）
       isDrawerAnimating: false,
-      // Static footer config (local OSS build)
-      menuFooterConfig: {
-        contact: {
-          support_url: 'https://t.me/quantdinger',
-          feature_request_url: 'https://github.com/brokermr810/QuantDinger/issues',
-          email: 'brokermr810@gmail.com',
-          live_chat_url: 'https://t.me/quantdinger'
-        },
-        social_accounts: [
-          { name: 'GitHub', icon: 'github', url: 'https://github.com/brokermr810/QuantDinger' },
-          { name: 'X', icon: 'x', url: 'https://x.com/quantdinger_en' },
-          { name: 'Discord', icon: 'discord', url: 'https://discord.com/invite/tyx5B6TChr' },
-          { name: 'Telegram', icon: 'telegram', url: 'https://t.me/quantdinger' },
-          { name: 'YouTube', icon: 'youtube', url: 'https://youtube.com/@quantdinger' }
-        ],
-        legal: {
-          user_agreement: '',
-          privacy_policy: ''
-        },
-        copyright: '© 2025-2026 NEXTFlutus. All rights reserved.'
-      },
       // 是否是首次初始化主题色（用于决定是否显示"正在切换主题"提示）
       isInitialThemeColorLoad: true
     }
@@ -232,19 +222,33 @@ export default {
   computed: {
     ...mapState({
       // 动态主路由
-      mainMenu: state => state.permission.addRouters
+      mainMenu: state => state.permission.addRouters,
+      // 后端下发的品牌配置（src/store/modules/brand.js）
+      brandConfig: state => state.brand.config
     }),
     // 响应式菜单 - 根据 addRouters 动态更新
     menus () {
       const routes = this.mainMenu.find(item => item.path === '/')
       return (routes && routes.children) || []
     },
-    appVersion () {
-      return defaultSettings.appVersion || '3.0.3'
+    // 给模板复用：所有 footer/legal 项都从 brand store 读，留空时回退到默认
+    menuFooterConfig () {
+      return this.brandConfig
     },
+    appVersion () {
+      return (this.brandConfig && this.brandConfig.app_version) || defaultSettings.appVersion || '3.0.3'
+    },
+    // Logo 优先用后端 BRAND_LOGO_*_URL；为空时回退到打包好的 assets/logo.png
     currentLogo () {
       const theme = this.settings.theme
-      return (theme === 'dark' || theme === 'realdark') ? logoDark : logoLight
+      const isDark = theme === 'dark' || theme === 'realdark'
+      const remote = isDark
+        ? (this.brandConfig.logos && this.brandConfig.logos.dark)
+        : (this.brandConfig.logos && this.brandConfig.logos.light)
+      return remote || (isDark ? logoDark : logoLight)
+    },
+    collapsedLogo () {
+      return (this.brandConfig.logos && this.brandConfig.logos.collapsed) || slogoImg
     }
   },
   created () {
