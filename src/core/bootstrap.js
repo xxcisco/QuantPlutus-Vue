@@ -40,5 +40,11 @@ export default function Initializer () {
   // back to the cached / default brand values, so this can never block boot.
   store.dispatch('LoadBrandConfig').catch(() => {})
 
+  // Fire-and-forget: pull broker x market policy so the strategy / bot
+  // wizards can disable incompatible options before the user submits.
+  // Cached in sessionStorage; backend is still the source of truth and
+  // re-validates every create/update/execute call.
+  store.dispatch('LoadBrokerMarketPolicy').catch(() => {})
+
   // last step
 }

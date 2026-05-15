@@ -10,11 +10,16 @@ export const asyncRouterMap = [
     redirect: '/ai-asset-analysis',
     children: [
       // 1. AI资产分析（首页）
+      // keepAlive: true so the heavy market-data fetches (sentiment / indices /
+      // heatmap / calendar / opportunities / watchlist prices) only run on the
+      // first visit. The component handles its own "data is stale" refresh in
+      // `activated()`. Disabling this again will reintroduce a 1~3s cold start
+      // every time the user navigates back here.
       {
         path: '/ai-asset-analysis',
         name: 'AIAssetAnalysis',
         component: () => import('@/views/ai-asset-analysis'),
-        meta: { title: 'menu.dashboard.aiAssetAnalysis', keepAlive: false, icon: 'appstore', permission: ['dashboard'] }
+        meta: { title: 'menu.dashboard.aiAssetAnalysis', keepAlive: true, icon: 'appstore', permission: ['dashboard'] }
       },
       // 2. 指标市场（浏览/购买指标，排在图表页之上）
       {

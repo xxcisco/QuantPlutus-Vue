@@ -4,6 +4,7 @@ import Vuex from 'vuex'
 import app from './modules/app'
 import user from './modules/user'
 import brand from './modules/brand'
+import policy from './modules/policy'
 
 // dynamic router permission control
 // 动态路由模式（支持基于角色的菜单过滤）
@@ -22,6 +23,7 @@ export default new Vuex.Store({
     app,
     user,
     brand,
+    policy,
     permission
   },
   state: {},

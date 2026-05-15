@@ -70,6 +70,27 @@
       />
       <div class="field-hint">{{ takeProfitHint }}</div>
     </a-form-model-item>
+    <a-form-model-item :label="trailingTpSwitchLabel">
+      <a-switch v-model="form.trailingTpEnabled" @change="emit" />
+      <div class="field-hint">{{ trailingTpSwitchHint }}</div>
+    </a-form-model-item>
+    <a-form-model-item
+      v-if="form.trailingTpEnabled"
+      :label="trailingTpCallbackLabel"
+      prop="trailingTpCallbackPct"
+    >
+      <a-input-number
+        v-model="form.trailingTpCallbackPct"
+        :min="0.05"
+        :max="50"
+        :step="0.1"
+        style="width: 100%"
+        :formatter="v => `${v}%`"
+        :parser="v => v.replace('%', '')"
+        @change="emit"
+      />
+      <div class="field-hint">{{ trailingTpCallbackHint }}</div>
+    </a-form-model-item>
     <a-form-model-item :label="stopLossLabel" prop="stopLossPct">
       <a-input-number
         v-model="form.stopLossPct"
@@ -126,14 +147,42 @@ export default {
         priceDropPct: this.value.priceDropPct || 3,
         takeProfitPct: this.value.takeProfitPct || 2,
         stopLossPct: this.value.stopLossPct || 12,
-        direction: this.value.direction || 'long'
+        direction: this.value.direction || 'long',
+        // Trailing take-profit. When enabled, the `takeProfitPct` field above
+        // re-interprets as the *activation* threshold: once unrealised PnL
+        // breaks past that %, the bot starts tracking the best price reached
+        // and closes the cycle once the price retraces by `trailingTpCallbackPct`
+        // from that peak. When disabled, takeProfitPct keeps its original
+        // "close immediately on hit" semantics.
+        trailingTpEnabled: this.value.trailingTpEnabled === true,
+        trailingTpCallbackPct: this.value.trailingTpCallbackPct != null
+          ? this.value.trailingTpCallbackPct
+          : 0.8
       },
       rules: {
         multiplier: [{ required: true, message: this.$t('trading-bot.martingale.multiplierReq'), trigger: 'change' }],
         maxLayers: [{ required: true, message: this.$t('trading-bot.martingale.maxLayersReq'), trigger: 'change' }],
         priceDropPct: [{ required: true, message: this.$t('trading-bot.martingale.priceDropReq'), trigger: 'change' }],
         takeProfitPct: [{ required: true, message: this.$t('trading-bot.martingale.takeProfitReq'), trigger: 'change' }],
-        stopLossPct: [{ required: true, message: this.isZhLocale ? '请输入止损比例' : 'Please enter stop loss %', trigger: 'change' }]
+        stopLossPct: [{ required: true, message: this.isZhLocale ? '请输入止损比例' : 'Please enter stop loss %', trigger: 'change' }],
+        trailingTpCallbackPct: [{
+          validator: (rule, value, callback) => {
+            if (!this.form.trailingTpEnabled) return callback()
+            const v = Number(value)
+            if (!Number.isFinite(v) || v <= 0) {
+              return callback(new Error(this.isZhLocale ? '请输入有效的回撤比例' : 'Please enter a valid callback %'))
+            }
+            // Sanity guard: callback that is wider than the activation profit
+            // means the bot will immediately exit at the activation moment.
+            if (v >= Number(this.form.takeProfitPct || 0)) {
+              return callback(new Error(this.isZhLocale
+                ? '回撤比例应小于激活涨幅'
+                : 'Callback % must be smaller than the activation profit %'))
+            }
+            callback()
+          },
+          trigger: 'change'
+        }]
       }
     }
   },
@@ -146,6 +195,19 @@ export default {
     },
     'form.maxLayers' () {
       this.emit()
+    },
+    'form.trailingTpEnabled' () {
+      this.emit()
+    },
+    'form.trailingTpCallbackPct' () {
+      this.emit()
+    },
+    'form.takeProfitPct' () {
+      // Re-run the callback validator: it cross-checks against takeProfitPct
+      // so changes here must invalidate a previously valid callback value.
+      if (this.form.trailingTpEnabled && this.$refs.form) {
+        this.$nextTick(() => this.$refs.form.validateField('trailingTpCallbackPct'))
+      }
     },
     initialCapital () {
       this.emit()
@@ -174,10 +236,31 @@ export default {
       return this.isZhLocale ? '首单金额（自动计算）' : 'First Order Amount (Auto)'
     },
     takeProfitLabel () {
+      // When trailing is on, the same input becomes the *activation* threshold
+      // (peak tracking only kicks in once profit breaches this number).
+      if (this.form.trailingTpEnabled) {
+        return this.isZhLocale ? '追踪止盈激活涨幅%' : 'Trailing TP Activation %'
+      }
       return this.isZhLocale ? '相对持仓均价止盈%' : 'Take Profit vs Avg Entry %'
     },
     stopLossLabel () {
       return this.isZhLocale ? '相对持仓均价止损%' : 'Stop Loss vs Avg Entry %'
+    },
+    trailingTpSwitchLabel () {
+      return this.isZhLocale ? '启用追踪止盈' : 'Trailing Take Profit'
+    },
+    trailingTpSwitchHint () {
+      return this.isZhLocale
+        ? '开启后，达到上面的涨幅时不再立即平仓，而是开始追踪盈利峰值；价格从峰值回撤指定比例后再平仓。'
+        : 'When ON, the bot does NOT exit at the profit % above. Instead it starts tracking the peak price; the cycle closes only after the price retraces by the callback % set below.'
+    },
+    trailingTpCallbackLabel () {
+      return this.isZhLocale ? '回撤幅度%' : 'Callback %'
+    },
+    trailingTpCallbackHint () {
+      return this.isZhLocale
+        ? '激活后，价格从峰值回撤这么多比例时立即平仓重置马丁状态。建议小于激活涨幅。'
+        : 'Once activated, the cycle closes the moment the price retraces this % from the peak. Keep it smaller than the activation %.'
     },
     budgetHint () {
       return this.isZhLocale
@@ -221,6 +304,11 @@ export default {
         : 'Derived automatically from total budget, multiplier, and max layers.'
     },
     takeProfitHint () {
+      if (this.form.trailingTpEnabled) {
+        return this.isZhLocale
+          ? '价格相对持仓均价的盈利突破这个比例后，开始追踪盈利峰值（不再立即平仓）。'
+          : 'When unrealised PnL vs avg entry breaks above this %, the bot starts tracking the peak (does NOT exit yet).'
+      }
       return this.isZhLocale
         ? '当价格相对持仓均价达到这个盈利比例时，脚本自动平仓并重置马丁状态。'
         : 'When average entry profit reaches this %, the script closes the position and resets martingale state.'

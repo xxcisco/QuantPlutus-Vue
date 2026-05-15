@@ -1356,20 +1356,31 @@ export default {
     },
 
     getActionColor (action) {
+      // Map raw action codes to a preset color name (red / green / blue /
+      // gold / cyan / purple / volcano / lime / orange). We avoid 'default'
+      // because ant-design-vue treats it as a custom (non-preset) color
+      // string, which renders an invalid background-color in light theme
+      // and ends up white-on-white. Unknown actions fall back to 'blue'
+      // so any new server-side action stays readable until we add a
+      // proper mapping here.
       const colors = {
         consume: 'red',
         recharge: 'green',
         admin_adjust: 'blue',
         refund: 'orange',
         vip_grant: 'gold',
-        vip_revoke: 'default',
+        vip_revoke: 'orange',
         register_bonus: 'cyan',
         referral_bonus: 'purple',
+        // Membership
+        membership_purchase: 'gold',
+        membership_bonus: 'cyan',
+        membership_monthly: 'lime',
         // 指标社区相关
         indicator_purchase: 'volcano',
         indicator_sale: 'lime'
       }
-      return colors[action] || 'default'
+      return colors[action] || 'blue'
     },
 
     getActionLabel (action) {
@@ -1382,6 +1393,11 @@ export default {
         vip_revoke: this.$t('profile.creditsLog.actionVipRevoke') || 'VIP取消',
         register_bonus: this.$t('profile.creditsLog.actionRegisterBonus') || '注册奖励',
         referral_bonus: this.$t('profile.creditsLog.actionReferralBonus') || '邀请奖励',
+        // Membership (kept for historical rows; new purchases no longer
+        // emit a separate `membership_purchase` row — see billing_service.)
+        membership_purchase: this.$t('profile.creditsLog.actionMembershipPurchase') || '购买会员',
+        membership_bonus: this.$t('profile.creditsLog.actionMembershipBonus') || '会员赠送积分',
+        membership_monthly: this.$t('profile.creditsLog.actionMembershipMonthly') || '会员月度积分',
         // 指标社区相关
         indicator_purchase: this.$t('profile.creditsLog.actionIndicatorPurchase') || '购买指标',
         indicator_sale: this.$t('profile.creditsLog.actionIndicatorSale') || '出售指标'

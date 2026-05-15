@@ -40,6 +40,28 @@
             />
           </a-form-model-item>
 
+          <a-form-model-item :label="$t('trading-bot.wizard.marketCategory')" prop="marketCategory">
+            <a-radio-group v-model="baseForm.marketCategory" @change="handleMarketCategoryChange">
+              <a-radio-button
+                v-for="opt in marketCategoryOptions"
+                :key="opt.value"
+                :value="opt.value"
+                :disabled="!opt.supported"
+              >
+                {{ opt.label }}
+              </a-radio-button>
+            </a-radio-group>
+            <div class="form-hint" style="margin-top: 6px;">
+              <a-icon type="info-circle" /> {{ $t('trading-bot.wizard.marketCategoryHint') }}
+            </div>
+            <div
+              v-if="!isBotTypeSupportedOnCurrentMarket"
+              class="form-hint"
+              style="margin-top: 6px; color: #ff9800;">
+              {{ $t('trading-bot.wizard.botTypeNotSupportedOnMarket', { market: currentMarketLabel }) }}
+            </div>
+          </a-form-model-item>
+
           <a-form-model-item :label="$t('trading-bot.wizard.savedCredential')" prop="credentialId">
             <a-select
               v-model="baseForm.credentialId"
@@ -66,12 +88,53 @@
           </a-form-model-item>
 
           <a-form-model-item :label="$t('trading-bot.wizard.symbol')" prop="symbol">
-            <a-auto-complete
-              v-model="baseForm.symbol"
-              :data-source="symbolSuggestions"
-              :placeholder="$t('trading-bot.wizard.symbolPh')"
-              :filter-option="filterSymbol"
-            />
+            <a-select
+              v-model="selectedSymbolKey"
+              :placeholder="watchlistPlaceholder"
+              :loading="loadingWatchlist"
+              show-search
+              allow-clear
+              option-label-prop="label"
+              :filter-option="filterSymbolOption"
+              :not-found-content="loadingWatchlist ? undefined : watchlistEmptyText"
+              :dropdown-class-name="isDarkTheme ? 'bot-symbol-dropdown bot-symbol-dropdown--dark' : 'bot-symbol-dropdown'"
+              :get-popup-container="symbolSelectGetPopupContainer"
+              @change="handleSymbolChange"
+            >
+              <a-select-option
+                v-for="w in marketWatchlist"
+                :key="w.symbol"
+                :value="w.symbol"
+                :label="w.symbol"
+              >
+                <strong class="bot-symbol-opt-code">{{ w.symbol }}</strong>
+                <span v-if="w.name && w.name !== w.symbol" class="bot-symbol-opt-name">{{ w.name }}</span>
+              </a-select-option>
+              <a-select-option
+                v-if="legacySymbolOption"
+                :key="'__current__:' + legacySymbolOption.symbol"
+                :value="legacySymbolOption.symbol"
+                :label="legacySymbolOption.symbol"
+                class="bot-symbol-opt-legacy"
+              >
+                <strong class="bot-symbol-opt-code">{{ legacySymbolOption.symbol }}</strong>
+                <a-tag color="orange" class="bot-symbol-opt-tag">{{ $t('trading-bot.wizard.symbolNotInWatchlist') }}</a-tag>
+              </a-select-option>
+              <a-select-option
+                key="__add__"
+                value="__add__"
+                :label="$t('trading-bot.wizard.addSymbol')"
+                class="bot-symbol-opt-add"
+              >
+                <a-icon type="plus" /> {{ $t('trading-bot.wizard.addSymbol') }}
+              </a-select-option>
+            </a-select>
+            <div class="form-hint" style="margin-top: 6px;">
+              <a-icon type="info-circle" /> {{ watchlistHint }}
+              <a v-if="watchlist.length > 0" class="bot-symbol-refresh" @click="loadWatchlist">
+                <a-icon type="reload" :spin="loadingWatchlist" /> {{ $t('trading-bot.wizard.refreshWatchlist') }}
+              </a>
+            </div>
           </a-form-model-item>
 
           <a-form-model-item v-if="!isGridOrMartingaleBot" :label="$t('trading-bot.wizard.timeframe')">
@@ -92,10 +155,13 @@
           </a-form-model-item>
 
           <a-form-model-item :label="$t('trading-bot.wizard.marketType')">
-            <a-radio-group v-model="baseForm.marketType">
-              <a-radio value="swap">{{ $t('trading-bot.wizard.futures') }}</a-radio>
-              <a-radio value="spot">{{ $t('trading-bot.wizard.spot') }}</a-radio>
+            <a-radio-group v-model="baseForm.marketType" :disabled="!swapAvailableForCurrentSelection && !spotAvailableForCurrentSelection">
+              <a-radio value="swap" :disabled="!swapAvailableForCurrentSelection">{{ $t('trading-bot.wizard.futures') }}</a-radio>
+              <a-radio value="spot" :disabled="!spotAvailableForCurrentSelection">{{ $t('trading-bot.wizard.spot') }}</a-radio>
             </a-radio-group>
+            <div v-if="marketTypeHint" class="form-hint" style="margin-top: 6px; color: #8c8c8c;">
+              {{ marketTypeHint }}
+            </div>
           </a-form-model-item>
 
           <a-form-model-item
@@ -299,13 +365,72 @@
         {{ isEditMode ? $t('trading-bot.wizard.save') : $t('trading-bot.wizard.create') }}
       </a-button>
     </div>
+
+    <!-- Add-to-watchlist modal. Operates on the current marketCategory so
+         the same dialog can add a US stock (TSLA) or a forex pair (EURUSD)
+         when the wizard is configured for those markets. -->
+    <a-modal
+      :title="$t('trading-bot.wizard.addSymbolTitle')"
+      :visible="showAddSymbolModal"
+      :confirmLoading="addingSymbol"
+      width="520px"
+      :ok-button-props="{ props: { disabled: !addSelectedItem } }"
+      :get-container="addSymbolModalGetContainer"
+      @ok="handleAddSymbol"
+      @cancel="closeAddSymbolModal"
+    >
+      <div class="bot-add-symbol-hint">
+        <a-icon type="info-circle" /> {{ $t('trading-bot.wizard.addSymbolHint') }}
+      </div>
+      <a-input-search
+        v-model="addSearchKeyword"
+        :placeholder="$t('trading-bot.wizard.symbolSearchPh')"
+        :loading="addSearching"
+        size="large"
+        allow-clear
+        style="margin: 12px 0;"
+        @search="doAddSymbolSearch"
+        @change="onAddSymbolSearchInput"
+      />
+      <a-list
+        v-if="addSearchResults.length > 0"
+        size="small"
+        :data-source="addSearchResults"
+        style="max-height: 260px; overflow-y: auto;"
+      >
+        <a-list-item
+          slot="renderItem"
+          slot-scope="item"
+          style="cursor: pointer;"
+          :class="{ 'bot-add-item-active': addSelectedItem && addSelectedItem.symbol === item.symbol }"
+          @click="addSelectedItem = item"
+        >
+          <strong>{{ item.symbol }}</strong>
+          <span v-if="item.name" style="color: #999; margin-left: 8px;">{{ item.name }}</span>
+          <a-icon
+            v-if="addSelectedItem && addSelectedItem.symbol === item.symbol"
+            type="check-circle"
+            theme="filled"
+            style="color: #52c41a; margin-left: auto;"
+          />
+        </a-list-item>
+      </a-list>
+      <div
+        v-else-if="addSearched && addSearchKeyword"
+        class="bot-add-symbol-empty"
+      >
+        {{ $t('trading-bot.wizard.symbolNoResult') }}
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script>
 import request from '@/utils/request'
+import { mapGetters } from 'vuex'
 import { createStrategy, updateStrategy } from '@/api/strategy'
 import { listExchangeCredentials } from '@/api/credentials'
+import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
 import { generateBotScript } from './botScriptTemplates'
 import GridConfig from './configs/GridConfig.vue'
 import MartingaleConfig from './configs/MartingaleConfig.vue'
@@ -335,6 +460,12 @@ const BOT_TYPE_MAP = {
   }
 }
 
+// All knowledge about which broker can serve which market lives in the
+// backend `app/services/broker_market_policy.py` and is fetched at boot
+// into the `policy` Vuex store. We read it via the `brokerMarketPolicy`
+// getter below; nothing about broker -> market compatibility is hard-coded
+// in this component anymore.
+
 export default {
   name: 'BotCreateWizard',
   components: { GridConfig, MartingaleConfig, TrendConfig, DCAConfig },
@@ -349,11 +480,17 @@ export default {
       currentStep: 0,
       creating: false,
       loadingCredentials: false,
+      // Raw list returned from the API (every credential the user has).
+      // We keep this around so switching market_category can re-filter
+      // without re-fetching from the backend.
+      credentialsRaw: [],
+      // Filtered list shown in the dropdown (matches the current market).
       credentials: [],
       currentExchangeId: '',
       baseForm: {
         botName: '',
         credentialId: undefined,
+        marketCategory: 'Crypto',
         symbol: '',
         timeframe: '1h',
         marketType: 'swap',
@@ -362,8 +499,9 @@ export default {
       },
       baseRules: {
         botName: [{ required: true, message: this.$t('trading-bot.wizard.botNameReq'), trigger: 'blur' }],
+        marketCategory: [{ required: true, message: this.$t('trading-bot.wizard.marketCategory'), trigger: 'change' }],
         credentialId: [{ required: true, message: this.$t('trading-bot.wizard.credentialReq'), trigger: 'change' }],
-        symbol: [{ required: true, message: this.$t('trading-bot.wizard.symbolReq'), trigger: 'blur' }],
+        symbol: [{ required: true, message: this.$t('trading-bot.wizard.symbolReq'), trigger: 'change' }],
         initialCapital: [{ required: true, type: 'number', min: 10, message: this.$t('trading-bot.wizard.capitalReq'), trigger: 'change' }]
       },
       strategyParams: {},
@@ -373,14 +511,147 @@ export default {
         maxPosition: 5000,
         maxDailyLoss: 500
       },
-      symbolSuggestions: [
-        'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT',
-        'DOGE/USDT', 'ADA/USDT', 'AVAX/USDT', 'DOT/USDT', 'MATIC/USDT',
-        'LINK/USDT', 'UNI/USDT', 'ATOM/USDT', 'LTC/USDT', 'FIL/USDT'
-      ]
+      // 自选标的列表（从 qd_watchlist 拉取，按 market 过滤后只展示 Crypto）
+      watchlist: [],
+      loadingWatchlist: false,
+      // a-select 的内部 v-model；其值与 baseForm.symbol 等价，但拦截
+      // 特殊值 `__add__` 用于触发添加弹窗，避免直接污染表单 symbol。
+      selectedSymbolKey: undefined,
+      // 添加自选弹窗状态
+      showAddSymbolModal: false,
+      addSearchKeyword: '',
+      addSearchResults: [],
+      addSelectedItem: null,
+      addSearching: false,
+      addSearched: false,
+      addingSymbol: false,
+      addSearchTimer: null
     }
   },
   computed: {
+    ...mapGetters(['userInfo', 'theme', 'brokerMarketPolicy']),
+    userId () {
+      const info = this.userInfo || {}
+      return info.id || info.user_id || null
+    },
+    isDarkTheme () {
+      return String(this.theme || '').toLowerCase() === 'dark'
+    },
+    // ----- market category plumbing (Crypto / USStock / Forex) -----
+    // Bots-on-market matrix from backend (broker_market_policy.BOT_TYPE_MARKETS).
+    botTypeMarkets () {
+      return (this.brokerMarketPolicy && this.brokerMarketPolicy.bot_type_markets) || {}
+    },
+    // Markets the *current* bot type can actually run on. Used to grey out
+    // unsupported market radios so the user sees the constraint visually.
+    supportedMarketsForBot () {
+      const list = this.botTypeMarkets[this.botType] || ['Crypto']
+      return new Set(list)
+    },
+    isBotTypeSupportedOnCurrentMarket () {
+      return this.supportedMarketsForBot.has(this.baseForm.marketCategory)
+    },
+    marketCategoryOptions () {
+      const live = (this.brokerMarketPolicy && this.brokerMarketPolicy.live_market_categories) || ['Crypto', 'USStock', 'Forex']
+      const labelMap = {
+        Crypto: this.$t('trading-bot.wizard.marketCrypto'),
+        USStock: this.$t('trading-bot.wizard.marketUSStock'),
+        Forex: this.$t('trading-bot.wizard.marketForex')
+      }
+      return live.map(value => ({
+        value,
+        label: labelMap[value] || value,
+        supported: this.supportedMarketsForBot.has(value)
+      }))
+    },
+    currentMarketLabel () {
+      const opt = this.marketCategoryOptions.find(o => o.value === this.baseForm.marketCategory)
+      return opt ? opt.label : this.baseForm.marketCategory
+    },
+    // ----- credential filtering -----
+    // Brokers that can serve the currently selected market_category.
+    eligibleExchangeIdsForMarket () {
+      const matrix = (this.brokerMarketPolicy && this.brokerMarketPolicy.broker_markets) || {}
+      const cat = this.baseForm.marketCategory
+      const out = new Set()
+      Object.keys(matrix).forEach(broker => {
+        if (matrix[broker] && Object.prototype.hasOwnProperty.call(matrix[broker], cat)) {
+          out.add(String(broker).toLowerCase())
+        }
+      })
+      return out
+    },
+    // ----- market_type plumbing -----
+    // For the (broker, market) the user has currently selected, which
+    // market_types are valid?  We use it to disable spot / swap radios.
+    allowedMarketTypesForCurrentSelection () {
+      const matrix = (this.brokerMarketPolicy && this.brokerMarketPolicy.broker_markets) || {}
+      const cat = this.baseForm.marketCategory
+      const ex = (this.currentExchangeId || '').toLowerCase()
+      // No broker yet: fall back to "what does the market itself support".
+      if (!ex) {
+        const aggregate = new Set()
+        Object.keys(matrix).forEach(b => {
+          const list = (matrix[b] || {})[cat] || []
+          list.forEach(t => aggregate.add(t))
+        })
+        return aggregate
+      }
+      const list = (matrix[ex] || {})[cat] || []
+      return new Set(list)
+    },
+    spotAvailableForCurrentSelection () {
+      return this.allowedMarketTypesForCurrentSelection.has('spot')
+    },
+    swapAvailableForCurrentSelection () {
+      return this.allowedMarketTypesForCurrentSelection.has('swap')
+    },
+    marketTypeHint () {
+      if (!this.swapAvailableForCurrentSelection && this.spotAvailableForCurrentSelection) {
+        return this.isZhLocale
+          ? '当前市场/券商组合仅支持现货。'
+          : 'This market / broker combination is spot-only.'
+      }
+      return ''
+    },
+    // ----- watchlist filtering -----
+    // Filter the user watchlist down to entries that match the currently
+    // selected market category. The watchlist API stores 'Crypto', 'USStock',
+    // 'Forex' (and other analysis-only markets) all in one bucket.
+    marketWatchlist () {
+      const target = String(this.baseForm.marketCategory || '').toLowerCase()
+      return (this.watchlist || []).filter(
+        w => w && w.symbol && String(w.market || '').toLowerCase() === target
+      )
+    },
+    // When baseForm.symbol isn't in the user's watchlist (e.g. editing an
+    // existing bot or applying an AI preset), show it as a "Not in watchlist"
+    // pseudo-option instead of letting the select render empty.
+    legacySymbolOption () {
+      const sym = (this.baseForm.symbol || '').trim()
+      if (!sym) return null
+      const exists = this.marketWatchlist.some(w => w.symbol === sym)
+      if (exists) return null
+      return { symbol: sym }
+    },
+    watchlistPlaceholder () {
+      if (this.marketWatchlist.length === 0) {
+        return this.isZhLocale
+          ? '请先添加自选标的'
+          : 'Please add a symbol to your watchlist'
+      }
+      return this.$t('trading-bot.wizard.symbolPh')
+    },
+    watchlistEmptyText () {
+      return this.isZhLocale
+        ? '自选为空，点击下拉中的"+"添加'
+        : 'Watchlist is empty. Click "+" in the dropdown to add a symbol.'
+    },
+    watchlistHint () {
+      return this.isZhLocale
+        ? '从自选标的中选择；如未收藏，点击下拉里的"添加自选"按钮即可补充。'
+        : 'Pick from your watchlist. Use "Add Symbol" inside the dropdown to add a new symbol.'
+    },
     isEditMode () {
       return !!this.editBot
     },
@@ -481,6 +752,35 @@ export default {
         this.riskForm.maxPosition = val
       }
       this.riskForm.maxDailyLoss = Math.round(val * 0.1)
+    },
+    // baseForm.symbol 与下拉框选中值双向同步：编辑机器人 / AI 预设
+    // 都会先改 baseForm.symbol，这里再把它映射回下拉显示值。
+    'baseForm.symbol': {
+      immediate: true,
+      handler (val) {
+        this.selectedSymbolKey = val || undefined
+      }
+    },
+    // When market_type lock changes (e.g. user picked a spot-only broker),
+    // make sure the selected market_type is still valid; if not, force it
+    // to one that is.  This mirrors the backend Rule 4 in
+    // broker_market_policy.validate_strategy_config.
+    swapAvailableForCurrentSelection: {
+      immediate: false,
+      handler (canSwap) {
+        if (!canSwap && this.baseForm.marketType === 'swap') {
+          this.baseForm.marketType = 'spot'
+          this.baseForm.leverage = 1
+        }
+      }
+    },
+    spotAvailableForCurrentSelection: {
+      immediate: false,
+      handler (canSpot) {
+        if (!canSpot && this.baseForm.marketType === 'spot' && this.swapAvailableForCurrentSelection) {
+          this.baseForm.marketType = 'swap'
+        }
+      }
     }
   },
   created () {
@@ -490,10 +790,23 @@ export default {
     } else {
       this.applyAiPreset()
     }
+    this.loadWatchlist()
+  },
+  beforeDestroy () {
+    if (this.addSearchTimer) {
+      clearTimeout(this.addSearchTimer)
+      this.addSearchTimer = null
+    }
   },
   methods: {
     shouldShowStrategyParam (key) {
       if (key === 'referencePrice') return this.botType === 'grid'
+      // Hide the trailing TP activation / callback details on the confirm
+      // screen when trailing TP is OFF — otherwise users would see stray
+      // "0.8%" rows for a feature they didn't enable, which is confusing.
+      if (key === 'trailingTpActivationPct' || key === 'trailingTpCallbackPct') {
+        return this.strategyParams && this.strategyParams.trailingTpEnabled === true
+      }
       return !String(key || '').startsWith('_')
     },
     fallbackLabel (zh, en) {
@@ -524,7 +837,11 @@ export default {
         frequency: this.$t('trading-bot.dca.frequency'),
         totalBudget: this.$t('trading-bot.dca.totalBudget'),
         dipBuyEnabled: this.$t('trading-bot.dca.dipBuy'),
-        dipThreshold: this.$t('trading-bot.dca.dipThreshold')
+        dipThreshold: this.$t('trading-bot.dca.dipThreshold'),
+        // Trailing TP fields (shared between martingale and trend bots).
+        trailingTpEnabled: this.fallbackLabel('启用追踪止盈', 'Trailing TP'),
+        trailingTpActivationPct: this.fallbackLabel('追踪止盈激活涨幅', 'Trailing TP Activation %'),
+        trailingTpCallbackPct: this.fallbackLabel('追踪止盈回撤幅度', 'Trailing TP Callback %')
       }
       return map[key] || key
     },
@@ -578,10 +895,11 @@ export default {
         }
         return map[value] || value
       }
-      if (key === 'dipBuyEnabled') {
+      if (key === 'dipBuyEnabled' || key === 'trailingTpEnabled') {
         return value ? this.fallbackLabel('开启', 'Enabled') : this.fallbackLabel('关闭', 'Disabled')
       }
-      if (['priceDropPct', 'takeProfitPct', 'stopLossPct', 'dipThreshold', 'positionPct'].includes(key)) {
+      if (['priceDropPct', 'takeProfitPct', 'stopLossPct', 'dipThreshold', 'positionPct',
+           'trailingTpActivationPct', 'trailingTpCallbackPct'].includes(key)) {
         return `${value}%`
       }
       if ([
@@ -595,12 +913,23 @@ export default {
       }
       return value
     },
+    // Returns true if the currently-selected broker only supports
+    // long-side execution (IBKR / Alpaca).  Reads the policy snapshot so it
+    // stays in sync with the backend rule.
+    isCurrentBrokerLongOnly () {
+      const longOnly = (this.brokerMarketPolicy && this.brokerMarketPolicy.long_only_brokers) || []
+      return longOnly.map(s => String(s).toLowerCase()).includes((this.currentExchangeId || '').toLowerCase())
+    },
     normalizeStrategyParams (params) {
       const next = { ...(params || {}) }
       if (this.botType === 'trend') {
         delete next.timeframe
       }
-      if (this.baseForm.marketType === 'spot') {
+      // Spot markets cannot short, and long-only brokers also can't short
+      // even on swap. Coerce direction params accordingly so the script
+      // template doesn't emit short signals that the worker will reject.
+      const forceLong = this.baseForm.marketType === 'spot' || this.isCurrentBrokerLongOnly()
+      if (forceLong) {
         if (this.botType === 'grid') next.gridDirection = 'long'
         if (this.botType === 'martingale' || this.botType === 'trend') next.direction = 'long'
       }
@@ -608,6 +937,7 @@ export default {
     },
     resolveTradeDirection (params) {
       if (this.baseForm.marketType === 'spot') return 'long'
+      if (this.isCurrentBrokerLongOnly()) return 'long'
       if (this.botType === 'grid') {
         const dir = params.gridDirection || 'neutral'
         return { neutral: 'both', long: 'long', short: 'short' }[dir] || 'both'
@@ -621,6 +951,7 @@ export default {
       const bot = this.editBot
       if (!bot) return
       this.baseForm.botName = bot.strategy_name || ''
+      this.baseForm.marketCategory = bot.market_category || 'Crypto'
       const tc = bot.trading_config || {}
       this.baseForm.symbol = tc.symbol || ''
       this.baseForm.timeframe = tc.timeframe || '1h'
@@ -646,6 +977,7 @@ export default {
       const p = this.aiPreset
       if (p.botName) this.baseForm.botName = p.botName
       const base = p.baseConfig || {}
+      if (base.marketCategory) this.baseForm.marketCategory = base.marketCategory
       if (base.symbol) this.baseForm.symbol = base.symbol
       if (base.timeframe) this.baseForm.timeframe = base.timeframe
       if (base.marketType) this.baseForm.marketType = base.marketType
@@ -671,18 +1003,167 @@ export default {
       this.riskForm.maxPosition = this.botType === 'martingale' ? 0 : null
       this.riskForm.maxDailyLoss = null
     },
-    filterSymbol (input, option) {
-      return option.toUpperCase().indexOf(input.toUpperCase()) >= 0
+    // ===== 自选标的（watchlist 模式） =====
+    async loadWatchlist () {
+      this.loadingWatchlist = true
+      try {
+        const res = await getWatchlist({ userid: this.userId })
+        if (res && res.code === 1 && Array.isArray(res.data)) {
+          this.watchlist = res.data
+        }
+      } catch (e) {
+        // 静默失败：用户没收藏过任何自选时也可能 401/空，保持空数组即可
+      } finally {
+        this.loadingWatchlist = false
+      }
+    },
+    filterSymbolOption (input, option) {
+      const val = String(option.componentOptions?.propsData?.value || '').toLowerCase()
+      if (val === '__add__') return true
+      const q = String(input || '').trim().toLowerCase()
+      if (!q) return true
+      // 拼接 symbol + 显示名一起做匹配，避免用户只记得名称的情况漏匹配。
+      const row = this.cryptoWatchlist.find(w => w.symbol === option.componentOptions.propsData.value)
+      const haystack = (val + ' ' + ((row && row.name) || '')).toLowerCase()
+      return haystack.includes(q)
+    },
+    handleSymbolChange (val) {
+      if (val === '__add__') {
+        // 触发添加自选弹窗；同时把下拉值回退到旧 symbol，避免 select 显示成 "__add__"
+        this.$nextTick(() => {
+          this.selectedSymbolKey = this.baseForm.symbol || undefined
+        })
+        this.openAddSymbolModal()
+        return
+      }
+      this.baseForm.symbol = val || ''
+      this.selectedSymbolKey = val || undefined
+    },
+    symbolSelectGetPopupContainer (trigger) {
+      // 弹窗模式下挂载到当前 wizard 容器，避免 modal 关闭时下拉残留
+      if (this.isModal) {
+        return trigger.parentNode || document.body
+      }
+      return document.body
+    },
+    addSymbolModalGetContainer () {
+      // 让 modal 始终挂到 body（默认行为）但保留扩展点，
+      // wizard 自身嵌在父 modal 里时 ant 也能正确叠放层级。
+      return document.body
+    },
+    openAddSymbolModal () {
+      this.addSearchKeyword = ''
+      this.addSearchResults = []
+      this.addSelectedItem = null
+      this.addSearched = false
+      this.showAddSymbolModal = true
+    },
+    closeAddSymbolModal () {
+      if (this.addSearchTimer) {
+        clearTimeout(this.addSearchTimer)
+        this.addSearchTimer = null
+      }
+      this.showAddSymbolModal = false
+    },
+    onAddSymbolSearchInput () {
+      if (this.addSearchTimer) {
+        clearTimeout(this.addSearchTimer)
+        this.addSearchTimer = null
+      }
+      const kw = String(this.addSearchKeyword || '').trim()
+      if (!kw) {
+        this.addSearchResults = []
+        this.addSelectedItem = null
+        this.addSearched = false
+        return
+      }
+      this.addSearchTimer = setTimeout(() => this.doAddSymbolSearch(), 400)
+    },
+    async doAddSymbolSearch () {
+      const kw = String(this.addSearchKeyword || '').trim()
+      if (!kw) return
+      const market = this.baseForm.marketCategory || 'Crypto'
+      this.addSearching = true
+      try {
+        const res = await searchSymbols({ market, keyword: kw, limit: 20 })
+        const list = (res && Array.isArray(res.data)) ? res.data : []
+        this.addSearchResults = list
+        this.addSearched = true
+        if (list.length === 0) {
+          // 没搜到也允许用户原样添加（例如非常冷门的交易对），
+          // 与 indicator-ide 行为保持一致，符合用户对"自由补充"的预期。
+          this.addSelectedItem = { market, symbol: kw.toUpperCase(), name: '' }
+        } else if (!this.addSelectedItem || !list.some(x => x.symbol === this.addSelectedItem.symbol)) {
+          this.addSelectedItem = list[0]
+        }
+      } catch (e) {
+        this.addSearchResults = []
+        this.addSelectedItem = { market, symbol: kw.toUpperCase(), name: '' }
+        this.addSearched = true
+      } finally {
+        this.addSearching = false
+      }
+    },
+    async handleAddSymbol () {
+      const item = this.addSelectedItem
+      if (!item || !item.symbol) {
+        this.$message.warning(this.$t('trading-bot.wizard.symbolReq'))
+        return
+      }
+      this.addingSymbol = true
+      try {
+        const symbol = String(item.symbol).toUpperCase()
+        await addWatchlist({
+          userid: this.userId,
+          market: this.baseForm.marketCategory || 'Crypto',
+          symbol,
+          name: item.name || ''
+        })
+        await this.loadWatchlist()
+        this.baseForm.symbol = symbol
+        this.selectedSymbolKey = symbol
+        this.$message.success(this.$t('trading-bot.wizard.addSymbolSuccess'))
+        this.closeAddSymbolModal()
+        // 让 a-form-model 重新校验 symbol，去掉之前的红框提示
+        this.$nextTick(() => {
+          if (this.$refs.baseForm) {
+            try { this.$refs.baseForm.clearValidate(['symbol']) } catch (_) {}
+          }
+        })
+      } catch (e) {
+        this.$message.error((e && e.message) || this.$t('trading-bot.wizard.addSymbolFail'))
+      } finally {
+        this.addingSymbol = false
+      }
     },
     async loadCredentials () {
       this.loadingCredentials = true
       try {
         const res = await listExchangeCredentials()
-        this.credentials = (res?.data?.items) || []
+        this.credentialsRaw = (res?.data?.items) || []
       } catch {
-        this.credentials = []
+        this.credentialsRaw = []
       } finally {
         this.loadingCredentials = false
+      }
+      this.refilterCredentials()
+    },
+    // Filter the raw credential list down to the brokers that can serve the
+    // currently-selected market_category. Driven by the policy snapshot from
+    // the backend, so e.g. picking "USStock" automatically narrows to ibkr +
+    // alpaca and excludes binance/okx/etc.
+    refilterCredentials () {
+      const allowed = this.eligibleExchangeIdsForMarket
+      this.credentials = (this.credentialsRaw || []).filter(
+        c => allowed.has(String(c.exchange_id || '').toLowerCase())
+      )
+      // If the previously selected credential no longer matches, clear it.
+      if (this.baseForm.credentialId) {
+        const stillThere = this.credentials.some(c => c.id === this.baseForm.credentialId)
+        if (!stillThere) {
+          this.baseForm.credentialId = undefined
+          this.currentExchangeId = ''
+        }
       }
     },
     handleCredentialChange (credId) {
@@ -693,6 +1174,23 @@ export default {
       const cred = this.credentials.find(c => c.id === credId)
       if (cred) {
         this.currentExchangeId = (cred.exchange_id || '').toLowerCase()
+      }
+    },
+    // Switching market_category resets every dependent field: credentials,
+    // symbol, market_type, leverage. This keeps the wizard's state coherent
+    // (no stale "BTC/USDT" sticking around when the user flips to USStock).
+    handleMarketCategoryChange () {
+      // Refilter credentials and clear symbol because the watchlist filter
+      // changes shape too.
+      this.refilterCredentials()
+      this.baseForm.symbol = ''
+      this.selectedSymbolKey = undefined
+      // Force the strongest legal market_type for the new market.
+      if (!this.swapAvailableForCurrentSelection) {
+        this.baseForm.marketType = 'spot'
+        this.baseForm.leverage = 1
+      } else if (!this.spotAvailableForCurrentSelection) {
+        this.baseForm.marketType = 'swap'
       }
     },
     async nextStep () {
@@ -732,7 +1230,7 @@ export default {
         const res = await request({
           url: '/api/market/price',
           method: 'get',
-          params: { market: 'Crypto', symbol }
+          params: { market: this.baseForm.marketCategory || 'Crypto', symbol }
         })
         const price = parseFloat(res?.data?.price)
         return price > 0 ? price : null
@@ -762,12 +1260,29 @@ export default {
       const leverage = this.baseForm.marketType === 'spot' ? 1 : (this.baseForm.leverage || 5)
       const tradeDirection = this.resolveTradeDirection(strategyParams)
 
+      // Validate broker x market compatibility against the policy snapshot.
+      // The backend will re-validate via broker_market_policy.validate_strategy_config
+      // at create time, but failing fast here prevents a half-saved strategy
+      // from existing and gives a more readable error.
+      const exId = (this.currentExchangeId || '').toLowerCase()
+      const market = this.baseForm.marketCategory || 'Crypto'
+      if (!this.eligibleExchangeIdsForMarket.has(exId)) {
+        throw new Error(
+          this.$t('trading-bot.wizard.cryptoCredentialRequired', { market: this.currentMarketLabel })
+        )
+      }
+      if (!this.supportedMarketsForBot.has(market)) {
+        throw new Error(
+          this.$t('trading-bot.wizard.botTypeNotSupportedOnMarket', { market: this.currentMarketLabel })
+        )
+      }
+
       return {
         strategy_name: this.baseForm.botName,
         strategy_type: 'ScriptStrategy',
         strategy_mode: 'bot',
         strategy_code: strategyCode,
-        market_category: 'Crypto',
+        market_category: market,
         execution_mode: 'live',
         exchange_config: {
           credential_id: this.baseForm.credentialId,
@@ -956,5 +1471,58 @@ export default {
   margin-top: 20px;
 
   .spacer { flex: 1; }
+}
+
+/* ===== Symbol picker (watchlist mode) ===== */
+.bot-symbol-opt-code {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.bot-symbol-opt-name {
+  margin-left: 8px;
+  color: #999;
+  font-size: 12px;
+}
+
+.bot-symbol-opt-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.bot-symbol-opt-add .anticon {
+  color: #1890ff;
+  margin-right: 6px;
+}
+
+.bot-symbol-refresh {
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #1890ff;
+
+  .anticon { margin-right: 4px; }
+}
+
+.bot-add-symbol-hint {
+  font-size: 13px;
+  color: #595959;
+  background: rgba(24, 144, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 12px;
+
+  .anticon { color: #1890ff; margin-right: 6px; }
+}
+
+.bot-add-symbol-empty {
+  padding: 16px 0;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+}
+
+.bot-add-item-active {
+  background: rgba(82, 196, 26, 0.08);
 }
 </style>

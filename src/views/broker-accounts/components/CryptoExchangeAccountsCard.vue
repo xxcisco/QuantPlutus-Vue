@@ -45,12 +45,6 @@
               <span class="crypto-item-alias">{{ item.name || $t('brokerAccounts.cryptoSection.unnamed') }}</span>
             </div>
             <div class="crypto-item-line">
-              <a-tag v-if="item.enable_demo_trading" color="cyan" class="crypto-item-badge">
-                {{ $t('brokerAccounts.cryptoSection.demoBadge') }}
-              </a-tag>
-              <a-tag v-else color="orange" class="crypto-item-badge">
-                {{ $t('brokerAccounts.cryptoSection.liveBadge') }}
-              </a-tag>
               <span v-if="item.api_key_hint" class="crypto-item-hint">{{ item.api_key_hint }}</span>
               <span v-if="item.created_at" class="crypto-item-time">{{ formatTime(item.created_at) }}</span>
             </div>

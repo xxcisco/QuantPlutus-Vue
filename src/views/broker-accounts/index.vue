@@ -12,14 +12,6 @@
       </div>
     </div>
 
-    <a-alert
-      v-if="!desktopBrokersAllowed && !desktopBrokersAllowedLoading"
-      type="warning"
-      show-icon
-      class="ba-cloud-alert"
-      :message="$t('brokerAccounts.cloudOnlyAlert')"
-    />
-
     <crypto-exchange-accounts-card :is-dark-theme="isDarkTheme" />
 
     <div class="ba-section-divider">
@@ -29,6 +21,14 @@
       </span>
       <span class="ba-section-divider-hint">{{ $t('brokerAccounts.restSection.hint') }}</span>
     </div>
+
+    <a-alert
+      v-if="!desktopBrokersAllowedLoading && !desktopBrokersAllowed"
+      type="info"
+      show-icon
+      class="ba-cloud-alert"
+      :message="$t('brokerAccounts.cloudOnlyAlert')"
+    />
 
     <a-tabs v-model="activeBroker" class="ba-tabs" type="card" @change="onBrokerChange">
       <a-tab-pane v-for="b in availableBrokers" :key="b.id">
@@ -54,7 +54,7 @@
           :status="connectionMap[b.id]"
           :loading="loadingMap[b.id]"
           :is-dark-theme="isDarkTheme"
-          :cloud-blocked="!desktopBrokersAllowed && !b.cloudFriendly"
+          :cloud-blocked="isBrokerBlocked(b.id)"
           @connect="payload => handleConnect(b.id, payload)"
           @disconnect="() => handleDisconnect(b.id)"
           @refresh="() => loadOne(b.id)"
@@ -95,23 +95,43 @@ export default {
       return BROKER_IDS.map(id => BROKER_META[id])
     }
   },
-  mounted () {
-    this.loadDesktopPolicy()
+  async mounted () {
+    // IMPORTANT: resolve the desktop-broker policy BEFORE firing any
+    // /api/{ibkr,mt5}/status requests. On SaaS deployments those endpoints
+    // intentionally return a long bilingual rejection message which used to
+    // surface as a misleading toast/console error during the initial load.
+    await this.loadDesktopPolicy()
     this.refreshAll()
   },
   methods: {
     async loadDesktopPolicy () {
       try {
         const res = await getDesktopBrokersPolicy()
-        const allowed = (res && (res.data || res)) || {}
-        this.desktopBrokersAllowed = !!(allowed.allowed || allowed.allow || allowed.enabled)
+        const payload = (res && (res.data || res)) || {}
+        const flag = payload.allow_local_desktop_brokers
+        if (flag === undefined || flag === null) {
+          this.desktopBrokersAllowed = !!(payload.allowed || payload.allow || payload.enabled)
+        } else {
+          this.desktopBrokersAllowed = !!flag
+        }
       } catch (_) {
         this.desktopBrokersAllowed = true
       } finally {
         this.desktopBrokersAllowedLoading = false
       }
     },
+    isBrokerBlocked (id) {
+      const meta = BROKER_META[id]
+      if (!meta) return false
+      return !this.desktopBrokersAllowed && !meta.cloudFriendly
+    },
     onBrokerChange (id) {
+      if (this.isBrokerBlocked(id)) {
+        if (!this.connectionMap[id]) {
+          this.$set(this.connectionMap, id, { connected: false, blocked: true })
+        }
+        return
+      }
       if (!this.connectionMap[id]) this.loadOne(id)
     },
     async refreshAll () {
@@ -123,6 +143,14 @@ export default {
       }
     },
     async loadOne (id) {
+      // SaaS / cloud deployments disable IBKR + MT5 (no local TWS / MT5
+      // terminal reachable). Skip the network call entirely so users don't
+      // see the bilingual rejection payload in DevTools or as an error toast.
+      if (this.isBrokerBlocked(id)) {
+        this.$set(this.connectionMap, id, { connected: false, blocked: true })
+        this.$set(this.loadingMap, id, false)
+        return
+      }
       this.$set(this.loadingMap, id, true)
       try {
         const res = await broker[id].status()

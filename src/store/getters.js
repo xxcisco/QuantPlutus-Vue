@@ -11,7 +11,8 @@ const getters = {
   userInfo: state => state.user.info,
   addRouters: state => state.permission.addRouters,
   multiTab: state => state.app.multiTab,
-  brandConfig: state => state.brand.config
+  brandConfig: state => state.brand.config,
+  brokerMarketPolicy: state => state.policy.config
 }
 
 export default getters

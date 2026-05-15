@@ -3,6 +3,7 @@ import request from '@/utils/request'
 const billingApi = {
   Plans: '/api/billing/plans',
   Purchase: '/api/billing/purchase',
+  UsdtChains: '/api/billing/usdt/chains',
   UsdtCreate: '/api/billing/usdt/create',
   UsdtOrder: (id) => `/api/billing/usdt/order/${id}`
 }
@@ -22,11 +23,23 @@ export function purchaseMembership (plan) {
   })
 }
 
-export function createUsdtOrder (plan) {
+// v3.0.6+ : list enabled USDT chains so the frontend can render the chain
+// picker. Chains without a configured receiving address are hidden by the
+// backend, so the response can be rendered verbatim.
+export function listUsdtChains () {
+  return request({
+    url: billingApi.UsdtChains,
+    method: 'get'
+  })
+}
+
+export function createUsdtOrder (plan, chain) {
+  const data = { plan }
+  if (chain) data.chain = chain
   return request({
     url: billingApi.UsdtCreate,
     method: 'post',
-    data: { plan }
+    data
   })
 }
 

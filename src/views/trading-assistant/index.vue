@@ -776,11 +776,17 @@
                             <a-radio-group
                               v-decorator="['market_type', { initialValue: 'swap' }]"
                               @change="handleMarketTypeChange">
-                              <a-radio value="swap">{{ $t('trading-assistant.form.marketTypeFutures') }}</a-radio>
+                              <a-radio value="swap" :disabled="isAlpacaCryptoSpotOnly">{{ $t('trading-assistant.form.marketTypeFutures') }}</a-radio>
                               <a-radio value="spot">{{ $t('trading-assistant.form.marketTypeSpot') }}</a-radio>
                             </a-radio-group>
                             <div class="form-item-hint">
                               {{ $t('trading-assistant.form.marketTypeHint') }}
+                            </div>
+                            <div
+                              v-if="isAlpacaCryptoSpotOnly"
+                              class="form-item-hint"
+                              style="color: #ff9800;">
+                              {{ $t('trading-assistant.form.alpacaCryptoSpotOnlyHint') || 'Alpaca crypto desk is spot-only (no perpetual swaps). Market type locked to Spot.' }}
                             </div>
                           </a-form-item>
                         </a-col>
@@ -810,12 +816,12 @@
                           <a-form-item :label="$t('trading-assistant.form.tradeDirection')">
                             <a-radio-group
                               v-decorator="['trade_direction', { initialValue: 'long' }]"
-                              :disabled="form.getFieldValue('market_type') === 'spot'">
+                              :disabled="form.getFieldValue('market_type') === 'spot' || isLongOnlyBroker">
                               <a-radio value="long">{{ $t('trading-assistant.form.tradeDirectionLong') }}</a-radio>
-                              <a-radio value="short" :disabled="form.getFieldValue('market_type') === 'spot'">
+                              <a-radio value="short" :disabled="form.getFieldValue('market_type') === 'spot' || isLongOnlyBroker">
                                 {{ $t('trading-assistant.form.tradeDirectionShort') }}
                               </a-radio>
-                              <a-radio value="both" :disabled="form.getFieldValue('market_type') === 'spot'">
+                              <a-radio value="both" :disabled="form.getFieldValue('market_type') === 'spot' || isLongOnlyBroker">
                                 {{ $t('trading-assistant.form.tradeDirectionBoth') }}
                               </a-radio>
                             </a-radio-group>
@@ -824,6 +830,12 @@
                               class="form-item-hint"
                               style="color: #ff9800;">
                               {{ $t('trading-assistant.form.spotOnlyLongHint') }}
+                            </div>
+                            <div
+                              v-else-if="isLongOnlyBroker"
+                              class="form-item-hint"
+                              style="color: #ff9800;">
+                              {{ $t('trading-assistant.form.longOnlyBrokerHint') || 'IBKR / Alpaca currently support long-only trading. Direction locked to Long.' }}
                             </div>
                           </a-form-item>
                         </a-col>
@@ -949,9 +961,15 @@
                       <a-col :xs="24" :sm="12">
                         <a-form-item :label="$t('trading-assistant.form.marketType')">
                           <a-radio-group v-decorator="['market_type', { initialValue: 'swap' }]">
-                            <a-radio value="swap">{{ $t('trading-assistant.form.marketTypeFutures') }}</a-radio>
+                            <a-radio value="swap" :disabled="isAlpacaCryptoSpotOnly">{{ $t('trading-assistant.form.marketTypeFutures') }}</a-radio>
                             <a-radio value="spot">{{ $t('trading-assistant.form.marketTypeSpot') }}</a-radio>
                           </a-radio-group>
+                          <div
+                            v-if="isAlpacaCryptoSpotOnly"
+                            class="form-item-hint"
+                            style="color: #ff9800;">
+                            {{ $t('trading-assistant.form.alpacaCryptoSpotOnlyHint') || 'Alpaca crypto desk is spot-only (no perpetual swaps). Market type locked to Spot.' }}
+                          </div>
                         </a-form-item>
                       </a-col>
                       <a-col :xs="24" :sm="12">
@@ -970,11 +988,18 @@
                     <a-form-item :label="$t('trading-assistant.form.tradeDirection')">
                       <a-select
                         v-decorator="['trade_direction', { initialValue: 'both' }]"
+                        :disabled="isLongOnlyBroker"
                         :getPopupContainer="(triggerNode) => triggerNode.parentNode">
                         <a-select-option value="long">{{ $t('trading-assistant.form.tradeDirectionLong') }}</a-select-option>
-                        <a-select-option value="short">{{ $t('trading-assistant.form.tradeDirectionShort') }}</a-select-option>
-                        <a-select-option value="both">{{ $t('trading-assistant.form.tradeDirectionBoth') }}</a-select-option>
+                        <a-select-option value="short" :disabled="isLongOnlyBroker">{{ $t('trading-assistant.form.tradeDirectionShort') }}</a-select-option>
+                        <a-select-option value="both" :disabled="isLongOnlyBroker">{{ $t('trading-assistant.form.tradeDirectionBoth') }}</a-select-option>
                       </a-select>
+                      <div
+                        v-if="isLongOnlyBroker"
+                        class="form-item-hint"
+                        style="color: #ff9800;">
+                        {{ $t('trading-assistant.form.longOnlyBrokerHint') || 'IBKR / Alpaca currently support long-only trading. Direction locked to Long.' }}
+                      </div>
                     </a-form-item>
                   </a-form>
                 </div>
@@ -1535,21 +1560,49 @@ export default {
       }
       return false
     },
+    // Snapshot of the backend broker x market policy fetched at app boot
+    // (see store/modules/policy.js).  Falls back to DEFAULT_POLICY when the
+    // request hasn't returned yet, so first-paint still works.
+    brokerMarketPolicy () {
+      return this.$store.getters.brokerMarketPolicy || {}
+    },
+    // Brokers whose live execution path is long-only in QuantDinger today
+    // (currently IBKR and Alpaca - their `_execute_*_order` paths reject
+    // short signals).  When one of these is selected we lock trade_direction
+    // to 'long' in the form so the user never builds a strategy that the
+    // worker will refuse at runtime.
+    isLongOnlyBroker () {
+      const exchangeId = (this.currentExchangeId || '').toLowerCase()
+      const longOnly = (this.brokerMarketPolicy.long_only_brokers || [])
+        .map(s => String(s).toLowerCase())
+      return longOnly.includes(exchangeId)
+    },
+    // Alpaca's crypto desk is spot-only (no perpetual swaps, no shorting).
+    // Used by the strategy form to lock market_type=spot when the user picks
+    // an Alpaca credential together with the Crypto market category.
+    isAlpacaCryptoSpotOnly () {
+      const exchangeId = (this.currentExchangeId || '').toLowerCase()
+      const cat = (this.selectedMarketCategory || '').toLowerCase()
+      return exchangeId === 'alpaca' && cat === 'crypto'
+    },
     // Check if current market + exchange combination supports live trading
     isLiveTradingAvailable () {
       const cat = this.selectedMarketCategory || 'Crypto'
-      const exchangeId = this.currentExchangeId || ''
-      // Crypto markets use crypto exchanges
+      const exchangeId = (this.currentExchangeId || '').toLowerCase()
+      // Crypto markets use crypto exchanges OR Alpaca crypto desk.
       if (String(cat).toLowerCase() === 'crypto') {
-        return ['binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange', 'kraken', 'kucoin', 'gate'].includes(exchangeId)
+        return [
+          'binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange',
+          'kraken', 'kucoin', 'gate', 'deepcoin', 'htx', 'alpaca'
+        ].includes(exchangeId)
       }
-      // USStock uses IBKR
+      // USStock uses IBKR (local TWS/Gateway) or Alpaca (REST).
       if (cat === 'USStock') {
-        return this.currentBrokerId === 'ibkr'
+        return this.currentBrokerId === 'ibkr' || exchangeId === 'ibkr' || exchangeId === 'alpaca'
       }
       // Forex uses MT5
       if (cat === 'Forex') {
-        return this.currentBrokerId === 'mt5'
+        return this.currentBrokerId === 'mt5' || exchangeId === 'mt5'
       }
       return false
     },
@@ -2382,31 +2435,23 @@ export default {
       const hint = cred.api_key_hint || ''
       return name ? `${ex.toUpperCase()} - ${name} (${hint})` : `${ex.toUpperCase()} (${hint})`
     },
-    // Check if credential is compatible with current market category
+    // Check if credential is compatible with current market category.
+    //
+    // Reads the broker x market matrix from the backend policy snapshot
+    // (store/modules/policy.js) so the UI never drifts from the worker's
+    // own validation in `broker_market_policy.validate_strategy_config`.
+    // Default-deny on unknown brokers: a misconfigured row should fail in
+    // the form, not at live-execution time.
     isCredentialCompatible (cred) {
       if (!cred || !cred.exchange_id) return true
 
       const exchangeId = (cred.exchange_id || '').toLowerCase()
       const marketCategory = this.selectedMarketCategory || 'Crypto'
 
-      // MT5 can only be used for Forex
-      if (exchangeId === 'mt5') {
-        return marketCategory === 'Forex'
-      }
-
-      // IBKR can only be used for USStock
-      if (exchangeId === 'ibkr') {
-        return marketCategory === 'USStock'
-      }
-
-      // Crypto exchanges can only be used for Crypto
-      const cryptoExchanges = ['binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange', 'kraken', 'kucoin', 'gate', 'deepcoin']
-      if (cryptoExchanges.includes(exchangeId)) {
-        return marketCategory === 'Crypto'
-      }
-
-      // Default: allow if no specific restriction
-      return true
+      const matrix = (this.brokerMarketPolicy && this.brokerMarketPolicy.broker_markets) || {}
+      const supported = matrix[exchangeId]
+      if (!supported) return false
+      return Object.prototype.hasOwnProperty.call(supported, marketCategory)
     },
     async handleCredentialSelectChange (credentialId) {
       // Selecting a saved credential updates the exchange_id UI state.
@@ -2446,8 +2491,22 @@ export default {
           return
         }
 
+        // Validate Alpaca: USStock or Crypto
+        if (exchangeId === 'alpaca' && !['USStock', 'Crypto'].includes(this.selectedMarketCategory)) {
+          this.$message.error(
+            this.$t('trading-assistant.validation.alpacaOnlyForUSStockOrCrypto') ||
+            'Alpaca supports US stocks and Crypto only.'
+          )
+          try {
+            this.form && this.form.setFieldsValue && this.form.setFieldsValue({ credential_id: undefined })
+          } catch (e) { }
+          this.currentExchangeId = ''
+          this.connectionTestResult = null
+          return
+        }
+
         // Validate crypto exchanges can only be used for Crypto
-        const cryptoExchanges = ['binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange', 'kraken', 'kucoin', 'gate']
+        const cryptoExchanges = ['binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange', 'kraken', 'kucoin', 'gate', 'deepcoin', 'htx']
         if (cryptoExchanges.includes(exchangeId) && this.selectedMarketCategory !== 'Crypto') {
           this.$message.error(this.$t('trading-assistant.validation.cryptoExchangeOnlyForCrypto'))
           // Clear the selection
@@ -2460,6 +2519,38 @@ export default {
         }
 
         this.currentExchangeId = localCred.exchange_id || ''
+
+        // Long-only brokers (IBKR / Alpaca): force trade_direction to 'long' so
+        // the strategy never produces signals that the worker rejects. This
+        // mirrors the backend `validate_strategy_config` long-only rule.
+        if (exchangeId === 'ibkr' || exchangeId === 'alpaca') {
+          try {
+            const current = this.form && this.form.getFieldValue && this.form.getFieldValue('trade_direction')
+            if (current && String(current).toLowerCase() !== 'long') {
+              this.form && this.form.setFieldsValue && this.form.setFieldsValue({ trade_direction: 'long' })
+              this.$message.info(
+                this.$t('trading-assistant.form.longOnlyBrokerHint') ||
+                'IBKR / Alpaca currently support long-only trading. Direction locked to Long.'
+              )
+            }
+          } catch (e) { }
+        }
+
+        // Alpaca crypto desk is spot-only.  Force market_type to 'spot' so
+        // the strategy never produces a swap order that the worker rejects.
+        // Mirrors `broker_market_policy.validate_strategy_config` Rule 4.
+        if (exchangeId === 'alpaca' && this.selectedMarketCategory === 'Crypto') {
+          try {
+            const currentMt = this.form && this.form.getFieldValue && this.form.getFieldValue('market_type')
+            if (currentMt && String(currentMt).toLowerCase() !== 'spot') {
+              this.form && this.form.setFieldsValue && this.form.setFieldsValue({ market_type: 'spot', leverage: 1 })
+              this.$message.info(
+                this.$t('trading-assistant.form.alpacaCryptoSpotOnlyHint') ||
+                'Alpaca crypto desk is spot-only (no perpetual swaps). Market type locked to Spot.'
+              )
+            }
+          } catch (e) { }
+        }
       }
 
       // Reset test results when credential changes
@@ -3691,15 +3782,29 @@ export default {
                 symbol = symbol.slice(idx + 1)
               }
 
-              const marketType = (values.market_type === 'futures' ? 'swap' : (values.market_type || 'swap'))
+              let marketType = (values.market_type === 'futures' ? 'swap' : (values.market_type || 'swap'))
               let leverage = values.leverage != null ? values.leverage : 5
               let tradeDirection = values.trade_direction || 'both'
+              if (this.isAlpacaCryptoSpotOnly && marketType !== 'spot') {
+                this.$message.warning(
+                  this.$t('trading-assistant.form.alpacaCryptoSpotOnlyHint') ||
+                  'Alpaca crypto desk is spot-only. Market type forced to Spot.'
+                )
+                marketType = 'spot'
+              }
               if (marketType === 'spot') {
                 leverage = 1
                 tradeDirection = 'long'
               } else {
                 if (leverage < 1) leverage = 1
                 if (leverage > 125) leverage = 125
+              }
+              if (this.isLongOnlyBroker && tradeDirection !== 'long') {
+                this.$message.warning(
+                  this.$t('trading-assistant.form.longOnlyBrokerHint') ||
+                  'IBKR / Alpaca currently support long-only trading. Direction set to Long.'
+                )
+                tradeDirection = 'long'
               }
 
               const rawPrev = this.editingStrategy && this.editingStrategy.trading_config
@@ -3799,9 +3904,21 @@ export default {
             // AI filter values: source of truth is the reactive UI state to avoid rc-form edge cases.
             const enableAiFilter = !!this.aiFilterEnabledUi
 
-            const marketType = (values.market_type === 'futures' ? 'swap' : (values.market_type || 'swap'))
+            let marketType = (values.market_type === 'futures' ? 'swap' : (values.market_type || 'swap'))
             let leverage = values.leverage || 1
             let tradeDirection = values.trade_direction || 'long'
+
+            // Hard guard: Alpaca crypto desk is spot-only.  Even if the user
+            // bypasses the disabled radio (devtools, stale form state), the
+            // worker would reject swap orders at runtime — coerce here so
+            // the saved strategy matches what will actually execute.
+            if (this.isAlpacaCryptoSpotOnly && marketType !== 'spot') {
+              this.$message.warning(
+                this.$t('trading-assistant.form.alpacaCryptoSpotOnlyHint') ||
+                'Alpaca crypto desk is spot-only. Market type forced to Spot.'
+              )
+              marketType = 'spot'
+            }
 
             if (marketType === 'spot') {
               leverage = 1
@@ -3810,6 +3927,18 @@ export default {
             } else {
               if (leverage < 1) leverage = 1
               if (leverage > 125) leverage = 125
+            }
+
+            // Hard guard: long-only brokers (IBKR / Alpaca). Even if the user
+            // bypasses the disabled radio (devtools, stale form state),
+            // the worker would reject short signals at runtime — coerce here
+            // so the saved strategy matches what will actually execute.
+            if (this.isLongOnlyBroker && tradeDirection !== 'long') {
+              this.$message.warning(
+                this.$t('trading-assistant.form.longOnlyBrokerHint') ||
+                'IBKR / Alpaca currently support long-only trading. Direction set to Long.'
+              )
+              tradeDirection = 'long'
             }
 
             const riskFromCode = this.buildRiskPositionFromIndicatorCode(indicator.code || '')

@@ -52,11 +52,21 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
+
 export default {
   name: 'BotTypeCards',
   computed: {
+    ...mapGetters(['brokerMarketPolicy']),
+    // Bot -> market_category support map, mirrors backend
+    // broker_market_policy.BOT_TYPE_MARKETS.  We compute it from the policy
+    // snapshot so adding a new market on the backend automatically lights up
+    // the corresponding cards here.
+    botTypeMarkets () {
+      return (this.brokerMarketPolicy && this.brokerMarketPolicy.bot_type_markets) || {}
+    },
     botTypes () {
-      return [
+      const all = [
         {
           key: 'grid',
           name: this.$t('trading-bot.type.grid'),
@@ -98,6 +108,13 @@ export default {
           scene: this.$t('trading-bot.scene.longTerm')
         }
       ]
+      // Tag each card with the markets it supports so the parent (or the
+      // tooltip) can display badges like "Crypto / Forex / USStock". Unknown
+      // bots default to all markets.
+      return all.map(b => ({
+        ...b,
+        markets: this.botTypeMarkets[b.key] || ['Crypto']
+      }))
     }
   }
 }

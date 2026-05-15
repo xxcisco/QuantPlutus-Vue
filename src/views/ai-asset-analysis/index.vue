@@ -22,20 +22,18 @@
             class="radar-card"
             v-for="(opp, idx) in carouselItems"
             :key="'opp-' + idx"
-            :class="[opp.impact, { 'is-prediction': opp.market === 'PredictionMarket' }]"
+            :class="[opp.impact]"
             @click="analyzeOpportunity(opp)"
           >
             <!-- Card top: symbol + market -->
             <div class="rc-head">
-              <span class="rc-symbol" :class="{ 'rc-prediction-title': opp.market === 'PredictionMarket' }">
-                {{ opp.market === 'PredictionMarket' ? (opp.name || opp.symbol) : opp.symbol }}
-              </span>
+              <span class="rc-symbol">{{ opp.symbol }}</span>
               <span class="rc-market" :class="'rc-market-' + (opp.market || '').toLowerCase()">
                 {{ getMarketLabel(opp.market) }}
               </span>
             </div>
-            <!-- Metrics row (non-prediction) -->
-            <div class="rc-metrics" v-if="opp.market !== 'PredictionMarket'">
+            <!-- Metrics row -->
+            <div class="rc-metrics">
               <div class="rc-metric">
                 <span class="rc-metric-label">{{ ($i18n && $i18n.locale === 'zh-CN') ? '当前价格' : 'Price' }}</span>
                 <span class="rc-metric-value">${{ formatOppPrice(opp.price) }}</span>
@@ -50,23 +48,6 @@
                 <span class="rc-metric-label">{{ ($i18n && $i18n.locale === 'zh-CN') ? '信号' : 'Signal' }}</span>
                 <span class="rc-metric-value rc-signal-val" :class="'rc-signal-' + (opp.signal || '')">
                   {{ getSignalLabel(opp.signal) }}
-                </span>
-              </div>
-            </div>
-            <!-- Metrics row (prediction market) -->
-            <div class="rc-metrics" v-else>
-              <div class="rc-metric">
-                <span class="rc-metric-label">{{ ($i18n && $i18n.locale === 'zh-CN') ? '市场概率' : 'Probability' }}</span>
-                <span class="rc-metric-value">{{ (opp.price || 0).toFixed(1) }}%</span>
-              </div>
-              <div class="rc-metric" v-if="opp.ai_analysis">
-                <span class="rc-metric-label">{{ ($i18n && $i18n.locale === 'zh-CN') ? '机会评分' : 'Score' }}</span>
-                <span class="rc-metric-value rc-up">{{ opp.ai_analysis.opportunity_score.toFixed(0) }}</span>
-              </div>
-              <div class="rc-metric" v-if="opp.ai_analysis">
-                <span class="rc-metric-label">{{ ($i18n && $i18n.locale === 'zh-CN') ? '建议' : 'Rec.' }}</span>
-                <span class="rc-metric-value" :class="opp.ai_analysis.recommendation === 'YES' ? 'rc-up' : opp.ai_analysis.recommendation === 'NO' ? 'rc-down' : ''">
-                  {{ getRecommendationLabel(opp.ai_analysis.recommendation) }}
                 </span>
               </div>
             </div>
@@ -120,38 +101,8 @@
             />
           </div>
         </a-tab-pane>
-        <a-tab-pane key="polymarket">
-          <span slot="tab">
-            <a-icon type="radar-chart" />
-            {{ $t('aiAssetAnalysis.tabs.polymarket') }}
-          </span>
-          <div class="tab-body">
-            <div class="polymarket-tab-content">
-              <div class="polymarket-placeholder">
-                <div class="placeholder-icon"><a-icon type="radar-chart" /></div>
-                <h3>{{ $t('polymarket.analysis.title') }}</h3>
-                <p>{{ $t('polymarket.analysis.description') }}</p>
-                <a-button
-                  type="primary"
-                  size="large"
-                  icon="thunderbolt"
-                  @click="showPolymarketModal = true"
-                  style="margin-top: 16px;"
-                >
-                  {{ $t('polymarket.analysis.startAnalysis') }}
-                </a-button>
-              </div>
-            </div>
-          </div>
-        </a-tab-pane>
       </a-tabs>
     </a-card>
-
-    <!-- Polymarket分析对话框 -->
-    <PolymarketAnalysisModal
-      :visible="showPolymarketModal"
-      @close="showPolymarketModal = false"
-    />
 
   </div>
 </template>
@@ -161,14 +112,19 @@ import { mapState } from 'vuex'
 import AnalysisView from '@/views/ai-analysis'
 import { getTradingOpportunities } from '@/api/global-market'
 import QuickTradePanel from '@/components/QuickTradePanel/QuickTradePanel'
-import PolymarketAnalysisModal from '@/components/PolymarketAnalysisModal'
+import sessionCache from '@/utils/sessionCache'
+
+// Opportunities don't change every second — the backend recalculates the
+// signal scan periodically. Caching for 3 minutes makes page re-entry feel
+// instant while still keeping the carousel reasonably fresh.
+const OPP_CACHE_KEY = 'aiAsset.opportunities'
+const OPP_CACHE_TTL_MS = 3 * 60 * 1000
 
 export default {
   name: 'AIAssetAnalysis',
   components: {
     AnalysisView,
-    QuickTradePanel,
-    PolymarketAnalysisModal
+    QuickTradePanel
   },
   data () {
     return {
@@ -188,9 +144,7 @@ export default {
       qtSource: 'ai_radar',
       // Current analysis symbol (from AnalysisView)
       currentAnalysisSymbol: '',
-      currentAnalysisMarket: '',
-      // Polymarket Analysis Modal
-      showPolymarketModal: false
+      currentAnalysisMarket: ''
     }
   },
   computed: {
@@ -215,17 +169,43 @@ export default {
     }
   },
   created () {
-    this.loadOpportunities()
+    // Render cached opportunities first (if any) so the carousel shows up
+    // immediately; then kick off a fresh fetch only when the cache is stale
+    // or missing. Re-entering the page within the TTL window therefore
+    // produces zero network round-trips for this section.
+    const cached = sessionCache.read(OPP_CACHE_KEY)
+    if (Array.isArray(cached) && cached.length > 0) {
+      this.opportunities = cached
+    }
+    if (!sessionCache.isFresh(OPP_CACHE_KEY)) {
+      this.loadOpportunities()
+    }
+  },
+  activated () {
+    // keep-alive re-entry: only refresh when the cache has aged past its TTL.
+    // This is the "user came back after a while" path — they want fresh
+    // signals but we don't want to spam the backend if they just bounced.
+    if (!sessionCache.isFresh(OPP_CACHE_KEY)) {
+      this.loadOpportunities()
+    }
   },
   methods: {
     // ==================== Trading Opportunities (Carousel) ====================
     async loadOpportunities (force = false) {
+      // When force=true we always refetch; otherwise honour the cache so
+      // accidental double-invocations (e.g. created + activated firing on
+      // first mount) don't multiply the upstream load.
+      if (!force && sessionCache.isFresh(OPP_CACHE_KEY) && this.opportunities.length > 0) {
+        return
+      }
       this.oppLoading = true
       try {
         const params = force ? { force: true } : {}
         const res = await getTradingOpportunities(params)
         if (res && res.code === 1 && Array.isArray(res.data)) {
-          this.opportunities = res.data.slice(0, 20)
+          const next = res.data.slice(0, 20)
+          this.opportunities = next
+          sessionCache.write(OPP_CACHE_KEY, next, OPP_CACHE_TTL_MS)
         }
       } catch (e) {
         console.warn('Load opportunities failed:', e)
@@ -254,8 +234,7 @@ export default {
         USStock: 'green',
         CNStock: 'blue',
         HKStock: 'geekblue',
-        Forex: 'gold',
-        PredictionMarket: 'cyan'
+        Forex: 'gold'
       }
       return colors[market] || 'default'
     },
@@ -284,33 +263,12 @@ export default {
       return price.toFixed(4)
     },
     analyzeOpportunity (opp) {
-      // 如果是预测市场，打开分析对话框
-      if (opp.market === 'PredictionMarket') {
-        // 切换到polymarket标签页并打开分析对话框
-        this.activeTab = 'polymarket'
-        this.showPolymarketModal = true
-        // 如果有market_id，可以预填充到输入框（需要修改对话框组件支持）
-        // 暂时先打开对话框，让用户输入
-        return
-      }
-      // 其他市场，在AI分析中打开
       this.activeTab = 'quick'
       const market = opp.market || 'Crypto'
       this.presetSymbol = `${market}:${opp.symbol}`
       this.$nextTick(() => {
         this.autoAnalyzeSignal++
       })
-    },
-    getRecommendationColor (rec) {
-      const colors = {
-        YES: 'green',
-        NO: 'red',
-        HOLD: 'default'
-      }
-      return colors[rec] || 'default'
-    },
-    getRecommendationLabel (rec) {
-      return this.$t(`polymarket.recommendation.${rec}`) || rec
     },
     // ==================== Quick Trade ====================
     onAnalysisSymbolChange (value) {
@@ -478,8 +436,6 @@ export default {
         &::before { opacity: 1; }
       }
 
-      &.is-prediction { width: 290px; }
-
       .rc-head {
         display: flex;
         align-items: center;
@@ -493,16 +449,6 @@ export default {
         font-size: 15px;
         color: #111;
         letter-spacing: -0.2px;
-
-        &.rc-prediction-title {
-          font-size: 13px;
-          font-weight: 600;
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
       }
 
       .rc-market {
@@ -519,7 +465,6 @@ export default {
         &.rc-market-crypto   { color: #7c3aed; background: rgba(124, 58, 237, 0.08); }
         &.rc-market-usstock  { color: #16a34a; background: rgba(22, 163, 74, 0.08); }
         &.rc-market-forex    { color: #d97706; background: rgba(217, 119, 6, 0.08); }
-        &.rc-market-predictionmarket { color: #0891b2; background: rgba(8, 145, 178, 0.08); }
       }
 
       .rc-metrics {
@@ -654,17 +599,6 @@ export default {
         border-radius: 0;
         overflow: hidden;
       }
-
-      .polymarket-tab-content {
-        padding: 40px 20px;
-        text-align: center;
-
-        .polymarket-placeholder {
-          .placeholder-icon { font-size: 64px; color: #6366f1; margin-bottom: 24px; }
-          h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; color: rgba(0, 0, 0, 0.85); }
-          p  { font-size: 14px; color: rgba(0, 0, 0, 0.55); margin-bottom: 24px; }
-        }
-      }
     }
   }
 
@@ -709,7 +643,6 @@ export default {
           &.rc-market-crypto   { color: #a78bfa; background: rgba(167, 139, 250, 0.12); }
           &.rc-market-usstock  { color: #4ade80; background: rgba(74, 222, 128, 0.10); }
           &.rc-market-forex    { color: #fbbf24; background: rgba(251, 191, 36, 0.10); }
-          &.rc-market-predictionmarket { color: #22d3ee; background: rgba(34, 211, 238, 0.10); }
         }
 
         .rc-metric {
@@ -742,10 +675,6 @@ export default {
         ::v-deep .ant-tabs-ink-bar { background-color: #a78bfa; }
       }
 
-      .polymarket-tab-content .polymarket-placeholder {
-        h3 { color: #d4d4d4; }
-        p  { color: #a3a3a3; }
-      }
     }
   }
 }
@@ -785,10 +714,6 @@ export default {
         width: 210px;
         padding: 12px;
 
-        &.is-prediction {
-          width: 248px;
-        }
-
         .rc-symbol { font-size: 14px; }
         .rc-metric { padding: 6px; }
       }
@@ -823,17 +748,6 @@ export default {
         }
       }
 
-      .tab-body {
-        .polymarket-tab-content {
-          padding: 16px 8px;
-
-          .polymarket-placeholder {
-            .placeholder-icon { font-size: 48px; margin-bottom: 12px; }
-            h3 { font-size: 17px; }
-            p { font-size: 13px; }
-          }
-        }
-      }
     }
   }
 }
@@ -845,10 +759,6 @@ export default {
     .radar-section .radar-card {
       width: 188px;
       padding: 10px;
-
-      &.is-prediction {
-        width: 220px;
-      }
 
       .rc-metrics { gap: 3px; }
       .rc-metric .rc-metric-value { font-size: 12px; }
@@ -863,9 +773,6 @@ export default {
           font-size: 13px;
           padding: 8px 6px;
         }
-      }
-      .tab-body .polymarket-tab-content {
-        padding: 12px 6px;
       }
     }
   }

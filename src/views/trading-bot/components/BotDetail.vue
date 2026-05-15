@@ -406,9 +406,15 @@ export default {
     },
     displayBotParams () {
       const skip = new Set(['orderMode', 'timeframe'])
+      const trailingOn = this.botParams && this.botParams.trailingTpEnabled === true
       const out = {}
       for (const [k, v] of Object.entries(this.botParams)) {
-        if (!skip.has(k) && v !== null && v !== undefined && v !== '') out[k] = v
+        if (skip.has(k)) continue
+        if (v === null || v === undefined || v === '') continue
+        // Hide the activation / callback % rows when trailing TP is OFF —
+        // they're noise for users who didn't enable the feature.
+        if (!trailingOn && (k === 'trailingTpActivationPct' || k === 'trailingTpCallbackPct')) continue
+        out[k] = v
       }
       return out
     },
@@ -594,6 +600,16 @@ export default {
         }
         if (martingaleLabels[key]) return martingaleLabels[key]
       }
+      // Trailing-TP fields share the same display across martingale & trend
+      // bots; we don't have dedicated i18n keys for them yet so fall back
+      // to inline zh/en labels (consistent with BotCreateWizard).
+      const isZh = String(this.$i18n?.locale || '').toLowerCase().startsWith('zh')
+      const trailingLabels = {
+        trailingTpEnabled: isZh ? '启用追踪止盈' : 'Trailing TP',
+        trailingTpActivationPct: isZh ? '追踪止盈激活涨幅' : 'Trailing TP Activation %',
+        trailingTpCallbackPct: isZh ? '追踪止盈回撤幅度' : 'Trailing TP Callback %'
+      }
+      if (trailingLabels[key]) return trailingLabels[key]
       const i18nKey = PARAM_LABEL_MAP[key]
       if (i18nKey) return this.$t(i18nKey)
       return key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
@@ -620,7 +636,8 @@ export default {
       }
       if (val === 'true' || val === 'false') return val === 'true' ? this.$t('trading-bot.common.enabled') : this.$t('trading-bot.common.disabled')
       if (typeof val === 'boolean') return val ? this.$t('trading-bot.common.enabled') : this.$t('trading-bot.common.disabled')
-      if (['priceDropPct', 'takeProfitPct', 'stopLossPct', 'positionPct', 'dipThreshold'].includes(key)) {
+      if (['priceDropPct', 'takeProfitPct', 'stopLossPct', 'positionPct', 'dipThreshold',
+           'trailingTpActivationPct', 'trailingTpCallbackPct'].includes(key)) {
         return `${this.formatNum(val)}%`
       }
       if (['initialAmount', 'amountEach', 'amountPerGrid', 'referencePrice', 'totalBudget'].includes(key)) {
@@ -632,11 +649,16 @@ export default {
     fetchKlineForGrid () {
       const symbol = this.tc.symbol
       if (!symbol) return
+      // Use the bot's actual market_category instead of hard-coding Crypto
+      // so the grid background renders correctly for USStock / Forex bots
+      // too (the kline endpoint dispatches to yfinance / Twelve Data based
+      // on this market parameter).
+      const market = (this.bot && this.bot.market_category) || 'Crypto'
       this.klineLoading = true
       request({
         url: '/api/indicator/kline',
         method: 'get',
-        params: { market: 'Crypto', symbol, timeframe: '1H', limit: 200 }
+        params: { market, symbol, timeframe: '1H', limit: 200 }
       }).then(res => {
         if (res && res.code === 1 && Array.isArray(res.data)) {
           this.klineData = res.data

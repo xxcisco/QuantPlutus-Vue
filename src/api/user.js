@@ -291,3 +291,18 @@ export function getAdminAiStats (params) {
     params
   })
 }
+
+/**
+ * Get user-management dashboard stats (admin only).
+ * Returns headline KPIs, 30-day growth, 14-day DAU, role pie,
+ * country distribution, recent signups and expiring-VIPs.
+ *
+ * @param {Object} params - { geo: '0' | '1' } - pass '0' to skip geo lookup
+ */
+export function getUserAdminStats (params) {
+  return request({
+    url: '/api/users/admin/stats',
+    method: 'get',
+    params
+  })
+}

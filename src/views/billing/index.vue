@@ -17,11 +17,14 @@
         <div class="snap-item">
           <div class="snap-label">{{ $t('billing.snapshot.vip') }}</div>
           <div class="snap-value">
-            <a-tag v-if="billing.is_vip" color="gold">
+            <a-tag v-if="billing.is_lifetime" color="purple">
+              <a-icon type="crown" /> {{ $t('billing.snapshot.lifetime') || 'Lifetime' }}
+            </a-tag>
+            <a-tag v-else-if="billing.is_vip" color="gold">
               <a-icon type="crown" /> VIP
             </a-tag>
             <a-tag v-else>{{ $t('billing.snapshot.notVip') }}</a-tag>
-            <span v-if="billing.vip_expires_at" class="vip-exp">
+            <span v-if="billing.vip_expires_at && !billing.is_lifetime" class="vip-exp">
               {{ $t('billing.snapshot.expires') }}: {{ formatDate(billing.vip_expires_at) }}
             </span>
           </div>
@@ -35,6 +38,14 @@
         :description="$t('billing.vipRule.desc')"
       />
     </a-card>
+
+    <a-alert
+      v-if="billing.is_lifetime"
+      style="margin-top: 16px;"
+      type="success"
+      show-icon
+      :message="$t('billing.lifetimeTopupHint') || '你已是永久会员，购买月度/年度套餐相当于补充积分包，不影响永久会员状态。'"
+    />
 
     <a-row :gutter="16" style="margin-top: 16px;">
       <a-col :xs="24" :md="8">
@@ -85,6 +96,74 @@
         </a-card>
       </a-col>
     </a-row>
+
+    <!-- Chain Picker Modal (v3.0.6+) -->
+    <a-modal
+      v-model="chainPickerVisible"
+      :title="$t('billing.usdt.pickChainTitle') || 'Select payment network'"
+      :footer="null"
+      :maskClosable="!creatingOrder"
+      :closable="!creatingOrder"
+      wrapClassName="usdt-chain-picker-wrap"
+      width="520px"
+      @cancel="closeChainPicker"
+    >
+      <div class="chain-picker-body">
+        <a-alert
+          v-if="chainsLoadError"
+          type="error"
+          show-icon
+          :message="chainsLoadError"
+          style="margin-bottom: 12px;"
+        />
+        <a-spin :spinning="chainsLoading">
+          <div v-if="!chainsLoading && availableChains.length === 0" class="empty-chains">
+            <a-alert
+              type="warning"
+              show-icon
+              :message="$t('billing.usdt.noChainsTitle') || 'No payment networks configured'"
+              :description="$t('billing.usdt.noChainsDesc') || 'Ask the administrator to set USDT_*_ADDRESS in the server .env so a network can be used here.'"
+            />
+          </div>
+          <div v-else class="chain-options">
+            <div
+              v-for="c in availableChains"
+              :key="c.code"
+              class="chain-option"
+              :class="{ selected: selectedChain === c.code, recommended: c.recommended }"
+              @click="selectedChain = c.code"
+            >
+              <div class="chain-row">
+                <div class="chain-name">
+                  <a-icon type="link" />
+                  <span class="chain-label">{{ c.label }}</span>
+                  <a-tag v-if="c.recommended" color="green" class="chain-badge">{{ $t('billing.usdt.recommended') || 'Recommended' }}</a-tag>
+                </div>
+                <div class="chain-fee">
+                  <span class="fee-label">{{ $t('billing.usdt.typicalFee') || 'Typical fee' }}</span>
+                  <span class="fee-value">≈ ${{ Number(c.typical_fee_usdt).toFixed(c.typical_fee_usdt < 0.01 ? 4 : 2) }}</span>
+                </div>
+              </div>
+              <div class="chain-sub">
+                <a-icon type="check-circle" v-if="selectedChain === c.code" theme="filled" class="picked-icon" />
+                <span class="chain-addr-hint">{{ $t('billing.usdt.receivingAddrPrefix') || 'Receives to' }} {{ c.address_prefix_hint }}</span>
+              </div>
+            </div>
+          </div>
+        </a-spin>
+        <div class="picker-actions">
+          <a-button :disabled="creatingOrder" @click="closeChainPicker">{{ $t('common.cancel') || 'Cancel' }}</a-button>
+          <a-button
+            type="primary"
+            :disabled="!selectedChain || availableChains.length === 0"
+            :loading="creatingOrder"
+            @click="confirmChain"
+          >
+            {{ $t('billing.usdt.continueToPay') || 'Continue to pay' }}
+          </a-button>
+        </div>
+      </div>
+    </a-modal>
 
     <!-- USDT Pay Modal -->
     <a-modal
@@ -139,11 +218,18 @@
               <img :src="usdtQrUrl" alt="USDT QR" />
             </div>
             <div class="qr-amount">
-              <span class="amt-number">{{ usdtOrder.amount_usdt }}</span>
+              <span class="amt-number">
+                <span class="amt-base">{{ amountParts.base }}</span><span class="amt-suffix">{{ amountParts.suffix }}</span>
+              </span>
               <span class="amt-currency">USDT</span>
             </div>
             <div class="qr-chain">
               <a-tag color="green">{{ usdtOrder.chain }}</a-tag>
+              <a-tooltip v-if="walletCompatHint" :title="walletCompatHint">
+                <a-tag color="blue" style="margin-left: 4px;">
+                  <a-icon type="info-circle" /> {{ $t('billing.usdt.walletCompat') || 'Wallet hint' }}
+                </a-tag>
+              </a-tooltip>
             </div>
           </div>
 
@@ -165,14 +251,18 @@
               </div>
             </div>
 
-            <!-- Amount -->
+            <!-- Amount (with suffix highlighted so the user does not skip the trailing digits) -->
             <div class="info-block">
               <div class="info-label">
                 <a-icon type="dollar" />
                 <span>{{ $t('billing.usdt.amount') }}</span>
+                <span class="info-sublabel">{{ $t('billing.usdt.amountSuffixHint') || 'Pay this exact amount — the trailing digits identify your order.' }}</span>
               </div>
               <div class="amt-box">
-                <code class="amt-text">{{ usdtOrder.amount_usdt }} USDT</code>
+                <code class="amt-text">
+                  <span>{{ amountParts.base }}</span><span class="amt-suffix-inline">{{ amountParts.suffix }}</span>
+                  <span class="amt-currency-inline"> USDT</span>
+                </code>
                 <a-tooltip :title="$t('billing.usdt.copyAmount')">
                   <a-button size="small" class="copy-btn" @click="copyText(usdtOrder.amount_usdt)">
                     <a-icon type="copy" />
@@ -239,7 +329,7 @@
 
 <script>
 import { mapState } from 'vuex'
-import { getMembershipPlans, createUsdtOrder, getUsdtOrder } from '@/api/billing'
+import { getMembershipPlans, listUsdtChains, createUsdtOrder, getUsdtOrder } from '@/api/billing'
 
 export default {
   name: 'BillingPage',
@@ -255,6 +345,39 @@ export default {
       if (!text) return ''
       // External QR generator (MVP). Replace with local generator later if needed.
       return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(text)}`
+    },
+    amountParts () {
+      // Split the amount into the "human-readable" base portion and the
+      // suffix tail. The suffix is what identifies the order on-chain, so
+      // we render it in a contrasting style on top of the base — users
+      // who skim the amount and miss the trailing digits would otherwise
+      // under-pay.
+      const order = this.usdtOrder
+      if (!order || !order.amount_usdt) return { full: '', base: '', suffix: '' }
+      const full = String(order.amount_usdt)
+      const dotIdx = full.indexOf('.')
+      if (dotIdx < 0) return { full, base: full, suffix: '' }
+      const fractional = full.slice(dotIdx + 1)
+      if (fractional.length <= 2) return { full, base: full, suffix: '' }
+      // Keep the first 2 fractional digits in the "base" group (the
+      // dollar-cent portion of the price). The remaining digits are the
+      // identifier suffix and get the highlight class.
+      const baseLen = dotIdx + 1 + 2
+      return {
+        full,
+        base: full.slice(0, baseLen),
+        suffix: full.slice(baseLen)
+      }
+    },
+    walletCompatHint () {
+      const note = this.usdtOrder && this.usdtOrder.wallet_compat_note
+      if (!note) return ''
+      const map = {
+        evm_eip681: this.$t('billing.usdt.compat.evm') || 'MetaMask, TrustWallet, TokenPocket, imToken, OKX and Coinbase will auto-fill both the address and the amount when they scan this QR.',
+        solana_pay: this.$t('billing.usdt.compat.solana') || 'Phantom, Solflare, TokenPocket and OKX will auto-fill both the address and the amount when they scan this QR.',
+        tron_partial: this.$t('billing.usdt.compat.tron') || 'TokenPocket and imToken auto-fill both fields. Older TronLink builds only pick up the address — copy the amount from the highlighted field on the right.'
+      }
+      return map[note] || ''
     },
     statusText () {
       const s = (this.usdtOrder && this.usdtOrder.status) ? String(this.usdtOrder.status) : ''
@@ -297,9 +420,18 @@ export default {
       usdtOrder: null,
       usdtPollingTimer: null,
       usdtRefreshing: false,
+      // Chain picker state (v3.0.6+)
+      chainPickerVisible: false,
+      chainsLoading: false,
+      chainsLoadError: '',
+      availableChains: [],
+      selectedChain: null,
+      pendingPlan: null,
+      creatingOrder: false,
       billing: {
         credits: 0,
         is_vip: false,
+        is_lifetime: false,
         vip_expires_at: null
       },
       plans: {
@@ -341,13 +473,58 @@ export default {
       return new Date(dateStr).toLocaleDateString()
     },
     async buy (plan) {
+      // v3.0.6+: open the chain picker first; the order is created only
+      // after the user has chosen a network. We need to load the chain
+      // list every time so newly-enabled chains show up without a refresh.
       this.purchasing = plan
+      this.pendingPlan = plan
+      this.selectedChain = null
+      this.chainsLoadError = ''
+      this.chainsLoading = true
+      this.chainPickerVisible = true
       try {
-        // Prefer USDT scan-to-pay flow (方案B)
-        const res = await createUsdtOrder(plan)
+        const res = await listUsdtChains()
+        if (res && res.code === 1 && res.data && Array.isArray(res.data.chains)) {
+          this.availableChains = res.data.chains
+          // Preselect the first "recommended" chain; if none, the first one.
+          const rec = this.availableChains.find(c => c.recommended)
+          this.selectedChain = (rec || this.availableChains[0] || {}).code || null
+        } else {
+          this.availableChains = []
+          this.chainsLoadError = res?.msg || (this.$t('billing.usdt.chainListFailed') || 'Failed to load payment networks')
+        }
+      } catch (e) {
+        this.availableChains = []
+        this.chainsLoadError = e?.response?.data?.msg || (this.$t('billing.usdt.chainListFailed') || 'Failed to load payment networks')
+      } finally {
+        this.chainsLoading = false
+        this.purchasing = ''
+      }
+    },
+
+    closeChainPicker () {
+      if (this.creatingOrder) return
+      this.chainPickerVisible = false
+      this.pendingPlan = null
+      this.selectedChain = null
+    },
+
+    async confirmChain () {
+      if (!this.pendingPlan || !this.selectedChain) return
+      this.creatingOrder = true
+      try {
+        const res = await createUsdtOrder(this.pendingPlan, this.selectedChain)
         if (res && res.code === 1 && res.data) {
           this.usdtOrder = res.data
           this.usdtModalVisible = true
+          this.chainPickerVisible = false
+          this.pendingPlan = null
+          // If the backend reused an existing (still-valid) pending
+          // order, give the user a light toast so they don't think the
+          // app silently ignored their click. We don't block the flow.
+          if (res.data.reused) {
+            this.$message.info(this.$t('billing.usdt.reusedHint') || 'Resuming your previous unpaid order')
+          }
           this.startUsdtPolling()
         } else {
           this.$message.error(res?.msg || this.$t('billing.purchaseFailed'))
@@ -355,24 +532,74 @@ export default {
       } catch (e) {
         this.$message.error(e?.response?.data?.msg || this.$t('billing.purchaseFailed'))
       } finally {
-        this.purchasing = ''
+        this.creatingOrder = false
       }
     },
 
     getUsdtQrText () {
-      // Keep it simple: QR encodes address only to avoid wallet URI incompatibilities.
+      // v3.0.6+: prefer the backend-built deep link URI (EIP-681 /
+      // Solana Pay / tron:) so EVM and Solana wallets can pre-fill both
+      // the recipient and the amount. Fall back to the raw receiving
+      // address so the QR is still scannable even on legacy wallets.
       if (!this.usdtOrder) return ''
-      return this.usdtOrder.address || ''
+      return this.usdtOrder.payment_uri || this.usdtOrder.address || ''
     },
 
-    copyText (txt) {
+    /**
+     * Copy a string to the clipboard.
+     *
+     * Notes
+     * - Does NOT depend on `this.$copyText` (vue-clipboard2). That plugin is
+     *   listed in package.json but is never registered in main.js, so calling
+     *   `this.$copyText` throws TypeError and the error toast falls through to
+     *   `this.$t('common.copyFailed')`. vue-i18n returns the key itself when a
+     *   key is missing, and a non-empty string is truthy, so the JS-style
+     *   `this.$t(key) || 'fallback'` pattern silently fails — that is exactly
+     *   why the user saw `common.copyFailed` rendered literally on screen.
+     * - Two-tier strategy: prefer the modern async Clipboard API (works in
+     *   secure contexts including Capacitor https://localhost), and fall back
+     *   to the legacy execCommand path for plain-http / iframe / older
+     *   browsers. Both branches end with a clear i18n message.
+     */
+    async copyText (txt) {
+      const value = String(txt == null ? '' : txt)
+      if (!value) return
+      const successMsg = this.$t('common.copySuccess')
+      const failMsg = this.$t('common.copyFailed')
+
+      let ok = false
       try {
-        const t = String(txt || '')
-        if (!t) return
-        this.$copyText(t)
-        this.$message.success(this.$t('common.copySuccess') || 'Copied')
-      } catch (e) {
-        this.$message.error(this.$t('common.copyFailed') || 'Copy failed')
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(value)
+          ok = true
+        }
+      } catch (_) {
+        ok = false
+      }
+
+      if (!ok) {
+        try {
+          const ta = document.createElement('textarea')
+          ta.value = value
+          ta.setAttribute('readonly', '')
+          ta.style.position = 'fixed'
+          ta.style.top = '-1000px'
+          ta.style.left = '-1000px'
+          ta.style.opacity = '0'
+          document.body.appendChild(ta)
+          ta.focus()
+          ta.select()
+          ok = document.execCommand && document.execCommand('copy')
+          document.body.removeChild(ta)
+        } catch (_) {
+          ok = false
+        }
+      }
+
+      if (ok) {
+        this.$message.success(successMsg)
+      } else {
+        this.$message.error(failMsg)
       }
     },
 
@@ -768,6 +995,155 @@ export default {
     padding: 12px 24px 16px;
     border-top: 1px solid rgba(0,0,0,0.06);
   }
+}
+
+/* ===== Amount highlight =====
+ * The whole amount string is rendered in the alert-red colour. The amount
+ * is the order's on-chain identity (every digit matters, including the
+ * trailing suffix), so we don't split the visual style across base/suffix
+ * any more — users glance at the colour and immediately understand "this
+ * is the number I must reproduce exactly". The amount-base / amount-suffix
+ * spans are kept in the template only so the wrapping behaves nicely on
+ * very small screens. */
+.usdt-checkout {
+  .qr-section .qr-amount .amt-number {
+    .amt-base,
+    .amt-suffix {
+      color: #d4380d;
+    }
+  }
+  .info-section .info-block {
+    .info-sublabel {
+      font-weight: 500;
+      color: rgba(0,0,0,0.45);
+      margin-left: 6px;
+    }
+  }
+  .info-section .amt-box code {
+    .amt-suffix-inline {
+      color: #d4380d;
+    }
+    /* The "USDT" suffix stays muted so the eye locks onto the number. */
+    .amt-currency-inline {
+      color: rgba(0,0,0,0.45);
+      font-weight: 600;
+      margin-left: 4px;
+    }
+  }
+  /* The whole amount code block is red too, not just the trailing span. */
+  .info-section .amt-box code > span:first-child {
+    color: #d4380d;
+  }
+}
+
+/* ===== Chain Picker ===== */
+.usdt-chain-picker-wrap {
+  .ant-modal-content { border-radius: 12px; }
+  .chain-picker-body {
+    .chain-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chain-option {
+      border: 1.5px solid #e8e8e8;
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fff;
+      &:hover {
+        border-color: rgba(24, 144, 255, 0.5);
+        background: rgba(24, 144, 255, 0.04);
+      }
+      &.selected {
+        border-color: #1890ff;
+        background: rgba(24, 144, 255, 0.06);
+        box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+      }
+      &.recommended {
+        border-color: rgba(38, 161, 123, 0.4);
+      }
+      &.selected.recommended {
+        border-color: #1890ff;
+      }
+      .chain-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .chain-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        .chain-label { color: rgba(0,0,0,0.85); }
+        .chain-badge { margin-left: 4px; font-weight: 500; }
+      }
+      .chain-fee {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        .fee-label { font-size: 11px; color: rgba(0,0,0,0.45); }
+        .fee-value { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.85); }
+      }
+      .chain-sub {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: rgba(0,0,0,0.55);
+        .picked-icon { color: #1890ff; font-size: 14px; }
+      }
+    }
+    .empty-chains { padding: 6px 0; }
+    .picker-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+  }
+}
+
+body.dark .usdt-chain-picker-wrap,
+body.realdark .usdt-chain-picker-wrap {
+  .ant-modal-content { background: #1c1c1c; }
+  .chain-picker-body .chain-option {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.12);
+    &:hover { background: rgba(24,144,255,0.08); border-color: rgba(64,169,255,0.55); }
+    &.selected { background: rgba(24,144,255,0.14); border-color: #40a9ff; }
+    .chain-name .chain-label { color: rgba(255,255,255,0.9); }
+    .chain-fee .fee-label { color: rgba(255,255,255,0.45); }
+    .chain-fee .fee-value { color: rgba(255,255,255,0.9); }
+    .chain-sub { color: rgba(255,255,255,0.55); }
+  }
+}
+
+body.dark .usdt-checkout .qr-section .qr-amount .amt-number .amt-base,
+body.realdark .usdt-checkout .qr-section .qr-amount .amt-number .amt-base,
+body.dark .usdt-checkout .qr-section .qr-amount .amt-number .amt-suffix,
+body.realdark .usdt-checkout .qr-section .qr-amount .amt-number .amt-suffix {
+  color: #ff7875;
+}
+body.dark .usdt-checkout .info-section .amt-box code,
+body.realdark .usdt-checkout .info-section .amt-box code,
+body.dark .usdt-checkout .info-section .amt-box code > span:first-child,
+body.realdark .usdt-checkout .info-section .amt-box code > span:first-child,
+body.dark .usdt-checkout .info-section .amt-box code .amt-suffix-inline,
+body.realdark .usdt-checkout .info-section .amt-box code .amt-suffix-inline {
+  color: #ff7875;
+}
+body.dark .usdt-checkout .info-section .amt-box code .amt-currency-inline,
+body.realdark .usdt-checkout .info-section .amt-box code .amt-currency-inline {
+  color: rgba(255,255,255,0.45);
+}
+body.dark .usdt-checkout .info-section .info-block .info-sublabel,
+body.realdark .usdt-checkout .info-section .info-block .info-sublabel {
+  color: rgba(255,255,255,0.45);
 }
 
 /* ===== Mobile ===== */

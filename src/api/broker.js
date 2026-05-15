@@ -113,7 +113,7 @@ export const BROKER_META = {
     color: '#1890ff',
     accent: '#722ed1',
     markets: ['USStock', 'Crypto'],
-    badges: ['zero_commission', 'paper_default', 'rest_api'],
+    badges: ['zero_commission', 'rest_api'],
     cloudFriendly: true
   },
   ibkr: {

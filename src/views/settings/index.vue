@@ -317,6 +317,28 @@
                 </a-col>
               </a-row>
             </a-form>
+
+            <!-- Brand group footer: commercial license notice. Shown only
+                 under "Brand & Identity" so it's visible right where an
+                 operator sets up their fork. Single official email channel
+                 to avoid impersonation risk via informal IM handles. -->
+            <div v-if="activeGroupKey === 'brand'" class="commercial-license-notice">
+              <a-alert
+                type="warning"
+                show-icon
+                :message="$t('settings.commercialLicense.title')"
+              >
+                <div slot="description" class="license-body">
+                  <p>{{ $t('settings.commercialLicense.body') }}</p>
+                  <p class="license-contact">
+                    <span class="contact-label">{{ $t('settings.commercialLicense.contactLabel') }}:</span>
+                    <a href="mailto:support@quantdinger.com" class="contact-link">
+                      <a-icon type="mail" /> support@quantdinger.com
+                    </a>
+                  </p>
+                </div>
+              </a-alert>
+            </div>
           </div>
         </section>
       </div>
@@ -700,7 +722,10 @@ export default {
   }
 
   .settings-nav {
-    flex: 0 0 240px;
+    // Wide enough for the longest group label in any supported locale
+    // (some Chinese / German / Russian group names ran over the previous
+    // 240px and forced a horizontal scrollbar in the side rail).
+    flex: 0 0 280px;
     position: sticky;
     top: 88px;
     background: #fff;
@@ -708,7 +733,11 @@ export default {
     box-shadow: @card-shadow;
     padding: 16px 0;
     max-height: calc(100vh - 200px);
-    overflow: auto;
+    // Allow vertical scroll for long lists, but never let the side rail
+    // grow a horizontal scrollbar — overflow is handled by ellipsis on
+    // the menu-item label instead.
+    overflow-x: hidden;
+    overflow-y: auto;
 
     .settings-search {
       padding: 0 16px 12px;
@@ -728,11 +757,27 @@ export default {
         height: 40px;
         line-height: 40px;
         padding-left: 16px !important;
+        padding-right: 12px !important;
         color: #475569;
         font-weight: 500;
+        // Ant Design's default for menu-item is to clip long labels,
+        // which the browser turns into a horizontal scrollbar on the
+        // parent. Force an ellipsis on the label span so overly long
+        // group titles degrade gracefully without shifting layout.
+        display: flex;
+        align-items: center;
 
         .anticon {
           color: #94a3b8;
+          flex: 0 0 auto;
+        }
+
+        > span:not(.anticon) {
+          flex: 1 1 auto;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         &:hover {
@@ -800,6 +845,50 @@ export default {
 
       .anticon {
         font-size: 11px;
+      }
+    }
+  }
+
+  // 商业授权提示（Brand 分组底部）
+  .commercial-license-notice {
+    margin-top: 24px;
+
+    .license-body {
+      margin-top: 4px;
+      line-height: 1.7;
+      color: #5c4a16;
+
+      p {
+        margin: 0 0 8px 0;
+      }
+
+      p:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .license-contact {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .contact-label {
+      font-weight: 600;
+    }
+
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #1890ff;
+      text-decoration: none;
+
+      &:hover {
+        color: #096dd9;
+        text-decoration: underline;
       }
     }
   }
@@ -965,6 +1054,16 @@ export default {
     .restart-alert {
       background: #1c1c1c;
       border-color: #b08800;
+    }
+
+    .commercial-license-notice {
+      .license-body {
+        color: #f0d97a;
+      }
+      .contact-link {
+        color: #69c0ff;
+        &:hover { color: #91d5ff; }
+      }
     }
 
     .settings-header {

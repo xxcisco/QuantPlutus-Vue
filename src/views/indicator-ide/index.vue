@@ -401,6 +401,113 @@
             <!-- 独立滚动层：Ant Tabs 的 tabpane 默认高度链不完整，仅靠 height:100% 会导致子级无法出现滚动条 -->
             <div class="ide-backtest-scroll-mount">
               <div class="ide-workspace-pane ide-workspace-pane--backtest">
+                <!--
+                  Mirrored toolbar (watchlist / timeframe / indicator picker).
+                  Bound to the SAME v-models the chart tab uses, so flipping
+                  any control here is reflected on the chart tab and vice
+                  versa (the user reported wanting to tweak symbol / TF /
+                  indicators while reading backtest results without losing
+                  context by jumping tabs).
+                -->
+                <div class="backtest-panel-toolbar">
+                  <div class="chart-panel-toolbar-controls">
+                    <div class="ide-toolbar-group ide-toolbar-group--watchlist">
+                      <span class="ide-toolbar-label">{{ $t('indicatorIde.toolbar.watchlist') }}</span>
+                      <a-select
+                        v-model="selectedWatchlistKey"
+                        class="ide-toolbar-select ide-toolbar-select--watchlist chart-panel-watchlist-select"
+                        :placeholder="$t('backtest-center.config.watchlistPlaceholder')"
+                        size="small"
+                        show-search
+                        allow-clear
+                        :filter-option="filterWatchlistOption"
+                        :dropdown-class-name="isDarkTheme ? 'ide-watchlist-dropdown ide-watchlist-dropdown--dark' : 'ide-watchlist-dropdown'"
+                        :get-popup-container="chartToolbarGetPopupContainer"
+                        @change="handleWatchlistChange"
+                      >
+                        <a-select-option
+                          v-for="w in watchlist"
+                          :key="`bt-${w.market}:${w.symbol}`"
+                          :value="`${w.market}:${w.symbol}`"
+                        >
+                          <span class="wl-opt-tag" :class="'wl-mkt-' + (w.market || '').toLowerCase()">{{ marketLabel(w.market) }}</span>
+                          <strong class="wl-opt-symbol">{{ w.symbol }}</strong>
+                          <span v-if="w.name" class="wl-opt-name">{{ w.name }}</span>
+                        </a-select-option>
+                        <a-select-option key="bt-__add__" value="__add__" class="add-option">
+                          <div class="ide-watchlist-add-row">
+                            <a-icon type="plus" /> {{ $t('backtest-center.config.addSymbol') }}
+                          </div>
+                        </a-select-option>
+                      </a-select>
+                    </div>
+                    <div class="ide-toolbar-group ide-toolbar-group--tf">
+                      <span class="ide-toolbar-label">{{ $t('indicatorIde.toolbar.timeframe') }}</span>
+                      <a-radio-group
+                        v-model="timeframe"
+                        button-style="solid"
+                        size="small"
+                        class="tf-group ide-tf-seg ide-tf-seg--backtest"
+                      >
+                        <a-radio-button value="1m">1m</a-radio-button>
+                        <a-radio-button value="5m">5m</a-radio-button>
+                        <a-radio-button value="15m">15m</a-radio-button>
+                        <a-radio-button value="30m">30m</a-radio-button>
+                        <a-radio-button value="1H">1H</a-radio-button>
+                        <a-radio-button value="4H">4H</a-radio-button>
+                        <a-radio-button value="1D">1D</a-radio-button>
+                        <a-radio-button value="1W">1W</a-radio-button>
+                      </a-radio-group>
+                    </div>
+                    <div class="ide-toolbar-group ide-toolbar-group--indicator">
+                      <span class="ide-toolbar-label">{{ $t('indicatorIde.toolbar.indicator') }}</span>
+                      <a-dropdown
+                        :trigger="['click']"
+                        placement="bottomLeft"
+                        :visible="backtestIndicatorDropdownVisible"
+                        :get-popup-container="chartToolbarGetPopupContainer"
+                        @visibleChange="onBacktestIndicatorDropdownVisibleChange"
+                        :overlay-class-name="isDarkTheme ? 'ide-indicator-multiselect-dropdown ide-indicator-multiselect-dropdown--dark' : 'ide-indicator-multiselect-dropdown'"
+                      >
+                        <a-button
+                          size="small"
+                          class="ide-toolbar-select ide-toolbar-select--indicator ide-indicator-multiselect-trigger"
+                          :loading="loadingIndicators"
+                        >
+                          <span class="ide-indicator-trigger-text">{{ indicatorToolbarSummary }}</span>
+                          <a-icon type="down" />
+                        </a-button>
+                        <div slot="overlay" class="ide-indicator-overlay" @mousedown.stop @click.stop>
+                          <div class="ide-indicator-overlay-hint">{{ $t('indicatorIde.chartPickHint') }}</div>
+                          <a-spin v-if="loadingIndicators" size="small" style="padding: 12px;" />
+                          <div v-else-if="!indicators.length" class="ide-indicator-overlay-empty">{{ $t('indicatorIde.noIndicatorsYet') }}</div>
+                          <div v-else class="ide-indicator-overlay-list">
+                            <div
+                              v-for="ind in indicators"
+                              :key="'bt-ind-row-' + ind.id"
+                              class="ide-indicator-row"
+                            >
+                              <a-checkbox
+                                :checked="isIndicatorChartVisible(ind.id)"
+                                @change="e => onChartIndicatorCheckChange(ind.id, e.target.checked)"
+                              />
+                              <span
+                                class="ide-indicator-name"
+                                :class="{ active: Number(selectedIndicatorId) === Number(ind.id) }"
+                                @click="selectEditorIndicator(ind.id)"
+                              >{{ ind.name || ('Indicator #' + ind.id) }}</span>
+                              <a-tag
+                                v-if="Number(ind.is_buy) === 1"
+                                color="purple"
+                                class="ide-indicator-purchased-tag"
+                              >{{ $t('indicatorIde.purchasedBadge') }}</a-tag>
+                            </div>
+                          </div>
+                        </div>
+                      </a-dropdown>
+                    </div>
+                  </div>
+                </div>
                 <div class="result-panel">
                   <div class="params-card">
                     <div class="params-card-header" @click="paramsPanelExpanded = !paramsPanelExpanded">
@@ -724,126 +831,121 @@
                           </div>
                         </div>
 
-                        <div class="ide-tuning-method-cards">
+                        <div class="ide-tuning-method-cards ide-tuning-method-cards--single">
                           <div class="ide-tuning-method-card">
-                            <div class="ide-tuning-method-card-head">
-                              <a-icon type="deployment-unit" class="ide-tuning-method-icon ide-tuning-method-icon--grid" />
-                              <span class="ide-tuning-method-name">{{ $t('indicatorIde.runStructuredTune') }}</span>
-                              <span v-if="activeTuneMethodOption" class="ide-tune-method-badge">{{ activeTuneMethodOption.badge }}</span>
-                            </div>
-                            <div class="ide-tuning-method-desc">{{ $t('indicatorIde.structuredTuneExplain') }}</div>
-                            <div class="ide-tune-pills">
-                              <button
-                                v-for="opt in tuneMethodOptions"
-                                :key="opt.value"
-                                type="button"
-                                class="ide-tune-pill"
-                                :class="['ide-tune-pill--' + opt.value, { active: structuredTuneMethod === opt.value }]"
-                                :disabled="experimentRunning"
-                                @click="structuredTuneMethod = opt.value"
-                              >
-                                <a-tooltip :title="opt.hint" placement="top">
-                                  <span class="ide-tune-pill-inner">
-                                    <a-icon :type="opt.icon" />
-                                    <span class="ide-tune-pill-label">{{ opt.label }}</span>
-                                  </span>
-                                </a-tooltip>
-                              </button>
-                            </div>
-                            <div class="ide-tune-dimensions">
-                              <div class="ide-tune-dimensions-summary">
-                                <span class="ide-tune-dimensions-summary-label">
-                                  <a-icon type="appstore" />
-                                  {{ $t('indicatorIde.sweepDimensionsTitle') }}
-                                </span>
-                                <span class="ide-tune-dimensions-summary-stats">
-                                  <span class="ide-tune-dim-stat">
-                                    <span class="ide-tune-dim-stat-num">{{ experimentEnabledSweepDimensions.length }}</span>
-                                    <span class="ide-tune-dim-stat-sep">/</span>
-                                    <span class="ide-tune-dim-stat-total">{{ experimentSweepDimensions.length }}</span>
-                                    <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepDimEnabledLabel') }}</span>
-                                  </span>
-                                  <span class="ide-tune-dim-stat ide-tune-dim-stat--cartesian">
-                                    <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepCartesianLabel') }}</span>
-                                    <span class="ide-tune-dim-stat-num">{{ experimentCartesianSize === Infinity ? '∞' : experimentCartesianSize.toLocaleString() }}</span>
-                                  </span>
-                                  <span class="ide-tune-dim-stat ide-tune-dim-stat--budget">
-                                    <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepBudgetLabel') }}</span>
-                                    <span class="ide-tune-dim-stat-num">48</span>
-                                  </span>
-                                </span>
-                              </div>
-                              <div v-if="experimentMethodAutoSuggest" class="ide-tune-dimensions-warning">
-                                <a-icon type="info-circle" />
-                                {{ $t('indicatorIde.sweepMethodAutoSwitchHint', { size: experimentMethodAutoSuggest.size.toLocaleString() }) }}
-                              </div>
-                              <div v-if="experimentSweepDimensions.length === 0" class="ide-tune-dimensions-empty">
-                                {{ $t('indicatorIde.sweepDimensionsEmpty') }}
-                              </div>
-                              <div v-else class="ide-tune-dimensions-list">
-                                <label
-                                  v-for="d in experimentSweepDimensions"
-                                  :key="d.key"
-                                  class="ide-tune-dim-row"
-                                  :class="['ide-tune-dim-row--' + d.source, { 'is-disabled': !d.enabled }]"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    class="ide-tune-dim-check"
-                                    :checked="d.enabled"
-                                    :disabled="experimentRunning"
-                                    @change="toggleSweepDimension(d.key)"
-                                  >
-                                  <span class="ide-tune-dim-label">{{ d.label }}</span>
-                                  <span class="ide-tune-dim-badge" :class="'ide-tune-dim-badge--' + d.source">
-                                    {{ $t('indicatorIde.sweepSource_' + d.source) }}
-                                  </span>
-                                  <span class="ide-tune-dim-count">×{{ d.values.length }}</span>
-                                  <span class="ide-tune-dim-values">{{ formatSweepValues(d.values) }}</span>
-                                </label>
-                              </div>
-                              <div class="ide-tune-dimensions-tip">
-                                <a-icon type="bulb" />
-                                <span v-html="$t('indicatorIde.sweepDimensionsTip')"></span>
-                              </div>
-                            </div>
-                            <div class="ide-tune-method-meta">
-                              <span class="ide-tune-method-meta-hint">{{ activeTuneMethodOption ? activeTuneMethodOption.hint : '' }}</span>
-                              <a-button
-                                type="primary"
-                                ghost
+                            <div class="ide-tune-mode-row">
+                              <span class="ide-tune-mode-label">{{ $t('indicatorIde.tuneModeLabel') }}</span>
+                              <a-select
+                                v-model="tuneMode"
                                 size="small"
-                                class="ide-tune-run-btn"
-                                :loading="experimentRunning && experimentRunKind === 'structured'"
+                                class="ide-tune-mode-select"
                                 :disabled="experimentRunning"
-                                @click="handleRunStructuredTune"
                               >
-                                <a-icon type="thunderbolt" />
-                                {{ $t('indicatorIde.runTune') }}
-                              </a-button>
+                                <a-select-option value="structured">{{ $t('indicatorIde.tuneModeStructured') }}</a-select-option>
+                                <a-select-option value="ai">{{ $t('indicatorIde.tuneModeAi') }}</a-select-option>
+                              </a-select>
+                              <span class="ide-tune-mode-desc">
+                                {{ tuneMode === 'ai' ? $t('indicatorIde.aiTuneExplain') : $t('indicatorIde.structuredTuneExplain') }}
+                              </span>
                             </div>
-                          </div>
 
-                          <div class="ide-tuning-method-card ide-tuning-method-card--ai">
-                            <div class="ide-tuning-method-card-head">
-                              <a-icon type="robot" class="ide-tuning-method-icon ide-tuning-method-icon--ai" />
-                              <span class="ide-tuning-method-name">{{ $t('indicatorIde.runAiExperiment') }}</span>
-                              <span class="ide-tune-method-badge ide-tune-method-badge--ai">AI</span>
-                            </div>
-                            <div class="ide-tuning-method-desc">{{ $t('indicatorIde.aiTuneExplain') }}</div>
-                            <div class="ide-tune-ai-feature-list">
+                            <template v-if="tuneMode === 'structured'">
+                              <div class="ide-tune-pills">
+                                <button
+                                  v-for="opt in tuneMethodOptions"
+                                  :key="opt.value"
+                                  type="button"
+                                  class="ide-tune-pill"
+                                  :class="['ide-tune-pill--' + opt.value, { active: structuredTuneMethod === opt.value }]"
+                                  :disabled="experimentRunning"
+                                  @click="structuredTuneMethod = opt.value"
+                                >
+                                  <a-tooltip :title="opt.hint" placement="top">
+                                    <span class="ide-tune-pill-inner">
+                                      <a-icon :type="opt.icon" />
+                                      <span class="ide-tune-pill-label">{{ opt.label }}</span>
+                                    </span>
+                                  </a-tooltip>
+                                </button>
+                              </div>
+                              <div class="ide-tune-dimensions">
+                                <div class="ide-tune-dimensions-summary">
+                                  <span class="ide-tune-dimensions-summary-label">
+                                    <a-icon type="appstore" />
+                                    {{ $t('indicatorIde.sweepDimensionsTitle') }}
+                                  </span>
+                                  <span class="ide-tune-dimensions-summary-stats">
+                                    <span class="ide-tune-dim-stat">
+                                      <span class="ide-tune-dim-stat-num">{{ experimentEnabledSweepDimensions.length }}</span>
+                                      <span class="ide-tune-dim-stat-sep">/</span>
+                                      <span class="ide-tune-dim-stat-total">{{ experimentSweepDimensions.length }}</span>
+                                      <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepDimEnabledLabel') }}</span>
+                                    </span>
+                                    <span class="ide-tune-dim-stat ide-tune-dim-stat--cartesian">
+                                      <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepCartesianLabel') }}</span>
+                                      <span class="ide-tune-dim-stat-num">{{ experimentCartesianSize === Infinity ? '∞' : experimentCartesianSize.toLocaleString() }}</span>
+                                    </span>
+                                    <span class="ide-tune-dim-stat ide-tune-dim-stat--budget">
+                                      <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepBudgetLabel') }}</span>
+                                      <span class="ide-tune-dim-stat-num">48</span>
+                                    </span>
+                                  </span>
+                                </div>
+                                <div v-if="experimentMethodAutoSuggest" class="ide-tune-dimensions-warning">
+                                  <a-icon type="info-circle" />
+                                  {{ $t('indicatorIde.sweepMethodAutoSwitchHint', { size: experimentMethodAutoSuggest.size.toLocaleString() }) }}
+                                </div>
+                                <div v-if="experimentSweepDimensions.length === 0" class="ide-tune-dimensions-empty">
+                                  {{ $t('indicatorIde.sweepDimensionsEmpty') }}
+                                </div>
+                                <div v-else class="ide-tune-dimensions-list">
+                                  <label
+                                    v-for="d in experimentSweepDimensions"
+                                    :key="d.key"
+                                    class="ide-tune-dim-row"
+                                    :class="['ide-tune-dim-row--' + d.source, { 'is-disabled': !d.enabled }]"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      class="ide-tune-dim-check"
+                                      :checked="d.enabled"
+                                      :disabled="experimentRunning"
+                                      @change="toggleSweepDimension(d.key)"
+                                    >
+                                    <span class="ide-tune-dim-label">{{ d.label }}</span>
+                                    <span class="ide-tune-dim-badge" :class="'ide-tune-dim-badge--' + d.source">
+                                      {{ $t('indicatorIde.sweepSource_' + d.source) }}
+                                    </span>
+                                    <span class="ide-tune-dim-count">×{{ d.values.length }}</span>
+                                    <span class="ide-tune-dim-values">{{ formatSweepValues(d.values) }}</span>
+                                  </label>
+                                </div>
+                                <div class="ide-tune-dimensions-tip">
+                                  <a-icon type="bulb" />
+                                  <span v-html="$t('indicatorIde.sweepDimensionsTip')"></span>
+                                </div>
+                              </div>
+                            </template>
+
+                            <div v-else class="ide-tune-ai-feature-list">
                               <div class="ide-tune-ai-feature"><a-icon type="rocket" /><span>{{ $t('indicatorIde.aiTuneFeature1') }}</span></div>
                               <div class="ide-tune-ai-feature"><a-icon type="bulb" /><span>{{ $t('indicatorIde.aiTuneFeature2') }}</span></div>
                               <div class="ide-tune-ai-feature"><a-icon type="safety" /><span>{{ $t('indicatorIde.aiTuneFeature3') }}</span></div>
                             </div>
-                            <div class="ide-tune-method-meta ide-tune-method-meta--ai">
-                              <span class="ide-tune-method-meta-hint">{{ $t('indicatorIde.aiTuneCta') }}</span>
+
+                            <div class="ide-tune-method-meta" :class="{ 'ide-tune-method-meta--ai': tuneMode === 'ai' }">
+                              <span class="ide-tune-method-meta-hint">
+                                <template v-if="tuneMode === 'structured'">{{ activeTuneMethodOption ? activeTuneMethodOption.hint : '' }}</template>
+                                <template v-else>{{ $t('indicatorIde.aiTuneCta') }}</template>
+                              </span>
                               <a-button
                                 type="primary"
-                                class="ide-tune-run-btn ide-tune-run-btn--ai"
-                                :loading="experimentRunning && experimentRunKind === 'llm'"
+                                :ghost="tuneMode === 'structured'"
+                                size="small"
+                                :class="['ide-tune-run-btn', { 'ide-tune-run-btn--ai': tuneMode === 'ai' }]"
+                                :loading="experimentRunning && (tuneMode === 'ai' ? experimentRunKind === 'llm' : experimentRunKind === 'structured')"
                                 :disabled="experimentRunning"
-                                @click="handleRunAIExperiment"
+                                @click="handleRunCurrentMode"
                               >
                                 <a-icon type="thunderbolt" />
                                 {{ $t('indicatorIde.runTune') }}
@@ -947,6 +1049,19 @@
                           </div>
                         </div>
 
+                        <a-alert
+                          v-if="experimentOosMeta && experimentOosMeta.enabled"
+                          type="warning"
+                          show-icon
+                          class="experiment-oos-banner"
+                          :message="$t('indicatorIde.oosBanner', {
+                            trainStart: experimentOosMeta.trainStart,
+                            trainEnd: experimentOosMeta.trainEnd,
+                            oosStart: experimentOosMeta.oosStart,
+                            oosEnd: experimentOosMeta.oosEnd
+                          })"
+                        />
+
                         <!-- Best candidate card -->
                         <div
                           v-if="experimentBest"
@@ -969,6 +1084,9 @@
                               <div class="experiment-best-panel-header">
                                 <a-tag color="blue">{{ $t('indicatorIde.isBadge') }}</a-tag>
                                 <span class="experiment-best-panel-title">{{ $t('indicatorIde.isPanelTitle') }}</span>
+                                <span v-if="experimentOosMeta && experimentOosMeta.enabled" class="experiment-best-panel-range">
+                                  {{ experimentOosMeta.trainStart }} ~ {{ experimentOosMeta.trainEnd }}
+                                </span>
                               </div>
                               <div class="experiment-best-summary">
                                 <div class="experiment-best-metric">
@@ -995,6 +1113,9 @@
                               <div class="experiment-best-panel-header">
                                 <a-tag :color="experimentBestOverfit ? 'red' : 'orange'">{{ $t('indicatorIde.oosBadge') }}</a-tag>
                                 <span class="experiment-best-panel-title">{{ $t('indicatorIde.oosPanelTitle') }}</span>
+                                <span v-if="experimentOosMeta && experimentOosMeta.enabled" class="experiment-best-panel-range">
+                                  {{ experimentOosMeta.oosStart }} ~ {{ experimentOosMeta.oosEnd }}
+                                </span>
                                 <span v-if="experimentBest.oosDegradation != null" class="experiment-best-degrade">
                                   {{ $t('indicatorIde.oosDegradation') }} {{ experimentBestDegradePct }}%
                                 </span>
@@ -1085,19 +1206,6 @@
                             </div>
                           </div>
                         </div>
-                        <a-alert
-                          v-if="experimentOosMeta && experimentOosMeta.enabled"
-                          type="info"
-                          show-icon
-                          style="margin-top: 8px;"
-                          :message="$t('indicatorIde.oosBanner', {
-                            trainStart: experimentOosMeta.trainStart,
-                            trainEnd: experimentOosMeta.trainEnd,
-                            oosStart: experimentOosMeta.oosStart,
-                            oosEnd: experimentOosMeta.oosEnd
-                          })"
-                        />
-
                         <div v-if="experimentHasAnalytics" class="experiment-analytics">
                           <div class="experiment-analytics-card">
                             <div class="experiment-analytics-head">
@@ -1420,7 +1528,7 @@ const DATE_PRESETS = [
 ]
 
 /** 与指标分析 / AI 资产分析一致的市场列表（含 A 股、H 股、预测市场） */
-const IDE_ADD_MARKET_KEYS = ['Crypto', 'USStock', 'CNStock', 'HKStock', 'Forex', 'Futures', 'PredictionMarket']
+const IDE_ADD_MARKET_KEYS = ['Crypto', 'USStock', 'CNStock', 'HKStock', 'Forex', 'Futures']
 
 function purchasedMarketHintStorageKey (userId) {
   const u = userId != null && userId !== '' ? String(userId) : '0'
@@ -1450,6 +1558,13 @@ export default {
       /** 勾选显示在 K 线上的指标 id（可多选）；与「当前编辑」selectedIndicatorId 独立 */
       chartVisibleIndicatorIds: [],
       indicatorDropdownVisible: false,
+      // Independent visibility for the mirrored indicator picker living in
+      // the backtest tab. The picker itself is functionally identical to
+      // the chart-tab one (same models, same handlers), but it needs its
+      // own open/close state — otherwise opening one dropdown would visually
+      // open the other in the offscreen tab and Ant Design's overlay would
+      // race itself.
+      backtestIndicatorDropdownVisible: false,
       editorFullscreen: false,
       chartFullscreen: false,
       currentCode: '',
@@ -1528,6 +1643,8 @@ export default {
       experimentRunning: false,
       /** 'llm' | 'structured' — which run is in progress / last explicit choice for UX */
       experimentRunKind: 'llm',
+      /** 'structured' | 'ai' — which mode the user has selected in the run-mode dropdown. */
+      tuneMode: 'structured',
       structuredTuneMethod: 'grid',
       /** Sweep dimension keys the user has opted out of. Drives the
        *  "Tunable Dimensions" panel and shrinks parameterSpace at submit. */
@@ -2553,6 +2670,9 @@ export default {
     onIndicatorDropdownVisibleChange (visible) {
       this.indicatorDropdownVisible = visible
     },
+    onBacktestIndicatorDropdownVisibleChange (visible) {
+      this.backtestIndicatorDropdownVisible = visible
+    },
     isIndicatorChartVisible (rawId) {
       const id = Number(rawId)
       return (this.chartVisibleIndicatorIds || []).some(x => Number(x) === id)
@@ -2571,6 +2691,7 @@ export default {
     },
     selectEditorIndicator (rawId) {
       this.indicatorDropdownVisible = false
+      this.backtestIndicatorDropdownVisible = false
       this.selectedIndicatorId = rawId
       const id = Number(rawId)
       // 点击名称：切换编辑器并默认仅将该指标绘制到 K 线；多指标需再勾选其他行前复选框追加
@@ -3271,6 +3392,10 @@ export default {
         }
       }
       return finalData
+    },
+    handleRunCurrentMode () {
+      if (this.tuneMode === 'ai') return this.handleRunAIExperiment()
+      return this.handleRunStructuredTune()
     },
     async handleRunAIExperiment () {
       if (!this.currentCode || !this.symbol || !this.startDate || !this.endDate) {
@@ -4825,7 +4950,7 @@ export default {
       }
     },
     getMarketColor (m) {
-      const colors = { Crypto: 'orange', USStock: 'blue', CNStock: 'magenta', HKStock: 'red', Forex: 'green', Futures: 'purple', PredictionMarket: 'cyan' }
+      const colors = { Crypto: 'orange', USStock: 'blue', CNStock: 'magenta', HKStock: 'red', Forex: 'green', Futures: 'purple' }
       return colors[m] || 'default'
     },
     marketLabel (m) {
@@ -6032,6 +6157,85 @@ export default {
   display: flex;
   flex-direction: column;
 }
+
+/* Mirrored toolbar shown above the result-panel on the backtest tab so
+ * symbol / TF / indicator can be switched without leaving the tab. The
+ * inner ``chart-panel-toolbar-controls`` keeps the chart-tab styling so
+ * both toolbars are visually identical and users immediately recognise it. */
+.backtest-panel-toolbar {
+  background: #fff;
+  border: 1px solid #e8eaee;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  /* Mirror the horizontal flex layout used by chart-panel so the three
+   * controls (watchlist / timeframe / indicator) sit side-by-side instead of
+   * stacking into 3 rows. The chart-tab rules are scoped under .chart-panel
+   * which doesn't apply here. */
+  .chart-panel-toolbar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    min-width: 0;
+    .ide-toolbar-group {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    // K-line timeframe segmented control: size to its 8 buttons only and stop
+    // there. Previously this had `flex: 1 1 280px` which let it grow without
+    // bound, squashing the indicator picker on its right (reported by users
+    // who saw "1m 5m 15m … 1W" stretch across half the toolbar).
+    .ide-toolbar-group--tf {
+      flex: 0 0 auto;
+      min-width: 0;
+      max-width: 100%;
+    }
+    // Give the indicator picker the leftover space instead — that's the one
+    // that needs room to show long indicator names like "通道突破点·图表 1 个".
+    .ide-toolbar-group--indicator {
+      flex: 1 1 280px;
+      min-width: 220px;
+      align-items: flex-start;
+      .ide-toolbar-label {
+        width: 100%;
+        text-align: left;
+        align-self: flex-start;
+      }
+      .ide-indicator-multiselect-trigger {
+        width: 100%;
+        max-width: none;
+      }
+    }
+  }
+  .chart-panel-watchlist-select {
+    width: 100%;
+    min-width: 220px;
+    max-width: 320px;
+  }
+  .ide-tf-seg--backtest {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    // No more `max-width: 100%` — we want the segmented control to size to
+    // its content (~360px for 8 buttons) so it stops claiming flex space
+    // that the indicator picker needs.
+    width: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    /deep/ .ant-radio-button-wrapper {
+      flex-shrink: 0;
+    }
+  }
+}
+body.dark .backtest-panel-toolbar,
+body.realdark .backtest-panel-toolbar {
+  background: #1c1c1c;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
 .ide-backtest-scroll-mount .result-panel {
   flex: 0 0 auto;
   min-height: 0;
@@ -6270,13 +6474,16 @@ export default {
       flex: 0 1 auto;
       min-width: 0;
     }
+    // Same fix as on the backtest tab: don't let the TF segmented control
+    // grow past its 8-button natural width.
     .ide-toolbar-group--tf {
-      flex: 1 1 280px;
-      min-width: 200px;
+      flex: 0 0 auto;
+      min-width: 0;
+      max-width: 100%;
     }
     .ide-toolbar-group--indicator {
-      flex: 1 1 200px;
-      min-width: 160px;
+      flex: 1 1 240px;
+      min-width: 200px;
       align-items: flex-start;
       .ide-toolbar-label {
         width: 100%;
@@ -6285,7 +6492,7 @@ export default {
       }
       .ide-indicator-multiselect-trigger {
         width: 100%;
-        max-width: 208px;
+        max-width: none;
       }
     }
   }
@@ -6295,10 +6502,10 @@ export default {
     max-width: 380px;
   }
   .ide-tf-seg--chart {
-    display: flex;
+    display: inline-flex;
     flex-wrap: nowrap;
     overflow-x: auto;
-    max-width: 100%;
+    width: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
     /deep/ .ant-radio-button-wrapper {
@@ -6548,24 +6755,23 @@ export default {
   align-items: center;
   gap: 12px;
   margin-bottom: 18px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.07) 0%, rgba(114, 46, 209, 0.05) 100%);
-  border: 1px solid rgba(24, 144, 255, 0.12);
-  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.06);
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #fafbfc;
+  border: 1px solid #e8eaee;
 }
 .ide-tuning-launch-icon {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #1890ff, #722ed1);
-  color: #fff;
-  font-size: 17px;
+  border-radius: 6px;
+  background: #f0f5ff;
+  color: #1890ff;
+  font-size: 16px;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(24, 144, 255, 0.25);
+  border: 1px solid #d6e4ff;
 }
 .ide-tuning-launch-title {
   font-size: 14px;
@@ -6586,33 +6792,46 @@ export default {
 .ide-tuning-method-card {
   position: relative;
   padding: 16px 18px;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-  transition: all 0.25s ease;
+  border-radius: 6px;
+  border: 1px solid #e8eaee;
+  background: #fff;
+  transition: border-color 0.15s ease;
   overflow: hidden;
-  &::before {
-    content: '';
-    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: #722ed1; border-radius: 3px 0 0 3px;
-    opacity: 0; transition: opacity 0.25s;
-  }
   &:hover {
-    border-color: rgba(114, 46, 209, 0.22);
-    box-shadow: 0 8px 22px rgba(114, 46, 209, 0.1);
-    transform: translateY(-2px);
-    &::before { opacity: 1; }
+    border-color: #1890ff;
   }
 }
 .ide-tuning-method-card--ai {
-  border-color: rgba(24, 144, 255, 0.12);
-  background: linear-gradient(165deg, #fff 0%, rgba(24, 144, 255, 0.02) 100%);
-  &::before { background: linear-gradient(180deg, #1890ff, #40a9ff); }
-  &:hover {
-    border-color: rgba(24, 144, 255, 0.25);
-    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
-  }
+  /* Same neutral styling as the structured card; no special gradients. */
+}
+.ide-tuning-method-cards--single {
+  grid-template-columns: 1fr;
+}
+.ide-tune-mode-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #ececec;
+}
+.ide-tune-mode-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  flex-shrink: 0;
+}
+.ide-tune-mode-select {
+  min-width: 140px;
+  flex-shrink: 0;
+}
+.ide-tune-mode-desc {
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: 11px;
+  color: #8c8c8c;
+  line-height: 1.5;
 }
 .ide-tuning-method-card-head {
   display: flex;
@@ -6621,14 +6840,9 @@ export default {
   margin-bottom: 8px;
 }
 .ide-tuning-method-icon {
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  border-radius: 7px; font-size: 14px; flex-shrink: 0;
-  &.ide-tuning-method-icon--grid {
-    color: #722ed1; background: rgba(114, 46, 209, 0.08);
-  }
-  &.ide-tuning-method-icon--ai {
-    color: #1890ff; background: rgba(24, 144, 255, 0.08);
-  }
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; font-size: 13px; flex-shrink: 0;
+  color: #595959; background: #f5f5f5; border: 1px solid #e8e8e8;
 }
 .ide-tuning-method-name {
   font-size: 13px;
@@ -6659,53 +6873,45 @@ export default {
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 999px;
-  color: #722ed1;
-  background: linear-gradient(135deg, rgba(114, 46, 209, 0.12) 0%, rgba(82, 196, 26, 0.1) 100%);
-  border: 1px solid rgba(114, 46, 209, 0.18);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #595959;
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
 }
 
 .ide-tune-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px;
+  gap: 6px;
   margin-top: 4px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 .ide-tune-pill {
-  flex: 1 1 calc(50% - 8px);
+  flex: 1 1 calc(50% - 6px);
   min-width: 110px;
   appearance: none;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 10px;
-  padding: 8px 10px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 4px;
+  padding: 6px 10px;
   font-size: 12px;
-  font-weight: 600;
-  color: #475569;
+  font-weight: 500;
+  color: #595959;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
   i {
-    font-size: 14px;
+    font-size: 13px;
     margin-right: 6px;
-    color: #94a3b8;
-    transition: color 0.18s ease;
+    color: #8c8c8c;
+    transition: color 0.15s ease;
   }
   &:hover:not(:disabled) {
-    color: #1f1f1f;
-    border-color: rgba(114, 46, 209, 0.22);
-    box-shadow: 0 2px 8px rgba(114, 46, 209, 0.08);
-    transform: translateY(-1px);
-    i { color: #722ed1; }
+    color: #1890ff;
+    border-color: #1890ff;
+    i { color: #1890ff; }
   }
   &:disabled {
     cursor: not-allowed;
@@ -6713,17 +6919,9 @@ export default {
   }
   &.active {
     color: #fff;
-    border-color: transparent;
-    background: linear-gradient(135deg, #722ed1 0%, #1890ff 100%);
-    box-shadow: 0 6px 16px rgba(114, 46, 209, 0.28);
-    i { color: rgba(255, 255, 255, 0.92); }
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.25), transparent 60%);
-      pointer-events: none;
-    }
+    border-color: #1890ff;
+    background: #1890ff;
+    i { color: #fff; }
   }
 }
 .ide-tune-pill-inner {
@@ -6929,16 +7127,16 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(15, 23, 42, 0.08);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
 }
 .ide-tune-method-meta-hint {
   flex: 1;
   min-width: 0;
   font-size: 11px;
   line-height: 1.5;
-  color: #64748b;
+  color: #8c8c8c;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -6947,56 +7145,35 @@ export default {
 }
 .ide-tune-run-btn {
   flex-shrink: 0;
-  border-radius: 10px !important;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.18);
-  &:hover:not([disabled]) {
-    box-shadow: 0 6px 16px rgba(24, 144, 255, 0.28);
-    transform: translateY(-1px);
-  }
+  font-weight: 500;
 }
 .ide-tune-method-badge--ai {
-  color: #1890ff;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.16) 0%, rgba(114, 46, 209, 0.1) 100%);
-  border-color: rgba(24, 144, 255, 0.28);
+  /* Same neutral badge as the structured one. */
 }
 .ide-tune-ai-feature-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+  flex-direction: column;
+  gap: 6px;
   margin: 6px 0 2px;
 }
 .ide-tune-ai-feature {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 12px;
   line-height: 1.5;
-  color: #475569;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: rgba(24, 144, 255, 0.06);
-  border: 1px solid rgba(24, 144, 255, 0.12);
+  color: #595959;
   i {
     color: #1890ff;
-    font-size: 12px;
+    font-size: 13px;
+    flex-shrink: 0;
   }
 }
 .ide-tune-method-meta--ai {
-  border-top-style: solid;
-  border-top-color: rgba(24, 144, 255, 0.14);
+  /* Inherit base style. */
 }
 .ide-tune-run-btn--ai {
-  min-width: 132px;
-  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%) !important;
-  border-color: transparent !important;
-  box-shadow: 0 6px 18px rgba(24, 144, 255, 0.32) !important;
-  &:hover:not([disabled]) {
-    box-shadow: 0 8px 22px rgba(24, 144, 255, 0.42) !important;
-    transform: translateY(-1px);
-    filter: brightness(1.05);
-  }
+  /* Use the default Ant Design primary blue; no gradient, no glow. */
 }
 
 .experiment-panel {
@@ -7305,6 +7482,15 @@ export default {
   font-size: 13px;
   font-weight: 600;
   color: #595959;
+}
+.experiment-best-panel-range {
+  font-size: 11px;
+  color: #8c8c8c;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+.experiment-oos-banner {
+  margin-bottom: 12px;
 }
 .experiment-best-degrade {
   margin-left: auto;
@@ -7659,7 +7845,6 @@ export default {
 /deep/ .wl-mkt-hkstock { background: #f5222d; }
 /deep/ .wl-mkt-forex { background: #52c41a; }
 /deep/ .wl-mkt-futures { background: #722ed1; }
-/deep/ .wl-mkt-predictionmarket { background: #13c2c2; }
 /deep/ .wl-opt-symbol { font-weight: 600; font-size: 12px; }
 /deep/ .wl-opt-name { color: #8c8c8c; font-size: 10px; margin-left: 3px; }
 
@@ -7797,32 +7982,42 @@ export default {
     }
   }
   .ide-tuning-launch-header {
-    background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(114, 46, 209, 0.06) 100%);
-    border-color: rgba(88, 166, 255, 0.2);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    background: #1f1f1f;
+    border-color: #303030;
+  }
+  .ide-tuning-launch-icon {
+    background: rgba(24, 144, 255, 0.12);
+    color: #58a6ff;
+    border-color: rgba(24, 144, 255, 0.25);
   }
   .ide-tuning-launch-title { color: rgba(255, 255, 255, 0.88); }
   .ide-tuning-launch-subtitle { color: rgba(255, 255, 255, 0.45); }
   .ide-tuning-method-card {
-    background: linear-gradient(165deg, #262626 0%, #1f1f1f 100%);
-    border-color: #404040;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    &::before { opacity: 0; }
-    &:hover {
-      border-color: rgba(114, 46, 209, 0.45);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-      transform: translateY(-2px);
-      &::before { opacity: 1; }
-    }
+    background: #1f1f1f;
+    border-color: #303030;
+    &:hover { border-color: #1890ff; }
   }
   .ide-tuning-method-card--ai {
-    background: linear-gradient(165deg, #1f1f1f 0%, rgba(23, 125, 220, 0.06) 100%);
-    border-color: rgba(88, 166, 255, 0.2);
-    &:hover { border-color: rgba(88, 166, 255, 0.35); }
+    /* Inherit base dark card style. */
+  }
+  .ide-tune-mode-row {
+    border-bottom-color: #303030;
+  }
+  .ide-tune-mode-label {
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .ide-tune-mode-desc {
+    color: rgba(255, 255, 255, 0.45);
   }
   .ide-tuning-method-icon {
-    &.ide-tuning-method-icon--grid { background: rgba(114, 46, 209, 0.12); }
-    &.ide-tuning-method-icon--ai { background: rgba(24, 144, 255, 0.12); }
+    color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .ide-tune-method-badge {
+    color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   .ide-tuning-method-name { color: rgba(255, 255, 255, 0.85); }
   .ide-tuning-method-desc { color: rgba(255, 255, 255, 0.45); }
@@ -8059,6 +8254,7 @@ export default {
     border-color: #a8071a;
   }
   .experiment-best-panel-title { color: rgba(255,255,255,0.78); }
+  .experiment-best-panel-range { color: rgba(255,255,255,0.45); }
   .experiment-best-degrade { color: #ff7875; }
   .experiment-best-oos-na { color: rgba(255,255,255,0.45); }
   .experiment-detail-metric,
@@ -8112,45 +8308,33 @@ export default {
     border-color: rgba(114, 46, 209, 0.35);
   }
   .ide-tune-method-badge--ai {
-    color: #58a6ff;
-    background: linear-gradient(135deg, rgba(24, 144, 255, 0.22) 0%, rgba(114, 46, 209, 0.16) 100%);
-    border-color: rgba(88, 166, 255, 0.4);
+    /* Inherit the neutral badge style. */
   }
   .ide-tune-ai-feature {
-    background: rgba(24, 144, 255, 0.1);
-    border-color: rgba(88, 166, 255, 0.22);
     color: rgba(255, 255, 255, 0.75);
     i { color: #58a6ff; }
   }
   .ide-tune-method-meta--ai {
-    border-top-color: rgba(88, 166, 255, 0.22);
+    /* Inherit the base meta style. */
   }
   .ide-tune-run-btn--ai {
-    box-shadow: 0 6px 18px rgba(88, 166, 255, 0.4) !important;
-    &:hover:not([disabled]) {
-      box-shadow: 0 8px 22px rgba(88, 166, 255, 0.55) !important;
-    }
-  }
-  .ide-tune-pills {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
+    /* Use the default Ant Design primary blue. */
   }
   .ide-tune-pill {
-    background: rgba(255, 255, 255, 0.04);
+    background: #1f1f1f;
+    border-color: #434343;
     color: rgba(255, 255, 255, 0.7);
     i { color: rgba(255, 255, 255, 0.4); }
     &:hover:not(:disabled) {
-      background: rgba(114, 46, 209, 0.12);
-      border-color: rgba(179, 127, 235, 0.35);
-      color: rgba(255, 255, 255, 0.95);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      i { color: #b37feb; }
+      color: #58a6ff;
+      border-color: #58a6ff;
+      i { color: #58a6ff; }
     }
     &.active {
       color: #fff;
-      background: linear-gradient(135deg, #722ed1 0%, #177ddc 100%);
-      box-shadow: 0 6px 18px rgba(114, 46, 209, 0.4), 0 0 0 1px rgba(179, 127, 235, 0.45);
-      i { color: rgba(255, 255, 255, 0.95); }
+      background: #1890ff;
+      border-color: #1890ff;
+      i { color: #fff; }
     }
   }
   .ide-tune-method-meta {
@@ -8158,12 +8342,6 @@ export default {
   }
   .ide-tune-method-meta-hint {
     color: rgba(255, 255, 255, 0.55);
-  }
-  .ide-tune-run-btn {
-    box-shadow: 0 4px 14px rgba(23, 125, 220, 0.3) !important;
-    &:hover:not([disabled]) {
-      box-shadow: 0 6px 18px rgba(23, 125, 220, 0.45) !important;
-    }
   }
   .ide-tune-dimensions {
     background: rgba(255, 255, 255, 0.03);
@@ -8364,7 +8542,6 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   .wl-mkt-hkstock { background: #f5222d; }
   .wl-mkt-forex { background: #52c41a; }
   .wl-mkt-futures { background: #722ed1; }
-  .wl-mkt-predictionmarket { background: #13c2c2; }
   .wl-opt-symbol {
     font-weight: 600;
     font-size: 13px;

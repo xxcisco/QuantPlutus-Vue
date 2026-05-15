@@ -12,6 +12,119 @@
     <a-tabs v-model="activeTab" @change="handleTabChange" class="manage-tabs">
       <!-- Tab 1: User Management -->
       <a-tab-pane key="users" :tab="$t('userManage.tabUsers') || 'User Management'">
+        <!-- KPI Cards (operations-at-a-glance) -->
+        <div class="summary-cards user-kpi-cards" v-if="userStats || userStatsLoading">
+          <template v-if="userStatsLoading && !userStats">
+            <div class="summary-card kpi-skeleton" v-for="i in 6" :key="`skel-${i}`">
+              <a-skeleton active :paragraph="{ rows: 1 }" />
+            </div>
+          </template>
+          <template v-if="userStats">
+            <div class="summary-card">
+              <div class="summary-icon" style="background: linear-gradient(135deg, #667eea, #764ba2)">
+                <a-icon type="team" />
+              </div>
+              <div class="summary-info">
+                <div class="summary-value">{{ formatNumber(userStats.summary.total) }}</div>
+                <div class="summary-label">{{ $t('userManage.kpiTotal') || 'Total Members' }}</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon" style="background: linear-gradient(135deg, #11998e, #38ef7d)">
+                <a-icon type="user-add" />
+              </div>
+              <div class="summary-info">
+                <div class="summary-value">
+                  {{ formatNumber(userStats.summary.today_new) }}
+                  <span class="delta" :class="todayDeltaClass" v-if="hasYesterdayBaseline">
+                    {{ todayDeltaText }}
+                  </span>
+                </div>
+                <div class="summary-sub">{{ kpiYesterdaySub }}</div>
+                <div class="summary-label">{{ $t('userManage.kpiToday') || 'New Today' }}</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c)">
+                <a-icon type="rise" />
+              </div>
+              <div class="summary-info">
+                <div class="summary-value">{{ formatNumber(userStats.summary.week_new) }}</div>
+                <div class="summary-sub">
+                  30{{ $t('userManage.kpiDays') || 'd' }}: {{ formatNumber(userStats.summary.month_new) }}
+                </div>
+                <div class="summary-label">{{ $t('userManage.kpiWeek') || 'New This Week' }}</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon" style="background: linear-gradient(135deg, #fa709a, #fee140)">
+                <a-icon type="thunderbolt" />
+              </div>
+              <div class="summary-info">
+                <div class="summary-value">{{ formatNumber(userStats.summary.active_today) }}</div>
+                <div class="summary-sub">
+                  7{{ $t('userManage.kpiDays') || 'd' }}: {{ formatNumber(userStats.summary.active_week) }}
+                </div>
+                <div class="summary-label">{{ $t('userManage.kpiActive') || 'Active Today' }}</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon" style="background: linear-gradient(135deg, #f6d365, #fda085)">
+                <a-icon type="crown" />
+              </div>
+              <div class="summary-info">
+                <div class="summary-value">{{ formatNumber(userStats.summary.vip_total) }}</div>
+                <div class="summary-sub" :class="userStats.summary.vip_expiring_7d > 0 ? 'sub-warn' : ''">
+                  {{ $t('userManage.kpiVipExpiring') || 'Expiring 7d' }}: {{ formatNumber(userStats.summary.vip_expiring_7d) }}
+                </div>
+                <div class="summary-label">{{ $t('userManage.kpiVip') || 'Active VIPs' }}</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon" style="background: linear-gradient(135deg, #868f96, #596164)">
+                <a-icon type="stop" />
+              </div>
+              <div class="summary-info">
+                <div class="summary-value">{{ formatNumber(userStats.summary.disabled) }}</div>
+                <div class="summary-label">{{ $t('userManage.kpiDisabled') || 'Disabled' }}</div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Charts Row: Growth + DAU side-by-side, each 50% wide. -->
+        <div class="charts-grid charts-grid-2col" v-if="userStats">
+          <a-card :bordered="false" class="chart-card">
+            <div class="chart-card-header">
+              <h4 class="section-card-title">
+                <a-icon type="line-chart" class="section-card-title-icon" />
+                {{ $t('userManage.chartGrowthTitle') || 'Member Growth (Last 30 Days)' }}
+              </h4>
+              <a-button-group size="small">
+                <a-button
+                  size="small"
+                  :type="userStatsLoading ? 'default' : 'primary'"
+                  :ghost="!userStatsLoading"
+                  :loading="userStatsLoading"
+                  @click="loadUserStats(true)"
+                >
+                  <a-icon type="reload" v-if="!userStatsLoading" />
+                  {{ $t('common.refresh') || 'Refresh' }}
+                </a-button>
+              </a-button-group>
+            </div>
+            <div ref="growthChart" class="chart-canvas chart-canvas-tall" />
+          </a-card>
+
+          <a-card :bordered="false" class="chart-card">
+            <h4 class="section-card-title">
+              <a-icon type="bar-chart" class="section-card-title-icon" />
+              {{ $t('userManage.chartActivityTitle') || 'Daily Active Users (14d)' }}
+            </h4>
+            <div ref="activityChart" class="chart-canvas chart-canvas-tall" />
+          </a-card>
+        </div>
+
         <!-- Toolbar -->
         <div class="toolbar">
           <div class="toolbar-left">
@@ -51,6 +164,29 @@
             :scroll="{ x: 1420 }"
             @change="handleTableChange"
           >
+            <!-- Email Column Title (with show/hide toggle) -->
+            <template slot="emailTitle">
+              <span class="email-col-title">
+                {{ $t('userManage.email') || 'Email' }}
+                <a-tooltip :title="emailVisible ? ($t('userManage.hideEmail') || 'Hide emails') : ($t('userManage.showEmail') || 'Show emails')">
+                  <a-button
+                    type="link"
+                    size="small"
+                    class="email-toggle-btn"
+                    @click="toggleEmailVisible"
+                  >
+                    <a-icon :type="emailVisible ? 'eye' : 'eye-invisible'" />
+                  </a-button>
+                </a-tooltip>
+              </span>
+            </template>
+
+            <!-- Email Column Cell -->
+            <template slot="email" slot-scope="text">
+              <span v-if="emailVisible">{{ text || '-' }}</span>
+              <span v-else class="email-masked">{{ maskEmail(text) }}</span>
+            </template>
+
             <!-- Status Column -->
             <template slot="status" slot-scope="text">
               <a-tag :color="text === 'active' ? 'green' : 'red'">
@@ -847,9 +983,10 @@
 </template>
 
 <script>
-import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUserPassword, getRoles, setUserCredits, setUserVip, getSystemStrategies, getAdminOrders, getAdminAiStats } from '@/api/user'
+import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUserPassword, getRoles, setUserCredits, setUserVip, getSystemStrategies, getAdminOrders, getAdminAiStats, getUserAdminStats } from '@/api/user'
 import { baseMixin } from '@/store/app-mixin'
 import { mapGetters } from 'vuex'
+import * as echarts from 'echarts'
 
 export default {
   name: 'UserManage',
@@ -867,6 +1004,16 @@ export default {
         pageSize: 10,
         total: 0
       },
+      // Admin dashboard stats (KPIs + charts) for the Users tab.
+      // Loaded once on mount; refresh button forces a reload. The charts are
+      // rendered with echarts in `renderCharts()`; instances live on `this`
+      // (non-reactive) under `_chartInstances` so they survive theme changes.
+      userStats: null,
+      userStatsLoading: false,
+      // Admin can click the eye icon in the email column header to reveal
+      // real addresses. Defaulting to masked avoids casual shoulder-surfing
+      // when the admin shares their screen during a demo / support call.
+      emailVisible: false,
       // Create/Edit Modal
       modalVisible: false,
       modalLoading: false,
@@ -941,6 +1088,40 @@ export default {
     currentUserId () {
       return this.userInfo?.id
     },
+    // ---- Admin dashboard derived state ----
+    // Suppress the "today vs yesterday" delta on a brand-new install where
+    // yesterday is also zero — `+∞%` next to "0 new" would be misleading.
+    hasYesterdayBaseline () {
+      const s = this.userStats && this.userStats.summary
+      if (!s) return false
+      return Number(s.yesterday_new || 0) > 0 || Number(s.today_new || 0) > 0
+    },
+    todayDeltaText () {
+      const s = this.userStats && this.userStats.summary
+      if (!s) return ''
+      const today = Number(s.today_new || 0)
+      const y = Number(s.yesterday_new || 0)
+      if (y === 0 && today === 0) return ''
+      if (y === 0) return today > 0 ? '+∞' : ''
+      const pct = ((today - y) / y) * 100
+      const sign = pct >= 0 ? '+' : ''
+      return `${sign}${pct.toFixed(0)}%`
+    },
+    todayDeltaClass () {
+      const s = this.userStats && this.userStats.summary
+      if (!s) return 'delta-flat'
+      const today = Number(s.today_new || 0)
+      const y = Number(s.yesterday_new || 0)
+      if (today > y) return 'delta-up'
+      if (today < y) return 'delta-down'
+      return 'delta-flat'
+    },
+    kpiYesterdaySub () {
+      const s = this.userStats && this.userStats.summary
+      const y = s ? Number(s.yesterday_new || 0) : 0
+      const label = this.$t('userManage.kpiYesterday') || 'Yesterday'
+      return `${label}: ${this.formatNumber(y)}`
+    },
     columns () {
       return [
         {
@@ -959,9 +1140,10 @@ export default {
           width: 100
         },
         {
-          title: this.$t('userManage.email') || 'Email',
           dataIndex: 'email',
-          width: 180
+          width: 200,
+          slots: { title: 'emailTitle' },
+          scopedSlots: { customRender: 'email' }
         },
         {
           title: this.$t('userManage.role') || 'Role',
@@ -1325,6 +1507,12 @@ export default {
   mounted () {
     this.loadUsers()
     this.loadRoles()
+    this.loadUserStats()
+    window.addEventListener('resize', this._handleChartResize)
+  },
+  beforeDestroy () {
+    window.removeEventListener('resize', this._handleChartResize)
+    this._disposeCharts()
   },
   methods: {
     handleTabChange (key) {
@@ -1407,6 +1595,262 @@ export default {
     getUserColor (userId) {
       const colors = ['#1890ff', '#722ed1', '#13c2c2', '#fa8c16', '#eb2f96', '#52c41a', '#2f54eb', '#faad14']
       return colors[(userId || 0) % colors.length]
+    },
+
+    // ==================== Admin Dashboard Stats ====================
+    async loadUserStats (force = false) {
+      if (this.userStatsLoading) return
+      this.userStatsLoading = true
+      try {
+        const res = await getUserAdminStats({ _t: force ? Date.now() : undefined })
+        if (res && res.code === 1 && res.data) {
+          this.userStats = res.data
+          // ECharts needs the canvas DOM to exist before init. We do a
+          // nextTick + tiny rAF chain to also wait for v-if to mount the
+          // chart wrappers.
+          this.$nextTick(() => {
+            window.requestAnimationFrame(() => this.renderCharts())
+          })
+        } else if (res) {
+          this.$message.warning(res.msg || 'Failed to load user stats')
+        }
+      } catch (e) {
+        console.warn('loadUserStats failed', e)
+      } finally {
+        this.userStatsLoading = false
+      }
+    },
+
+    _chartTextColor () {
+      return this.isDarkTheme ? '#c9d1d9' : '#1e293b'
+    },
+    _chartAxisColor () {
+      return this.isDarkTheme ? '#3a3a3a' : '#e5e7eb'
+    },
+    _chartTooltipBg () {
+      return this.isDarkTheme ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.96)'
+    },
+
+    renderCharts () {
+      if (!this.userStats) return
+      // Lazy-init the holder so unit tests / SSR don't hit echarts.init().
+      if (!this._chartInstances) this._chartInstances = {}
+      this._renderGrowthChart()
+      this._renderActivityChart()
+      // ECharts grabs the container size at init() time. The growth + DAU
+      // cards live inside a `v-if="userStats"` block, so the very first
+      // init might happen while the parent grid is still settling its
+      // column widths (especially in modal contexts or after a tab switch).
+      // We fire one more resize on the next two frames to lock the canvas
+      // dimensions to whatever the grid finally landed on — cheap, and
+      // fixes the "chart squished into the right column" symptom in
+      // narrower wrappers.
+      this.$nextTick(() => {
+        this._handleChartResize()
+        window.requestAnimationFrame(() => this._handleChartResize())
+      })
+    },
+
+    toggleEmailVisible () {
+      this.emailVisible = !this.emailVisible
+    },
+
+    maskEmail (raw) {
+      const email = String(raw || '').trim()
+      if (!email) return '-'
+      const at = email.lastIndexOf('@')
+      if (at <= 0) {
+        // No '@' (legacy or admin-created accounts) — mask the middle of the
+        // raw string but keep the first/last char so the admin can still tell
+        // two rows apart at a glance.
+        if (email.length <= 2) return '••'
+        return email[0] + '•••' + email.slice(-1)
+      }
+      const local = email.slice(0, at)
+      const domain = email.slice(at + 1)
+      const localMasked = local.length <= 2
+        ? local[0] + '•'
+        : local[0] + '•••' + local.slice(-1)
+      const dotIdx = domain.lastIndexOf('.')
+      let domainMasked
+      if (dotIdx > 0) {
+        const sld = domain.slice(0, dotIdx)
+        const tld = domain.slice(dotIdx) // includes the leading dot
+        domainMasked = (sld.length <= 2 ? sld[0] + '•' : sld[0] + '•••') + tld
+      } else {
+        domainMasked = domain.length <= 2 ? domain[0] + '•' : domain[0] + '•••'
+      }
+      return localMasked + '@' + domainMasked
+    },
+
+    _renderGrowthChart () {
+      const el = this.$refs.growthChart
+      if (!el || !this.userStats) return
+      let inst = this._chartInstances.growth
+      if (!inst || inst.isDisposed()) {
+        inst = echarts.init(el, null, { renderer: 'canvas' })
+        this._chartInstances.growth = inst
+      }
+      const data = this.userStats.growth || []
+      const xs = data.map(d => d.date)
+      const newSeries = data.map(d => d.new_users || 0)
+      const cumSeries = data.map(d => d.cumulative || 0)
+      const axisColor = this._chartAxisColor()
+      const textColor = this._chartTextColor()
+      inst.setOption({
+        grid: { left: 56, right: 56, top: 36, bottom: 36 },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: this._chartTooltipBg(),
+          borderColor: axisColor,
+          textStyle: { color: textColor }
+        },
+        legend: {
+          data: [
+            this.$t('userManage.legendNew') || 'New Users',
+            this.$t('userManage.legendTotal') || 'Cumulative'
+          ],
+          textStyle: { color: textColor },
+          top: 0
+        },
+        xAxis: {
+          type: 'category',
+          data: xs,
+          axisLine: { lineStyle: { color: axisColor } },
+          axisLabel: { color: textColor, fontSize: 11, hideOverlap: true }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: this.$t('userManage.legendNew') || 'New',
+            position: 'left',
+            axisLine: { show: false },
+            axisLabel: { color: textColor },
+            splitLine: { lineStyle: { color: axisColor, type: 'dashed', opacity: 0.5 } }
+          },
+          {
+            type: 'value',
+            name: this.$t('userManage.legendTotal') || 'Total',
+            position: 'right',
+            axisLine: { show: false },
+            axisLabel: { color: textColor },
+            splitLine: { show: false }
+          }
+        ],
+        series: [
+          {
+            name: this.$t('userManage.legendNew') || 'New Users',
+            type: 'bar',
+            yAxisIndex: 0,
+            barMaxWidth: 18,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#667eea' },
+                { offset: 1, color: '#764ba2' }
+              ]),
+              borderRadius: [4, 4, 0, 0]
+            },
+            data: newSeries
+          },
+          {
+            name: this.$t('userManage.legendTotal') || 'Cumulative',
+            type: 'line',
+            yAxisIndex: 1,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 5,
+            lineStyle: { color: '#11998e', width: 2 },
+            itemStyle: { color: '#11998e' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(17,153,142,0.35)' },
+                { offset: 1, color: 'rgba(17,153,142,0.02)' }
+              ])
+            },
+            data: cumSeries
+          }
+        ]
+      }, true)
+    },
+
+    _renderActivityChart () {
+      const el = this.$refs.activityChart
+      if (!el || !this.userStats) return
+      let inst = this._chartInstances.activity
+      if (!inst || inst.isDisposed()) {
+        inst = echarts.init(el, null, { renderer: 'canvas' })
+        this._chartInstances.activity = inst
+      }
+      const data = this.userStats.activity || []
+      const axisColor = this._chartAxisColor()
+      const textColor = this._chartTextColor()
+      inst.setOption({
+        grid: { left: 40, right: 16, top: 20, bottom: 28 },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: this._chartTooltipBg(),
+          borderColor: axisColor,
+          textStyle: { color: textColor }
+        },
+        xAxis: {
+          type: 'category',
+          data: data.map(d => (d.date || '').slice(5)),
+          axisLine: { lineStyle: { color: axisColor } },
+          axisLabel: { color: textColor, fontSize: 11, hideOverlap: true }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          axisLabel: { color: textColor },
+          splitLine: { lineStyle: { color: axisColor, type: 'dashed', opacity: 0.5 } }
+        },
+        series: [{
+          type: 'bar',
+          barMaxWidth: 14,
+          data: data.map(d => d.active_users || 0),
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#f093fb' },
+              { offset: 1, color: '#f5576c' }
+            ]),
+            borderRadius: [4, 4, 0, 0]
+          }
+        }]
+      }, true)
+    },
+
+    _handleChartResize () {
+      if (!this._chartInstances) return
+      Object.values(this._chartInstances).forEach(c => {
+        if (c && !c.isDisposed()) c.resize()
+      })
+    },
+
+    _disposeCharts () {
+      if (!this._chartInstances) return
+      Object.values(this._chartInstances).forEach(c => {
+        if (c && !c.isDisposed()) c.dispose()
+      })
+      this._chartInstances = null
+    },
+
+    formatRelativeTime (timestamp, future = false) {
+      if (!timestamp) return ''
+      const d = new Date(timestamp)
+      if (Number.isNaN(d.getTime())) return ''
+      const diffMs = future ? (d.getTime() - Date.now()) : (Date.now() - d.getTime())
+      const diffSec = Math.max(0, Math.floor(diffMs / 1000))
+      const min = Math.floor(diffSec / 60)
+      const hr = Math.floor(min / 60)
+      const day = Math.floor(hr / 24)
+      const isZh = String(this.$i18n?.locale || '').toLowerCase().startsWith('zh')
+      const suffix = future
+        ? (isZh ? '后' : ' left')
+        : (isZh ? '前' : ' ago')
+      if (day > 0) return `${day}${isZh ? '天' : 'd'}${suffix}`
+      if (hr > 0) return `${hr}${isZh ? '小时' : 'h'}${suffix}`
+      if (min > 0) return `${min}${isZh ? '分' : 'm'}${suffix}`
+      return isZh ? '刚刚' : 'just now'
     },
 
     formatNumber (num) {
@@ -2008,6 +2452,28 @@ export default {
     }
   }
 
+  .email-col-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .email-toggle-btn {
+    padding: 0 4px !important;
+    height: 22px;
+    line-height: 22px;
+
+    .anticon {
+      font-size: 14px;
+    }
+  }
+
+  .email-masked {
+    color: #8c8c8c;
+    font-family: ui-monospace, 'Cascadia Mono', 'Source Han Sans SC', monospace;
+    letter-spacing: 0.5px;
+  }
+
   // PnL colors
   .text-profit {
     color: #52c41a;
@@ -2237,6 +2703,44 @@ export default {
     .section-card-title {
       color: #e0e6ed;
     }
+
+    // Charts grid in dark theme
+    .charts-grid {
+      .chart-card {
+        background: #1c1c1c;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+
+        /deep/ .ant-card-body {
+          background: #1c1c1c;
+        }
+      }
+
+      .chart-card-hint {
+        color: #6e7681;
+      }
+
+      .chart-empty-hint {
+        color: #6e7681;
+      }
+
+      .recent-list .recent-row {
+        border-bottom-color: #2a2a2a;
+
+        .recent-meta {
+          .recent-name { color: #e0e6ed; }
+          .recent-sub  { color: #6e7681; }
+        }
+        .recent-time { color: #6e7681; }
+      }
+    }
+
+    .summary-cards.user-kpi-cards {
+      .summary-card .summary-info .summary-value .delta {
+        &.delta-up   { background: rgba(82, 196, 26, 0.2);  color: #73d13d; }
+        &.delta-down { background: rgba(255, 77, 79, 0.2);  color: #ff7875; }
+        &.delta-flat { background: rgba(255, 255, 255, 0.08); color: #c9d1d9; }
+      }
+    }
   }
 
   // Credits value style
@@ -2275,9 +2779,195 @@ export default {
     }
   }
 
+  // ---- User-mgmt KPI block (6 cards, 3-col on wide screens) ----
+  .summary-cards.user-kpi-cards {
+    grid-template-columns: repeat(3, 1fr);
+
+    .summary-card .summary-info .summary-value {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      .delta {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 999px;
+        line-height: 1.4;
+
+        &.delta-up    { background: rgba(82, 196, 26, 0.15);  color: #389e0d; }
+        &.delta-down  { background: rgba(255, 77, 79, 0.15);  color: #cf1322; }
+        &.delta-flat  { background: rgba(0, 0, 0, 0.05);      color: #595959; }
+      }
+    }
+
+    .summary-card .summary-info .summary-sub.sub-warn {
+      color: #d48806;
+      font-weight: 500;
+    }
+
+    .kpi-skeleton {
+      display: block;
+      padding: 18px 20px;
+    }
+  }
+
+  // ---- Charts grid: 6 panels, responsive ----
+  // Layout intent:
+  //   * Growth chart spans 2 columns (it's the headline trend).
+  //   * The other 5 cards fall into a normal 2-col grid below.
+  // Using auto-fit instead of fixed columns means the layout degrades
+  // gracefully on narrow viewports without extra media queries.
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+
+    .chart-card {
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      background: #fff;
+      overflow: hidden;
+      min-width: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+
+      /deep/ .ant-card-body {
+        padding: 16px 18px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    .chart-card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .chart-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+
+      .section-card-title {
+        margin-bottom: 0;
+      }
+    }
+
+    .chart-card-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 240px;
+      min-height: 240px;
+    }
+
+    .chart-canvas-tall {
+      height: 280px;
+      min-height: 280px;
+    }
+
+    .chart-empty-hint {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 13px;
+      padding: 32px 12px;
+      min-height: 200px;
+      text-align: center;
+    }
+    .chart-empty-hint-soft {
+      color: #52c41a;
+    }
+
+    .recent-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 4px;
+
+      .recent-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .recent-meta {
+          flex: 1;
+          min-width: 0;
+
+          .recent-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e3a5f;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .recent-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+
+        .recent-time {
+          font-size: 11px;
+          color: #94a3b8;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .recent-time-warn {
+          color: #d48806;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  // Strict 2-column override for the slim "growth + DAU" row. The base
+  // `.charts-grid` rule already targets `repeat(2, minmax(0, 1fr))`, but a
+  // parent component or theme wrapper occasionally narrows the grid via a
+  // sibling rule on the page — `!important` here pins the layout so the two
+  // charts always render side-by-side regardless of the cascade order.
+  .charts-grid.charts-grid-2col {
+    grid-template-columns: 1fr 1fr !important;
+
+    .chart-card {
+      grid-column: auto !important;
+    }
+  }
+
   // —— 响应式 ——
   @media (max-width: 1200px) {
     .summary-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .summary-cards.user-kpi-cards {
       grid-template-columns: repeat(2, 1fr);
     }
   }
@@ -2285,6 +2975,23 @@ export default {
   @media (max-width: 768px) {
     padding: 16px 12px;
     min-height: calc(100vh - 100px);
+
+    .charts-grid {
+      grid-template-columns: 1fr;
+
+      .chart-card-wide {
+        grid-column: auto;
+      }
+
+      .chart-canvas,
+      .chart-canvas-tall {
+        height: 220px;
+      }
+    }
+
+    .summary-cards.user-kpi-cards {
+      grid-template-columns: 1fr;
+    }
 
     .page-header {
       margin-bottom: 16px;

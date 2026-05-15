@@ -9,8 +9,6 @@
         <div class="bp-status-meta">
           <div class="bp-status-name">
             {{ $t('brokerAccounts.' + broker.id + '.name') }}
-            <a-tag v-if="status && status.paper" color="green" class="bp-paper-tag">PAPER</a-tag>
-            <a-tag v-else-if="status && status.connected" color="volcano" class="bp-paper-tag">LIVE</a-tag>
           </div>
           <div class="bp-status-line">
             <a-badge :status="status && status.connected ? 'success' : 'default'" />
@@ -242,10 +240,6 @@ export default {
   gap: 8px;
 }
 .theme-dark .bp-status-name { color: rgba(255, 255, 255, 0.92); }
-.bp-paper-tag {
-  font-weight: 600;
-  margin: 0;
-}
 .bp-status-line {
   margin-top: 6px;
   display: flex;

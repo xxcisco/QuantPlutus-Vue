@@ -68,7 +68,7 @@
             <div class="indices-empty">--</div>
           </template>
         </div>
-        <a-button type="link" size="small" class="refresh-btn" :loading="loadingMarket" @click="loadMarketData">
+        <a-button type="link" size="small" class="refresh-btn" :loading="loadingMarket" @click="loadMarketData(true)">
           <a-icon type="sync" :spin="loadingMarket" />
         </a-button>
       </div>
@@ -682,6 +682,31 @@ import { getPositions, addPosition, getMonitors, addMonitor, updateMonitor, dele
 import { fastAnalyze, getAllAnalysisHistory, deleteAnalysisHistory } from '@/api/fast-analysis'
 import { getMarketSentiment, getMarketOverview, getMarketHeatmap, getEconomicCalendar } from '@/api/global-market'
 import FastAnalysisReport from './components/FastAnalysisReport.vue'
+import sessionCache from '@/utils/sessionCache'
+
+// Cache keys + TTLs for the four "market overview" widgets. Numbers picked
+// from the natural update cadence of each upstream:
+//  - sentiment (fear & greed / VIX / DXY) updates daily-ish → 5 min is safe
+//  - global indices update tick-by-tick but UI only needs minute-level → 2 min
+//  - sector / commodity / forex / crypto heatmap → 2 min
+//  - economic calendar is a near-static schedule → 10 min
+// On a keep-alive re-enter we render the cached value instantly, then kick
+// off a silent background refresh only when the TTL has elapsed.
+const MARKET_CACHE = {
+  sentiment: { key: 'aiAnalysis.market.sentiment', ttl: 5 * 60 * 1000 },
+  indices: { key: 'aiAnalysis.market.indices', ttl: 2 * 60 * 1000 },
+  heatmap: { key: 'aiAnalysis.market.heatmap', ttl: 2 * 60 * 1000 },
+  calendar: { key: 'aiAnalysis.market.calendar', ttl: 10 * 60 * 1000 }
+}
+
+// `window.requestIdleCallback` is unavailable on Safari < 16. Fall back to a
+// short setTimeout so we still get the "yield to first paint, then run" effect.
+function _onIdle (cb, timeout = 800) {
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    return window.requestIdleCallback(cb, { timeout })
+  }
+  return setTimeout(cb, 60)
+}
 
 export default {
   name: 'Analysis',
@@ -824,17 +849,43 @@ export default {
       return this.batchSelectedKeys.length > 0 && this.batchSelectedKeys.length < (this.watchlist || []).length
     }
   },
-  created() {
+  created () {
+    // 1. Render-from-cache pass: hydrate the four market-overview blocks
+    //    from sessionStorage so the first paint shows real numbers even
+    //    when the upstream APIs are slow. No network round-trips here.
+    this._hydrateMarketCache()
+
+    // 2. Critical-path requests: user info + market types are tiny and
+    //    drive subsequent UI (e.g. the watchlist selector). Watchlist +
+    //    positions are user-specific and immediately visible, so they
+    //    stay on the eager path.
     this.loadUserInfo()
     this.loadMarketTypes()
     this.loadWatchlist()
     this.loadPositionData()
-    this.loadMarketData()
+
+    // 3. Deferred path: the heavy "market overview" pulls (sentiment /
+    //    indices / heatmap / calendar) run after the first paint and only
+    //    when the cached value is stale. This is what makes the page feel
+    //    snappy on a cold open — the user sees the top carousel + the
+    //    analysis panel without waiting on four upstream finance APIs.
+    _onIdle(() => this.loadMarketData())
   },
   mounted() {
     this.startWatchlistPriceRefresh()
   },
-  beforeDestroy() {
+  activated () {
+    // keep-alive re-entry. We *don't* re-run the entire created() — we just
+    // top up any data whose cache window has aged past TTL. Critical user
+    // data (positions, watchlist prices) is refreshed unconditionally
+    // because users expect those to reflect "right now".
+    this.loadPositionData()
+    if (this.watchlist && this.watchlist.length > 0) {
+      this.loadWatchlistPrices()
+    }
+    _onIdle(() => this.loadMarketData())
+  },
+  beforeDestroy () {
     if (this.watchlistPriceTimer) {
       clearInterval(this.watchlistPriceTimer)
     }
@@ -1308,30 +1359,74 @@ export default {
         this.$message.error(e?.response?.data?.msg || e?.message || 'Failed')
       }
     },
-    async loadMarketData() {
-      // 渐进式加载：每个数据块独立加载，先出来的先显示
-      this.loadingMarket = true
-
-      // 1. 加载情绪指标（恐惧贪婪、VIX、DXY）- 通常最快
-      this.loadSentimentData()
-
-      // 2. 加载全球指数 - 可能较慢
-      this.loadIndicesData()
-
-      // 3. 加载热力图数据
-      this.loadHeatmapData()
-
-      // 4. 加载财经日历
-      this.loadCalendarData()
+    // Cache-first hydration. Called from created() before any network work
+    // so the four market-overview widgets paint with last-session's data
+    // while a real refresh is queued. Safe no-op when cache is empty.
+    _hydrateMarketCache () {
+      try {
+        const sentiment = sessionCache.read(MARKET_CACHE.sentiment.key)
+        if (sentiment) {
+          this.marketData.fearGreed = sentiment.fearGreed ?? null
+          this.marketData.vix = sentiment.vix ?? null
+          this.marketData.dxy = sentiment.dxy ?? null
+        }
+        const indices = sessionCache.read(MARKET_CACHE.indices.key)
+        if (Array.isArray(indices)) {
+          this.marketData.indices = indices
+        }
+        const heatmap = sessionCache.read(MARKET_CACHE.heatmap.key)
+        if (heatmap && typeof heatmap === 'object') {
+          this.marketData.heatmap = {
+            crypto: heatmap.crypto || [],
+            commodities: heatmap.commodities || [],
+            sectors: heatmap.sectors || [],
+            forex: heatmap.forex || []
+          }
+        }
+        const calendar = sessionCache.read(MARKET_CACHE.calendar.key)
+        if (Array.isArray(calendar)) {
+          this.marketData.calendar = calendar
+        }
+      } catch (e) {
+        // Cache hydration is best-effort; never let it block UI render.
+      }
     },
-    async loadSentimentData() {
+    async loadMarketData (force = false) {
+      // Progressive loader: each of the four widgets refreshes independently
+      // and respects the per-widget TTL cache, so re-entering the page or
+      // calling this from activated() does NOT spam the upstream finance
+      // APIs. Pass force=true to bypass the cache (e.g. user clicks Refresh).
+      // Note: force may arrive as an Event object when called from @click
+      // without parens — normalise to a strict boolean.
+      const bypass = force === true
+      this.loadingMarket = true
+      this.loadSentimentData(bypass)
+      this.loadIndicesData(bypass)
+      this.loadHeatmapData(bypass)
+      this.loadCalendarData(bypass)
+    },
+    async loadSentimentData (force = false) {
+      const meta = MARKET_CACHE.sentiment
+      if (!force && sessionCache.isFresh(meta.key) && this.marketData.fearGreed != null) {
+        // Cache still warm — nothing to do. checkAllLoaded() handles the
+        // collective loading flag.
+        this.loadingSentiment = false
+        this.checkAllLoaded()
+        return
+      }
       this.loadingSentiment = true
       try {
         const res = await getMarketSentiment()
         if (res?.code === 1 && res?.data) {
-          this.marketData.fearGreed = res.data.fear_greed?.value || null
-          this.marketData.vix = res.data.vix?.value || null
-          this.marketData.dxy = res.data.dxy?.value || null
+          const next = {
+            fearGreed: res.data.fear_greed?.value || null,
+            vix: res.data.vix?.value || null,
+            dxy: res.data.dxy?.value || null
+          }
+          this.marketData.fearGreed = next.fearGreed
+          this.marketData.vix = next.vix
+          this.marketData.dxy = next.dxy
+          sessionCache.write(meta.key, next, meta.ttl)
         }
       } catch (e) {
         console.error('Load sentiment failed:', e)
@@ -1340,12 +1435,20 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadIndicesData() {
+    async loadIndicesData (force = false) {
+      const meta = MARKET_CACHE.indices
+      if (!force && sessionCache.isFresh(meta.key) && this.marketData.indices.length > 0) {
+        this.loadingIndices = false
+        this.checkAllLoaded()
+        return
+      }
       this.loadingIndices = true
       try {
         const res = await getMarketOverview()
         if (res?.code === 1 && res?.data) {
-          this.marketData.indices = res.data.indices || []
+          const next = res.data.indices || []
+          this.marketData.indices = next
+          sessionCache.write(meta.key, next, meta.ttl)
         }
       } catch (e) {
         console.error('Load indices failed:', e)
@@ -1354,17 +1457,31 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadHeatmapData() {
+    async loadHeatmapData (force = false) {
+      const meta = MARKET_CACHE.heatmap
+      const have = this.marketData.heatmap && (
+        (this.marketData.heatmap.crypto || []).length +
+        (this.marketData.heatmap.sectors || []).length +
+        (this.marketData.heatmap.commodities || []).length +
+        (this.marketData.heatmap.forex || []).length
+      ) > 0
+      if (!force && sessionCache.isFresh(meta.key) && have) {
+        this.loadingHeatmap = false
+        this.checkAllLoaded()
+        return
+      }
       this.loadingHeatmap = true
       try {
         const res = await getMarketHeatmap()
         if (res?.code === 1 && res?.data) {
-          this.marketData.heatmap = {
+          const next = {
             crypto: res.data.crypto || [],
             commodities: res.data.commodities || [],
             sectors: res.data.sectors || [],
             forex: res.data.forex || []
           }
+          this.marketData.heatmap = next
+          sessionCache.write(meta.key, next, meta.ttl)
         }
       } catch (e) {
         console.error('Load heatmap failed:', e)
@@ -1373,12 +1490,20 @@ export default {
         this.checkAllLoaded()
       }
     },
-    async loadCalendarData() {
+    async loadCalendarData (force = false) {
+      const meta = MARKET_CACHE.calendar
+      if (!force && sessionCache.isFresh(meta.key) && (this.marketData.calendar || []).length > 0) {
+        this.loadingCalendar = false
+        this.checkAllLoaded()
+        return
+      }
       this.loadingCalendar = true
       try {
         const res = await getEconomicCalendar()
         if (res?.code === 1) {
-          this.marketData.calendar = res.data || []
+          const next = res.data || []
+          this.marketData.calendar = next
+          sessionCache.write(meta.key, next, meta.ttl)
         }
       } catch (e) {
         console.error('Load calendar failed:', e)

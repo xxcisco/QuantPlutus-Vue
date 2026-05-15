@@ -23,15 +23,7 @@
       </a-col>
     </a-row>
     <a-row :gutter="12" align="middle">
-      <a-col :xs="24" :md="8">
-        <a-form-item :label="$t('brokerAccounts.alpaca.paperMode')">
-          <a-switch v-model="form.paper" :disabled="disabled" />
-          <span class="form-hint">
-            {{ form.paper ? $t('brokerAccounts.alpaca.paperOn') : $t('brokerAccounts.alpaca.paperOff') }}
-          </span>
-        </a-form-item>
-      </a-col>
-      <a-col :xs="24" :md="16">
+      <a-col :xs="24">
         <a-form-item :label="$t('brokerAccounts.alpaca.baseUrlOptional')">
           <a-input v-model="form.baseUrl" placeholder="https://paper-api.alpaca.markets" :disabled="disabled" />
         </a-form-item>
@@ -58,7 +50,6 @@ export default {
       form: {
         apiKey: '',
         secretKey: '',
-        paper: true,
         baseUrl: ''
       }
     }
@@ -74,7 +65,7 @@ export default {
       this.$emit('submit', {
         apiKey: this.form.apiKey.trim(),
         secretKey: this.form.secretKey.trim(),
-        paper: !!this.form.paper,
+        paper: true,
         baseUrl: (this.form.baseUrl || '').trim() || null
       })
     }
