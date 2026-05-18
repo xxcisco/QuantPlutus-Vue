@@ -382,14 +382,36 @@
 
         <!-- 搜索/输入框 -->
         <div class="symbol-search-section">
-          <a-input-search v-model="symbolSearchKeyword"
-            :placeholder="$t('dashboard.analysis.modal.addStock.searchOrInputPlaceholder')"
-            @search="handleSearchOrInput" @change="handleSymbolSearchInput" :loading="searchingSymbols" size="large"
-            allow-clear>
+          <a-input-search
+            v-model="symbolSearchKeyword"
+            :placeholder="searchInputPlaceholder"
+            @search="handleSearchOrInput"
+            @change="handleSymbolSearchInput"
+            :loading="searchingSymbols"
+            size="large"
+            allow-clear
+          >
             <a-button slot="enterButton" type="primary" icon="search">
               {{ $t('dashboard.analysis.modal.addStock.search') }}
             </a-button>
           </a-input-search>
+          <!-- Inline guard: if the keyword the user is typing clearly belongs
+               to a different market than the currently selected tab (e.g. a
+               6-digit A-share code while on the US tab), warn before they
+               submit and offer a one-click market switch. -->
+          <div v-if="marketMismatchHint" class="market-mismatch-hint">
+            <a-icon type="exclamation-circle" theme="filled" style="color: #faad14; margin-right: 6px;" />
+            <span>{{ marketMismatchHint.msg }}</span>
+            <a-button
+              size="small"
+              type="link"
+              v-if="marketMismatchHint.suggestedMarket"
+              @click="switchToSuggestedMarket(marketMismatchHint.suggestedMarket)"
+              style="padding: 0 4px;"
+            >
+              {{ marketMismatchHint.switchLabel }}
+            </a-button>
+          </div>
         </div>
 
         <!-- 搜索结果 -->
@@ -847,6 +869,68 @@ export default {
     },
     batchIndeterminate() {
       return this.batchSelectedKeys.length > 0 && this.batchSelectedKeys.length < (this.watchlist || []).length
+    },
+    // Dynamic placeholder for the "add to watchlist" search box. Showing
+    // market-specific examples up front prevents users from typing the wrong
+    // shape (e.g. "000159" while sitting on the US tab) in the first place.
+    searchInputPlaceholder () {
+      // Crypto example deliberately spells out BASE/QUOTE form. The backend
+      // canonicalises bare bases (BTC -> BTC/USDT) but storing the canonical
+      // shape from the start makes UI / dedupe / search far less surprising.
+      const examples = {
+        USStock: 'e.g. AAPL, MSFT, NVDA',
+        CNStock: 'e.g. 600519, 000001, 300750',
+        HKStock: 'e.g. 00700, 09988, 03690',
+        Crypto: 'e.g. BTC/USDT, ETH/USDT, SOL/USDT',
+        Forex: 'e.g. EURUSD, GBPUSD',
+        Futures: 'e.g. GC, CL, ES',
+        MOEX: 'e.g. SBER, GAZP, LKOH'
+      }
+      const fallback = this.$t('dashboard.analysis.modal.addStock.searchOrInputPlaceholder')
+      return examples[this.selectedMarketTab] || fallback
+    },
+    // Inline warning shown beneath the search box when the keyword being
+    // typed clearly belongs to a different market. Returns null when there's
+    // nothing to warn about, or `{msg, suggestedMarket, switchLabel}`. The
+    // switch button uses `suggestedMarket` to one-click hop to the right tab.
+    marketMismatchHint () {
+      const raw = (this.symbolSearchKeyword || '').trim().toUpperCase()
+      if (!raw || !this.selectedMarketTab) return null
+
+      // 6 digits → CN A-share. The exact shape of every other market
+      // (US tickers, FX pairs, HK with 4-5 digits + optional .HK) is too
+      // ambiguous to warn on without false positives, so we only flag this
+      // one high-confidence pattern.
+      if (/^\d{6}$/.test(raw) && this.selectedMarketTab !== 'CNStock') {
+        const hasCN = (this.marketTypes || []).some(m => m.value === 'CNStock')
+        return {
+          msg: `"${raw}" 看起来是 A 股代码（6 位数字），当前却选在 ${this.selectedMarketTab} 市场。 / Looks like a CN A-share, not ${this.selectedMarketTab}.`,
+          suggestedMarket: hasCN ? 'CNStock' : '',
+          switchLabel: '切换到 CNStock / Switch to CNStock'
+        }
+      }
+      // Explicit .HK suffix → must be HKStock.
+      if (raw.endsWith('.HK') && this.selectedMarketTab !== 'HKStock') {
+        const hasHK = (this.marketTypes || []).some(m => m.value === 'HKStock')
+        return {
+          msg: `"${raw}" 看起来是港股代码（.HK 后缀），当前却选在 ${this.selectedMarketTab} 市场。 / Looks like an HK stock, not ${this.selectedMarketTab}.`,
+          suggestedMarket: hasHK ? 'HKStock' : '',
+          switchLabel: '切换到 HKStock / Switch to HKStock'
+        }
+      }
+      // Crypto on the Crypto tab without a "/" — the backend will canonicalise
+      // bare bases (BTC -> BTC/USDT) and the price layer also does it at
+      // runtime, but spelling out the convention here keeps users from being
+      // confused later when search results / strategy lists show "BTC/USDT".
+      // No suggestedMarket → renders as a plain hint without a switch button.
+      if (this.selectedMarketTab === 'Crypto' && raw && !raw.includes('/')) {
+        return {
+          msg: `加密货币建议用交易对形式输入（如 BTC/USDT）。提交时若只写 "${raw}"，系统会默认补全为 ${raw}/USDT。 / Crypto symbols should be entered as BASE/QUOTE; "${raw}" will be auto-completed to ${raw}/USDT.`,
+          suggestedMarket: '',
+          switchLabel: ''
+        }
+      }
+      return null
     }
   },
   created () {
@@ -1978,7 +2062,23 @@ export default {
         this.loadWatchlistPrices()
       }
     },
-    async handleAddStock() {
+    // Client-side sanity check for (market, symbol) pairs before we send them
+    // to /watchlist/add. Mirrors backend _validate_watchlist_pair in
+    // routes/market.py; backend remains the source of truth, this just avoids
+    // a round-trip and gives clearer guidance to the user. Returns an error
+    // string when the pair is implausible, or '' when it looks OK.
+    _validateWatchlistPair (market, symbol) {
+      if (!market || !symbol) return 'Missing market or symbol'
+      // Pure 6-digit codes are CN A-shares and must not go to Crypto / US / etc.
+      if (/^\d{6}$/.test(symbol) && market !== 'CNStock') {
+        return `"${symbol}" 看起来是 A 股代码，市场应选择 CNStock 而不是 ${market}。 / "${symbol}" looks like a CN A-share; choose CNStock instead of ${market}.`
+      }
+      if (symbol.toUpperCase().endsWith('.HK') && market !== 'HKStock') {
+        return `"${symbol}" 看起来是港股代码，市场应选择 HKStock。 / "${symbol}" looks like a HK stock; choose HKStock.`
+      }
+      return ''
+    },
+    async handleAddStock () {
       let market = ''
       let symbol = ''
       let name = ''
@@ -1997,6 +2097,15 @@ export default {
         name = ''
       } else {
         this.$message.warning(this.$t('dashboard.analysis.modal.addStock.pleaseSelectOrEnterSymbol'))
+        return
+      }
+
+      // Final guard: refuse obvious market/symbol mismatches before sending the
+      // request. Backend will also reject them (defense in depth), but blocking
+      // here gives the user immediate, specific feedback instead of a 400.
+      const pairErr = this._validateWatchlistPair(market, symbol)
+      if (pairErr) {
+        this.$message.warning(pairErr)
         return
       }
 
@@ -2038,7 +2147,30 @@ export default {
       this.hasSearched = false
       this.loadHotSymbols(activeKey)
     },
-    handleSymbolSearchInput(e) {
+    // Triggered by the inline mismatch-hint's "Switch to <market>" button.
+    // Keeps the keyword the user already typed so they don't have to retype
+    // it after switching tabs — they just see the search re-fire on the
+    // correct market.
+    switchToSuggestedMarket (targetMarket) {
+      if (!targetMarket || targetMarket === this.selectedMarketTab) return
+      const keyword = this.symbolSearchKeyword
+      this.selectedMarketTab = targetMarket
+      this.symbolSearchResults = []
+      this.selectedSymbolForAdd = null
+      this.hasSearched = false
+      this.loadHotSymbols(targetMarket)
+      // Preserve and re-trigger search on the new tab.
+      this.symbolSearchKeyword = keyword
+      if (keyword && keyword.trim()) {
+        if (this.searchTimer) {
+          clearTimeout(this.searchTimer)
+        }
+        this.searchTimer = setTimeout(() => {
+          this.searchSymbolsInModal(keyword)
+        }, 200)
+      }
+    },
+    handleSymbolSearchInput (e) {
       const keyword = e.target.value
       this.symbolSearchKeyword = keyword
 
@@ -2096,19 +2228,41 @@ export default {
         if (res && res.code === 1 && res.data && res.data.length > 0) {
           this.symbolSearchResults = res.data
         } else {
+          // Search returned nothing. Previously we silently fabricated a
+          // selection of {market: <currentTab>, symbol: <userInput>}, which
+          // let users persist things like {Crypto, 000159}. Now we keep the
+          // selection empty so the "Add" button stays disabled, and only
+          // pre-fill the selection when the symbol format actually fits the
+          // currently selected market tab.
           this.symbolSearchResults = []
-          this.selectedSymbolForAdd = {
-            market: this.selectedMarketTab,
-            symbol: keyword.trim().toUpperCase(),
-            name: ''
+          const candidate = keyword.trim().toUpperCase()
+          const pairErr = this._validateWatchlistPair(this.selectedMarketTab, candidate)
+          if (pairErr) {
+            this.selectedSymbolForAdd = null
+            this.$message.warning(pairErr)
+          } else {
+            this.selectedSymbolForAdd = {
+              market: this.selectedMarketTab,
+              symbol: candidate,
+              name: ''
+            }
           }
         }
       } catch (error) {
+        // Network / server error: same policy as "no results" — never blindly
+        // accept the user's typed symbol against an arbitrary market tab.
         this.symbolSearchResults = []
-        this.selectedSymbolForAdd = {
-          market: this.selectedMarketTab,
-          symbol: keyword.trim().toUpperCase(),
-          name: ''
+        const candidate = keyword.trim().toUpperCase()
+        const pairErr = this._validateWatchlistPair(this.selectedMarketTab, candidate)
+        if (pairErr) {
+          this.selectedSymbolForAdd = null
+          this.$message.warning(pairErr)
+        } else {
+          this.selectedSymbolForAdd = {
+            market: this.selectedMarketTab,
+            symbol: candidate,
+            name: ''
+          }
         }
       } finally {
         this.searchingSymbols = false
@@ -2125,9 +2279,17 @@ export default {
         return
       }
 
+      const candidate = this.symbolSearchKeyword.trim().toUpperCase()
+      const pairErr = this._validateWatchlistPair(this.selectedMarketTab, candidate)
+      if (pairErr) {
+        this.selectedSymbolForAdd = null
+        this.$message.warning(pairErr)
+        return
+      }
+
       this.selectedSymbolForAdd = {
         market: this.selectedMarketTab,
-        symbol: this.symbolSearchKeyword.trim().toUpperCase(),
+        symbol: candidate,
         name: ''
       }
     },
@@ -4400,12 +4562,20 @@ export default {
 
 /* Add Stock Modal */
 .add-stock-modal-content {
-  .market-tabs {
-    margin-bottom: 16px;
-  }
-
-  .symbol-search-section {
-    margin-bottom: 24px;
+  .market-tabs { margin-bottom: 16px; }
+  .symbol-search-section { margin-bottom: 24px; }
+  .market-mismatch-hint {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 4px;
+    color: #874d00;
+    font-size: 12px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   .search-results-section,

@@ -5,6 +5,7 @@
     :footer="null"
     :width="720"
     :body-style="{ padding: 0 }"
+    :wrap-class-name="modalWrapClass"
     @cancel="$emit('close')"
     class="indicator-detail-modal"
   >
@@ -232,12 +233,37 @@
             <a-tag v-if="detail.vip_free" color="gold" style="margin-right: 8px;">
               {{ $t('community.vipFree') }}
             </a-tag>
-            <span v-if="detail.pricing_type === 'free' || detail.price <= 0" class="free-badge">
-              {{ $t('community.free') }}
-            </span>
-            <span v-else class="price-badge">
-              {{ detail.price }} {{ $t('community.credits') }}
-            </span>
+            <!--
+              For already-purchased users we show the price the buyer actually
+              paid (your_purchase_price from the API) as the primary number,
+              and mark the current price as a secondary "current price"
+              caption underneath. This avoids the confusing case where the
+              indicator has since been re-priced and the buyer thinks they
+              were charged the wrong amount.
+            -->
+            <template v-if="showYourPurchasePrice">
+              <div class="price-line price-line--primary">
+                <span class="price-line__label">{{ $t('community.yourPurchasePrice') }}:</span>
+                <span class="price-badge price-badge--paid">
+                  {{ formatPrice(detail.your_purchase_price) }} {{ $t('community.credits') }}
+                </span>
+              </div>
+              <div
+                v-if="detail.pricing_type !== 'free' && Number(detail.price) > 0"
+                class="price-line price-line--secondary"
+              >
+                <span class="price-line__label">{{ $t('community.currentPrice') }}:</span>
+                <span class="price-current-aside">{{ detail.price }} {{ $t('community.credits') }}</span>
+              </div>
+            </template>
+            <template v-else>
+              <span v-if="detail.pricing_type === 'free' || detail.price <= 0" class="free-badge">
+                {{ $t('community.free') }}
+              </span>
+              <span v-else class="price-badge">
+                {{ detail.price }} {{ $t('community.credits') }}
+              </span>
+            </template>
           </div>
           <div class="action-buttons">
             <a-button v-if="detail.is_own" disabled>
@@ -281,6 +307,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import CommentList from './CommentList.vue'
 import request from '@/utils/request'
 
@@ -329,6 +356,28 @@ export default {
     }
   },
   computed: {
+    ...mapState({
+      navTheme: state => state.app.theme
+    }),
+    isDarkTheme () {
+      return this.navTheme === 'dark' || this.navTheme === 'realdark'
+    },
+    /** Stable wrap class for the portaled <a-modal>. Pairs with the
+     * non-scoped style block at the bottom of this file to deliver
+     * dark theme rules without relying on `body.dark` ancestor
+     * selectors (which the modal isn't a descendant of). */
+    modalWrapClass () {
+      const base = 'qd-indicator-detail-modal-wrap'
+      return this.isDarkTheme ? `${base} ${base}--dark` : base
+    },
+    /** True only when the buyer paid >0 credits — we don't want to
+     * show "your purchase price: 0" on free indicators (would look
+     * like a bug). The free badge in the price-info block already
+     * conveys "this is free". */
+    showYourPurchasePrice () {
+      return !!(this.detail && this.detail.is_purchased &&
+        Number(this.detail.your_purchase_price || 0) > 0)
+    },
     hasEquityCurve () {
       return this.performance && Array.isArray(this.performance.equity_curve) &&
         this.performance.equity_curve.length > 1
@@ -691,6 +740,13 @@ export default {
       const d = new Date(dateStr)
       return d.toLocaleDateString()
     },
+    /** Format the price the buyer paid. Integers print without decimals;
+     * fractional credits keep up to 2 dp. Mirrors index.vue's helper. */
+    formatPrice (val) {
+      const n = parseFloat(val)
+      if (isNaN(n)) return '0'
+      return Number.isInteger(n) ? String(n) : n.toFixed(2)
+    },
     formatNumber (val, digits) {
       const v = parseFloat(val)
       if (isNaN(v)) return '—'
@@ -1027,113 +1083,179 @@ export default {
   }
 }
 
-// 暗色主题
-body.dark,
-.dark,
-[data-theme='dark'] {
-  .indicator-detail-modal {
-    .ant-modal-content {
-      background: #1f1f1f;
-      color: rgba(255, 255, 255, 0.85);
+// Styles for the new "your purchase price" footer line.
+// Placed inside the scoped block because the elements live inside the
+// modal body (which Ant *does* keep within the component scope for
+// content; only the outer wrapper is portaled).
+.indicator-detail-modal {
+  .detail-footer {
+    .price-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .price-line {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+
+        &__label {
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.45);
+        }
+      }
+
+      .price-line--primary .price-badge--paid {
+        font-size: 20px;
+        font-weight: 600;
+        color: #f5222d;
+      }
+
+      .price-line--secondary .price-current-aside {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.45);
+        text-decoration: line-through;
+      }
+    }
+  }
+}
+
+</style>
+
+<!--
+  Non-scoped global style block.
+
+  Ant Modal portals its DOM out to <body>, so the scoped rules above
+  cannot reach the modal via class scoping alone (the modal wrapper
+  has no `[data-v-xxxxx]` attribute, so scoped selectors silently miss).
+  We give the modal a stable wrap class (`qd-indicator-detail-modal-wrap`)
+  and style it globally. Pairing the wrap class with the `[--dark]`
+  modifier lets us deliver the dark theme reliably without depending
+  on a `body.dark` ancestor selector (the modal isn't a descendant of
+  the dark-themed page container).
+-->
+<style lang="less">
+.qd-indicator-detail-modal-wrap--dark {
+  .ant-modal-content {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .ant-modal-close {
+    color: rgba(255, 255, 255, 0.65);
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.92);
+    }
+  }
+
+  .indicator-detail-modal .detail-body {
+    background: #1a1a1a;
+
+    .section h3 {
+      color: rgba(255, 255, 255, 0.88);
+      border-color: #303030;
     }
 
-    .ant-modal-close {
+    .description {
       color: rgba(255, 255, 255, 0.65);
+    }
 
-      &:hover {
+    .performance-grid .perf-item {
+      background: #262626;
+
+      .perf-label {
+        color: rgba(255, 255, 255, 0.55);
+        .anticon { color: rgba(255, 255, 255, 0.35); }
+        .src-tag {
+          &--bt { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+          &--live { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+        }
+      }
+
+      .perf-value {
+        color: rgba(255, 255, 255, 0.88);
+        .perf-unit { color: rgba(255, 255, 255, 0.45); }
+      }
+
+      &--score {
+        background: linear-gradient(135deg, rgba(245, 175, 25, 0.18) 0%, rgba(241, 39, 17, 0.12) 100%);
+        .perf-value { color: #ffa940; }
+      }
+    }
+
+    .applicable-row {
+      &__label { color: rgba(255, 255, 255, 0.5); }
+      &__tags {
+        .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+        .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+      }
+      &__empty { color: rgba(255, 255, 255, 0.3); }
+    }
+
+    .equity-card {
+      background: #262626;
+      border-color: #303030;
+
+      &__title { color: rgba(255, 255, 255, 0.88); }
+      &__meta {
+        .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
+        .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
+        .positive { color: #95de64; }
+        .negative { color: #ff7875; }
+      }
+      &__meta-sep { color: rgba(255, 255, 255, 0.25); }
+      &__hint { color: rgba(255, 255, 255, 0.4); }
+    }
+  }
+
+  .indicator-detail-modal .detail-footer {
+    background: #1f1f1f;
+    border-color: #303030;
+
+    .price-info {
+      .price-line__label { color: rgba(255, 255, 255, 0.45); }
+
+      .price-badge { color: #ff7875; }
+      .price-badge--paid { color: #ff7875; }
+      .free-badge { color: #95de64; }
+
+      .price-line--secondary .price-current-aside {
+        color: rgba(255, 255, 255, 0.35);
+      }
+    }
+  }
+
+  .indicator-detail-modal .action-buttons {
+    .ant-btn:not(.ant-btn-primary) {
+      background: #262626;
+      border-color: #434343;
+      color: rgba(255, 255, 255, 0.72);
+
+      &:hover,
+      &:focus {
+        background: #2f2f2f;
+        border-color: #5a5a5a;
         color: rgba(255, 255, 255, 0.92);
       }
     }
 
-    .detail-body {
-      background: #1a1a1a;
-
-      .section h3 {
-        color: rgba(255, 255, 255, 0.88);
-        border-color: #303030;
-      }
-
-      .description {
-        color: rgba(255, 255, 255, 0.65);
-      }
-
-      .performance-grid .perf-item {
-        background: #262626;
-
-        .perf-label {
-          color: rgba(255, 255, 255, 0.55);
-          .anticon { color: rgba(255, 255, 255, 0.35); }
-          .src-tag {
-            &--bt { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
-            &--live { background: rgba(82, 196, 26, 0.16); color: #95de64; }
-          }
-        }
-
-        .perf-value {
-          color: rgba(255, 255, 255, 0.88);
-          .perf-unit { color: rgba(255, 255, 255, 0.45); }
-        }
-
-        &--score {
-          background: linear-gradient(135deg, rgba(245, 175, 25, 0.18) 0%, rgba(241, 39, 17, 0.12) 100%);
-          .perf-value { color: #ffa940; }
-        }
-      }
-
-      .applicable-row {
-        &__label { color: rgba(255, 255, 255, 0.5); }
-        &__tags {
-          .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
-          .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
-        }
-        &__empty { color: rgba(255, 255, 255, 0.3); }
-      }
-
-      .equity-card {
-        background: #262626;
-        border-color: #303030;
-
-        &__title { color: rgba(255, 255, 255, 0.88); }
-        &__meta {
-          .tag-symbol { background: rgba(24, 144, 255, 0.16); color: #69c0ff; }
-          .tag-tf { background: rgba(82, 196, 26, 0.16); color: #95de64; }
-          .positive { color: #95de64; }
-          .negative { color: #ff7875; }
-        }
-        &__meta-sep { color: rgba(255, 255, 255, 0.25); }
-        &__hint { color: rgba(255, 255, 255, 0.4); }
-      }
+    .update-tag {
+      background: rgba(250, 140, 22, 0.15);
+      border-color: rgba(250, 140, 22, 0.4);
+      color: #fa8c16;
     }
+  }
 
-    .detail-footer {
-      background: #1f1f1f;
-      border-color: #303030;
-    }
-
-    .action-buttons {
-      .ant-btn:not(.ant-btn-primary) {
-        background: #262626;
-        border-color: #434343;
-        color: rgba(255, 255, 255, 0.72);
-
-        &:hover,
-        &:focus {
-          background: #2f2f2f;
-          border-color: #5a5a5a;
-          color: rgba(255, 255, 255, 0.92);
-        }
-      }
-
-      .update-tag {
-        background: rgba(250, 140, 22, 0.15);
-        border-color: rgba(250, 140, 22, 0.4);
-        color: #fa8c16;
-      }
-    }
-
-    /deep/ .ant-statistic {
+  .indicator-detail-modal {
+    .ant-statistic {
       .ant-statistic-content {
         color: rgba(255, 255, 255, 0.88);
+      }
+
+      .ant-statistic-title {
+        color: rgba(255, 255, 255, 0.6);
       }
     }
 
@@ -1149,6 +1271,28 @@ body.dark,
       color: rgba(255, 255, 255, 0.92);
     }
   }
-}
 
+  // Comments block in the modal: inherit dark colors.
+  .comment-list {
+    color: rgba(255, 255, 255, 0.85);
+
+    .comment-item {
+      border-color: #303030;
+
+      .comment-content { color: rgba(255, 255, 255, 0.72); }
+      .comment-meta,
+      .comment-time { color: rgba(255, 255, 255, 0.45); }
+    }
+
+    .ant-input,
+    .ant-input:hover,
+    .ant-input:focus {
+      background: #262626;
+      border-color: #434343;
+      color: rgba(255, 255, 255, 0.85);
+
+      &::placeholder { color: rgba(255, 255, 255, 0.35); }
+    }
+  }
+}
 </style>

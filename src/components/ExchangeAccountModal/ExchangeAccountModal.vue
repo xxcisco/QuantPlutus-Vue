@@ -26,6 +26,11 @@
               {{ ex.name }}
             </a-select-option>
           </a-select-opt-group>
+          <a-select-opt-group :label="$t('profile.exchange.typeAlpaca')">
+            <a-select-option value="alpaca">
+              Alpaca (US Stock + Crypto)
+            </a-select-option>
+          </a-select-opt-group>
           <a-select-opt-group :label="$t('profile.exchange.typeIBKR')">
             <a-select-option value="ibkr">
               Interactive Brokers (IBKR)
@@ -114,6 +119,40 @@
             placeholder="Passphrase"
             autocomplete="new-password"
           />
+        </a-form-item>
+      </template>
+
+      <template v-if="addExchangeType === 'alpaca'">
+        <a-alert
+          type="info"
+          showIcon
+          style="margin-bottom: 16px"
+          :message="$t('profile.exchange.alpacaNoLocalTitle')"
+          :description="$t('profile.exchange.alpacaNoLocalHint')"
+        />
+        <a-form-item :label="$t('profile.exchange.apiKey')">
+          <a-input-password
+            v-decorator="['api_key', { rules: [{ required: true, message: 'API Key is required' }] }]"
+            :placeholder="$t('profile.exchange.alpacaApiKeyPh')"
+            autocomplete="new-password"
+          />
+        </a-form-item>
+        <a-form-item :label="$t('profile.exchange.secretKey')">
+          <a-input-password
+            v-decorator="['secret_key', { rules: [{ required: true, message: 'Secret Key is required' }] }]"
+            :placeholder="$t('profile.exchange.alpacaSecretKeyPh')"
+            autocomplete="new-password"
+          />
+        </a-form-item>
+        <a-form-item :label="$t('profile.exchange.alpacaBaseUrlOptional')">
+          <a-input
+            v-decorator="['base_url']"
+            placeholder="https://api.alpaca.markets"
+          />
+          <div class="field-hint">
+            <a-icon type="info-circle" />
+            <span>{{ $t('profile.exchange.alpacaBaseUrlHint') }}</span>
+          </div>
         </a-form-item>
       </template>
 
@@ -306,7 +345,8 @@ export default {
         deepcoin: 'Deepcoin',
         htx: 'HTX',
         ibkr: 'IBKR',
-        mt5: 'MetaTrader 5'
+        mt5: 'MetaTrader 5',
+        alpaca: 'Alpaca'
       }
       return names[id] || id
     },
@@ -315,6 +355,8 @@ export default {
       if (this.addExchangeType === 'crypto') {
         f.push('api_key', 'secret_key')
         if (this.addExchangeNeedsPassphrase) f.push('passphrase')
+      } else if (this.addExchangeType === 'alpaca') {
+        f.push('api_key', 'secret_key', 'base_url')
       } else if (this.addExchangeType === 'ibkr') {
         f.push('ibkr_host', 'ibkr_port', 'ibkr_client_id')
       } else if (this.addExchangeType === 'mt5') {
@@ -328,6 +370,9 @@ export default {
         if (this.addExchangeNeedsPassphrase) f.push('passphrase')
         return f
       }
+      if (this.addExchangeType === 'alpaca') {
+        return ['exchange_id', 'api_key', 'secret_key', 'base_url']
+      }
       if (this.addExchangeType === 'ibkr') {
         return ['exchange_id', 'ibkr_host', 'ibkr_port', 'ibkr_client_id']
       }
@@ -340,6 +385,9 @@ export default {
       const p = { ...values }
       if (p.exchange_id === 'mt5' && p.mt5_login != null && p.mt5_login !== '') {
         p.mt5_login = String(p.mt5_login)
+      }
+      if (p.exchange_id === 'alpaca') {
+        if (typeof p.base_url === 'string') p.base_url = p.base_url.trim()
       }
       return p
     },
@@ -401,6 +449,8 @@ export default {
       const cryptoIds = this.cryptoExchangeList.map(e => e.id)
       if (cryptoIds.includes(val)) {
         this.addExchangeType = 'crypto'
+      } else if (val === 'alpaca') {
+        this.addExchangeType = 'alpaca'
       } else if (val === 'ibkr') {
         this.addExchangeType = 'ibkr'
       } else if (val === 'mt5') {

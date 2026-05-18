@@ -1,32 +1,46 @@
-# QuantDinger Frontend Dockerfile
-# Stage 1: Build
-FROM node:22-alpine as builder
+# QuantDinger Frontend — multi-arch image published to GHCR.
+#
+# Stage 1 (builder) is pinned to --platform=$BUILDPLATFORM so the Vue build
+# runs once natively on the host (typically linux/amd64 on GitHub Actions),
+# NOT twice with the arm64 manifest entry forced through QEMU emulation
+# (~5–10× slower). The build output (/app/dist) is pure static JS/CSS,
+# byte-identical across architectures; the nginx stage just COPYs those
+# files into each target arch's base image.
+#
+# Stage 2 (nginx) runs once per --platform target listed by buildx, but
+# does no compilation — only file copies and a small apk add — so the
+# arm64 manifest entry is cheap.
 
+ARG NODE_IMAGE=node:18-alpine
+ARG NGINX_IMAGE=nginx:1.25-alpine
+
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# git is needed by git-revision-webpack-plugin at build time.
+# corepack ships with Node 16.13+; `enable` installs the pnpm shim. The
+# concrete pnpm version is pinned by `packageManager` in package.json,
+# which corepack auto-downloads on first use.
+RUN apk add --no-cache git && corepack enable
 
-# Install dependencies (prefer npm)
-RUN npm install --legacy-peer-deps
+# Copy lockfile + manifest first so the install layer caches.
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY . .
+RUN pnpm build
 
-# Build production version
-RUN npm run build
+FROM ${NGINX_IMAGE}
 
-# Stage 2: Production image (using nginx)
-# Use specific version to avoid mirror registry issues
-FROM nginx:1.25-alpine
+RUN apk add --no-cache curl
 
-# Copy build artifacts
+# Pin the envsubst filter so only ${BACKEND_URL} is substituted — otherwise
+# nginx's own $-variables ($host, $remote_addr, ...) would also be clobbered.
+ENV NGINX_ENVSUBST_FILTER=BACKEND_URL \
+    BACKEND_URL=http://backend:5000
+
+COPY deploy/nginx-docker.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY deploy/nginx-docker.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

@@ -5,7 +5,7 @@
 <h1 align="center">QuantDinger Frontend</h1>
 
 <p align="center">
-  <strong>Vue.js frontend source for QuantDinger v3.0.1</strong><br/>
+  <strong>Vue.js frontend source for QuantDinger</strong><br/>
   <strong>AI-native quant research, strategy, trading, and operations workspace</strong>
 </p>
 
@@ -77,38 +77,48 @@ If you are looking for one-click deployment, Docker Compose, backend APIs, or th
 - Indicator community and marketplace-oriented interfaces
 - Responsive layout, theme switching, and multilingual support
 
-## v3.0.1 Positioning
-
-For `v3.0.1`, this frontend README is aligned with the current product scope and the main repository documentation:
-
-- product messaging is now consistent with the actual QuantDinger deployment model
-- frontend capabilities are described as part of a full-stack trading product, not an isolated demo UI
-- documentation now matches the recent strategy backtesting productization and the latest public version label
-
 ## Development Setup
 
 ### Prerequisites
 
 | Requirement | Version |
 |-------------|---------|
-| Node.js | 22+ recommended |
-| npm | 10+ |
-| Backend | QuantDinger backend available at `http://localhost:5000` |
+| Node.js | **18 LTS** recommended (16.13+ minimum for [corepack](https://nodejs.org/api/corepack.html)) |
+| pnpm | **10.x** — version pinned in `package.json` (`packageManager`); installed via `corepack enable` |
+| Git | Required — production builds embed commit metadata via `git-revision-webpack-plugin` |
+| Backend | QuantDinger API reachable at `http://localhost:5000` (see below) |
+
+Use **`pnpm install`** with the committed **`pnpm-lock.yaml`**. Do not commit `package-lock.json`; npm installs can resolve a different dependency tree than CI/Docker.
 
 ### Install and Run
+
+Clone with Git (a plain source ZIP without `.git` may break `pnpm build`):
 
 ```bash
 git clone https://github.com/brokermr810/QuantDinger-Vue.git
 cd QuantDinger-Vue
-npm install
-npm run serve
+corepack enable
+pnpm install
+pnpm run serve
 ```
 
-The development server runs at:
+If you work from a copy inside the main QuantDinger tree (e.g. `QuantDinger-Vue-src/`), run the same commands in that directory instead.
 
-- `http://localhost:8000`
+### Start the backend first
 
-Default login is determined by the backend configuration. In the default Docker experience it is commonly:
+Before `pnpm run serve`, ensure the backend answers on port **5000**. Common options:
+
+- [QuantDinger main repository](https://github.com/brokermr810/QuantDinger): `docker compose up -d` (full stack) or backend-related services only
+- Local Python API per `backend_api_python/README.md` in the main repo
+
+### Where to open the UI
+
+| Mode | URL |
+|------|-----|
+| `pnpm run serve` (this source tree) | `http://localhost:8000` |
+| Main repo Docker stack (prebuilt `frontend/dist`) | `http://localhost:8888` |
+
+Default login follows backend configuration. In the default Docker experience it is commonly:
 
 ```text
 quantdinger / 123456
@@ -143,12 +153,43 @@ Use this repository directly when you want to:
 ## Production Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 Build output is generated in `dist/`. You can serve it with Nginx or another static file server.
 
-For a production-ready integrated deployment, prefer the delivery model from the main repository, which already provides frontend serving and API proxying.
+### Ship into the main QuantDinger repository
+
+When developing next to the backend checkout, sync `dist/` into the main repo’s prebuilt path and restart or rebuild the frontend container:
+
+```bash
+# Bash — run from QuantDinger-Vue-src/ (or QuantDinger-Vue/)
+pnpm run build
+rm -rf ../frontend/dist/*
+cp -r dist/* ../frontend/dist/
+```
+
+```powershell
+# PowerShell
+pnpm run build
+Remove-Item ..\frontend\dist\* -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item -Path dist\* -Destination ..\frontend\dist\ -Recurse -Force
+```
+
+For a production-ready integrated deployment without manual copies, prefer the main repository’s Docker Compose stack or a published GHCR image (below).
+
+## Docker image
+
+This tree includes a multi-stage `Dockerfile` (Node builder + nginx) aligned with CI:
+
+```bash
+docker build -t quantdinger-frontend:local .
+docker run --rm -p 8080:80 -e BACKEND_URL=http://host.docker.internal:5000 quantdinger-frontend:local
+```
+
+- **`BACKEND_URL`** — upstream API base used by nginx (`/api/` proxy). Default in the image: `http://backend:5000` (Docker Compose service name).
+- Official multi-arch images: `ghcr.io/brokermr810/quantdinger-frontend:<tag>` (see [QuantDinger `docker-compose.ghcr.yml`](https://github.com/brokermr810/QuantDinger/blob/main/docker-compose.ghcr.yml)).
+- Tagged releases on [QuantDinger-Vue](https://github.com/brokermr810/QuantDinger-Vue/releases) may attach **`dist.tar.gz`** for static hosting without Docker.
 
 ## Functional Areas
 
@@ -185,6 +226,7 @@ For a production-ready integrated deployment, prefer the delivery model from the
 ```text
 QuantDinger-Vue/
 ├── public/                    # Static assets and HTML shell
+├── deploy/                    # nginx templates for Docker / production proxy
 ├── src/
 │   ├── api/                   # API request modules
 │   ├── assets/                # Images, icons, styles
@@ -197,9 +239,10 @@ QuantDinger-Vue/
 │   ├── store/                 # Vuex state management
 │   ├── utils/                 # Helpers, request interceptors, crypto utils
 │   └── views/                 # Page-level modules
-├── vue.config.js              # Vue CLI / webpack config and proxy
+├── vue.config.js              # Vue CLI / webpack config and dev proxy
 ├── babel.config.js
 ├── package.json
+├── pnpm-lock.yaml             # Lockfile — keep in sync with package.json
 ├── Dockerfile
 └── LICENSE
 ```
@@ -214,7 +257,7 @@ QuantDinger-Vue/
 | Editor | CodeMirror 5 |
 | Networking | Axios with interceptors |
 | i18n | vue-i18n |
-| Build | Vue CLI, Webpack 4 |
+| Build | Vue CLI 5, Webpack 5, pnpm |
 | Styling | Less and scoped CSS |
 
 ## Internationalization

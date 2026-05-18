@@ -42,14 +42,19 @@
 
           <a-form-model-item :label="$t('trading-bot.wizard.marketCategory')" prop="marketCategory">
             <a-radio-group v-model="baseForm.marketCategory" @change="handleMarketCategoryChange">
-              <a-radio-button
+              <a-tooltip
                 v-for="opt in marketCategoryOptions"
                 :key="opt.value"
-                :value="opt.value"
-                :disabled="!opt.supported"
+                :title="opt.supported ? '' : opt.disabledReason"
+                placement="top"
               >
-                {{ opt.label }}
-              </a-radio-button>
+                <a-radio-button
+                  :value="opt.value"
+                  :disabled="!opt.supported"
+                >
+                  {{ opt.label }}
+                </a-radio-button>
+              </a-tooltip>
             </a-radio-group>
             <div class="form-hint" style="margin-top: 6px;">
               <a-icon type="info-circle" /> {{ $t('trading-bot.wizard.marketCategoryHint') }}
@@ -558,11 +563,42 @@ export default {
         USStock: this.$t('trading-bot.wizard.marketUSStock'),
         Forex: this.$t('trading-bot.wizard.marketForex')
       }
-      return live.map(value => ({
-        value,
-        label: labelMap[value] || value,
-        supported: this.supportedMarketsForBot.has(value)
-      }))
+      // Bot types that *do* support each market — used to suggest a fix in
+      // the disabled-tooltip ("change to DCA / Trend if you want US stocks").
+      const matrix = this.botTypeMarkets || {}
+      const altBotsByMarket = {}
+      Object.keys(matrix).forEach(bt => {
+        ;(matrix[bt] || []).forEach(m => {
+          if (!altBotsByMarket[m]) altBotsByMarket[m] = []
+          if (bt !== this.botType) altBotsByMarket[m].push(bt)
+        })
+      })
+      const labelBot = (bt) => {
+        const k = `trading-bot.wizard.botType.${bt}`
+        const tx = this.$t(k)
+        return tx === k ? bt : tx
+      }
+      return live.map(value => {
+        const supported = this.supportedMarketsForBot.has(value)
+        let disabledReason = ''
+        if (!supported) {
+          const alts = (altBotsByMarket[value] || []).map(labelBot).join(' / ')
+          disabledReason = alts
+            ? this.$t('trading-bot.wizard.marketDisabledForBot', {
+                market: labelMap[value] || value,
+                alts
+              })
+            : this.$t('trading-bot.wizard.botTypeNotSupportedOnMarket', {
+                market: labelMap[value] || value
+              })
+        }
+        return {
+          value,
+          label: labelMap[value] || value,
+          supported,
+          disabledReason
+        }
+      })
     },
     currentMarketLabel () {
       const opt = this.marketCategoryOptions.find(o => o.value === this.baseForm.marketCategory)
@@ -895,8 +931,14 @@ export default {
         }
         return map[value] || value
       }
-      if (key === 'dipBuyEnabled' || key === 'trailingTpEnabled') {
+      if (key === 'dipBuyEnabled' || key === 'trailingTpEnabled' || key === 'adaptiveBounds' || key === 'waterfallProtection') {
         return value ? this.fallbackLabel('开启', 'Enabled') : this.fallbackLabel('关闭', 'Disabled')
+      }
+      if (key === 'waterfallDropPct') {
+        const pct = Number(value)
+        if (!Number.isFinite(pct)) return value
+        const display = pct <= 1 ? pct * 100 : pct
+        return `${display}%`
       }
       if (['priceDropPct', 'takeProfitPct', 'stopLossPct', 'dipThreshold', 'positionPct',
            'trailingTpActivationPct', 'trailingTpCallbackPct'].includes(key)) {

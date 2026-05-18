@@ -44,6 +44,14 @@
               <a-tag :color="deviationVerdictColor" class="deviation-verdict-tag">{{ deviationVerdictLabel }}</a-tag>
             </a-tooltip>
           </div>
+          <!-- For ≥ 1h timeframes the metrics mostly capture intra-bar drift,
+               not real execution latency / slippage. Without this banner the
+               numbers (e.g. 3h latency on a 4h strategy) look alarming when
+               they're actually structural. -->
+          <div v-if="deviationLongTimeframeNote" class="deviation-tf-note">
+            <a-icon type="info-circle" theme="filled" style="color: #1890ff; margin-right: 6px;" />
+            <span>{{ deviationLongTimeframeNote }}</span>
+          </div>
           <a-spin :spinning="deviationLoading">
             <div v-if="deviationReport && deviationReport.summary && deviationReport.summary.sampleSize > 0">
               <div class="deviation-summary-grid">
@@ -212,6 +220,17 @@ export default {
       if (level === 'warn') return 'orange'
       if (level === 'bad') return 'red'
       return 'default'
+    },
+    // For ≥ 1h strategies the "slippage" / "latency" cells mix in the time
+    // spent waiting inside the current K-line (the report compares against
+    // the *previous* bar's close). Surface that caveat inline so users don't
+    // misread a structural 3h "latency" on a 4h strategy as a broken broker.
+    deviationLongTimeframeNote () {
+      const tf = this.deviationReport && this.deviationReport.tfSeconds
+      if (!tf) return ''
+      if (tf < 3600) return ''
+      const tfLabel = (this.deviationReport && this.deviationReport.timeframe) || ''
+      return `当前周期 ${tfLabel || '≥ 1h'}：延迟主要反映"上根 K 线收盘 → 实际成交"的等待时间（受策略 evaluate 间隔影响），滑点包含 K 线周期内的市场漂移，并非订单执行延迟/损失。verdict 阈值已自动按周期放宽。 / On ≥ 1h timeframes these numbers mostly reflect intra-bar drift and strategy evaluate cadence, not actual execution latency or fill slippage. Verdict thresholds are auto-relaxed for longer bars.`
     }
   },
   watch: {
@@ -261,12 +280,21 @@ export default {
       if (v < 3600) return `${(v / 60).toFixed(1)} min`
       return `${(v / 3600).toFixed(1)} h`
     },
+    // Cell colouring follows the same thresholds the backend uses for the
+    // overall verdict (returned in deviation.verdict.thresholds), so a green
+    // verdict never sits next to red cells. Falls back to the original
+    // short-timeframe defaults when the report doesn't carry thresholds —
+    // matches the pre-A-stage behaviour for old cached responses.
     deviationSlippageClass (value) {
       if (value == null || isNaN(value)) return ''
       const v = Number(value)
-      if (v >= 30) return 'deviation-value--bad'
-      if (v >= 10) return 'deviation-value--warn'
-      if (v <= -10) return 'deviation-value--good'
+      const verdict = this.deviationReport && this.deviationReport.verdict
+      const th = (verdict && verdict.thresholds) || {}
+      const badAvg = Number(th.warn_avg || 30)
+      const warnAvg = Number(th.good_avg || 10)
+      if (v >= badAvg) return 'deviation-value--bad'
+      if (v >= warnAvg) return 'deviation-value--warn'
+      if (v <= -warnAvg) return 'deviation-value--good'
       return ''
     },
     async loadDeviationReport () {
@@ -388,7 +416,12 @@ export default {
         if (t.profit === null || t.profit === undefined || t.profit === '') return false
         return true
       })
-      const profits = settled.map(t => parseFloat(t.profit)).filter(n => !isNaN(n))
+      const profits = settled.map(t => {
+        const p = parseFloat(t.profit)
+        if (isNaN(p)) return NaN
+        const c = parseFloat(t.commission)
+        return p - (isNaN(c) ? 0 : c)
+      }).filter(n => !isNaN(n))
       const wins = profits.filter(p => p > 0).length
       const losses = profits.filter(p => p < 0).length
       const decided = wins + losses
@@ -775,6 +808,12 @@ export default {
       color: rgba(255, 255, 255, 0.45);
     }
   }
+
+  .deviation-tf-note {
+    background: rgba(24, 144, 255, 0.12);
+    border-color: rgba(24, 144, 255, 0.35);
+    color: rgba(255, 255, 255, 0.78);
+  }
 }
 
 .deviation-card {
@@ -783,6 +822,18 @@ export default {
 .deviation-verdict-tag {
   margin-left: auto;
   font-weight: 500;
+}
+.deviation-tf-note {
+  margin: 8px 4px 0;
+  padding: 8px 12px;
+  background: rgba(24, 144, 255, 0.08);
+  border: 1px solid rgba(24, 144, 255, 0.25);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #1d3957;
+  display: flex;
+  align-items: flex-start;
 }
 .deviation-summary-grid {
   display: grid;

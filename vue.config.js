@@ -1,9 +1,9 @@
 const path = require('path')
-// Vue CLI v5 ships with webpack v5 nested under @vue/cli-service.
-// If the project root also has a different webpack version installed/hoisted,
-// requiring "webpack" here may pull in the wrong major version and break hooks.
-// Always bind to Vue CLI's webpack to keep plugin APIs consistent.
-const webpack = require('@vue/cli-service/node_modules/webpack')
+// Single webpack 5 across the dependency tree is enforced via the
+// `overrides.webpack` field in package.json, so a plain `require('webpack')`
+// is now safe — under pnpm there is no nested copy at
+// `@vue/cli-service/node_modules/webpack` to pin to anyway.
+const webpack = require('webpack')
 const packageJson = require('./package.json')
 const GitRevisionPlugin = require('git-revision-webpack-plugin')
 const GitRevision = new GitRevisionPlugin()
@@ -49,8 +49,8 @@ const vueConfig = {
     plugins: [
       // Ignore all locale files of moment.js
       new webpack.IgnorePlugin({
-        contextRegExp: /^\.\/locale$/,
-        resourceRegExp: /moment$/
+        resourceRegExp: /^\.\/locale$/,
+        contextRegExp: /moment$/
       }),
       new webpack.DefinePlugin({
         APP_VERSION: `"${packageJson.version}"`,

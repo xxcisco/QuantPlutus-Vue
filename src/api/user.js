@@ -281,6 +281,21 @@ export function getAdminOrders (params) {
 }
 
 /**
+ * Admin-only: manually mark a USDT order as confirmed and grant the
+ * membership when the on-chain reconciler missed the transaction.
+ *
+ * @param {Number} orderId
+ * @param {Object} payload - { tx_hash: string, note?: string }
+ */
+export function manualConfirmOrder (orderId, payload) {
+  return request({
+    url: `/api/users/admin-orders/${orderId}/manual-confirm`,
+    method: 'post',
+    data: payload
+  })
+}
+
+/**
  * Get AI analysis usage statistics (admin only)
  * @param {Object} params - { page, page_size, search }
  */

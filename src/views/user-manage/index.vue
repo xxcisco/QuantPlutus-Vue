@@ -627,8 +627,83 @@
               <span v-if="text">{{ formatTime(text) }}</span>
               <span v-else class="text-muted">-</span>
             </template>
+
+            <!-- Actions Column: admin "manual confirm" rescue button.
+                 Only surfaces for status in {pending, paid, expired} —
+                 cancelled is intentionally hidden (we don't want to
+                 silently revive a refund) and confirmed shows a passive
+                 "amend note" link that re-uses the same modal. -->
+            <template slot="orderActions" slot-scope="text, record">
+              <template v-if="canManualConfirm(record.status)">
+                <a-button type="link" size="small" class="manual-confirm-btn" @click="openManualConfirm(record)">
+                  <a-icon type="thunderbolt" />
+                  {{ $t('adminOrders.manualConfirm') || 'Manual confirm' }}
+                </a-button>
+              </template>
+              <template v-else-if="record.status === 'confirmed' && record.matched_via === 'manual_admin'">
+                <a-tooltip :title="record.admin_note || ($t('adminOrders.manualConfirmedNoNote') || 'Manually confirmed by an admin')">
+                  <a-tag color="purple" class="manual-tag">
+                    <a-icon type="user" /> {{ $t('adminOrders.manualConfirmed') || 'Manual' }}
+                  </a-tag>
+                </a-tooltip>
+              </template>
+              <span v-else class="text-muted">-</span>
+            </template>
           </a-table>
         </a-card>
+
+        <!-- Manual-confirm modal (admin "rescue" tool when the on-chain
+             reconciler missed a real payment). Two-step UX: paste tx
+             hash + optional note, then a confirmation gate before we
+             grant the membership. -->
+        <a-modal
+          v-model="manualConfirmModal.visible"
+          :title="$t('adminOrders.manualConfirmTitle') || 'Manual confirm USDT order'"
+          :ok-text="$t('adminOrders.manualConfirmOk') || 'Confirm & grant'"
+          :cancel-text="$t('common.cancel') || 'Cancel'"
+          :ok-button-props="{ props: { type: 'primary', loading: manualConfirmModal.submitting, disabled: !manualConfirmModal.txHash.trim() } }"
+          :mask-closable="!manualConfirmModal.submitting"
+          :closable="!manualConfirmModal.submitting"
+          width="540px"
+          @ok="submitManualConfirm"
+          @cancel="closeManualConfirm"
+        >
+          <a-alert
+            type="warning"
+            show-icon
+            :message="$t('adminOrders.manualConfirmWarnTitle') || 'You are about to grant a membership.'"
+            :description="$t('adminOrders.manualConfirmWarnDesc') || 'The on-chain reconciler will be bypassed. Only use this when you have independently verified that the buyer paid the correct amount to the receiving address on the chain shown below.'"
+            style="margin-bottom: 14px;"
+          />
+
+          <div v-if="manualConfirmModal.record" class="mc-summary">
+            <div class="mc-row"><span class="mc-label">{{ $t('adminOrders.colUser') || 'User' }}:</span><span>{{ manualConfirmModal.record.username || '-' }} <span class="text-muted">({{ manualConfirmModal.record.user_email || '-' }})</span></span></div>
+            <div class="mc-row"><span class="mc-label">{{ $t('adminOrders.colPlan') || 'Plan' }}:</span><a-tag :color="manualConfirmModal.record.plan === 'lifetime' ? 'gold' : manualConfirmModal.record.plan === 'yearly' ? 'purple' : 'cyan'">{{ manualConfirmModal.record.plan }}</a-tag></div>
+            <div class="mc-row"><span class="mc-label">{{ $t('adminOrders.colAmount') || 'Amount' }}:</span><span class="mc-amount">{{ manualConfirmModal.record.amount }} USDT</span></div>
+            <div class="mc-row"><span class="mc-label">{{ $t('adminOrders.colChain') || 'Chain' }}:</span><a-tag color="green">{{ manualConfirmModal.record.chain }}</a-tag></div>
+            <div class="mc-row mc-row-mono"><span class="mc-label">{{ $t('adminOrders.colAddress') || 'Address' }}:</span><span class="mc-mono">{{ manualConfirmModal.record.address }}</span></div>
+            <div class="mc-row"><span class="mc-label">{{ $t('adminOrders.colStatus') || 'Status' }}:</span><a-tag :color="getOrderStatusColor(manualConfirmModal.record.status)">{{ getOrderStatusLabel(manualConfirmModal.record.status) }}</a-tag></div>
+          </div>
+
+          <a-form layout="vertical" style="margin-top: 14px;">
+            <a-form-item :label="$t('adminOrders.txHashLabel') || 'On-chain tx hash'" :required="true">
+              <a-input
+                v-model="manualConfirmModal.txHash"
+                :placeholder="$t('adminOrders.txHashPlaceholder') || 'Paste the on-chain transaction signature / hash'"
+                :max-length="120"
+                allow-clear
+              />
+            </a-form-item>
+            <a-form-item :label="$t('adminOrders.adminNoteLabel') || 'Note (optional, kept in audit log)'">
+              <a-textarea
+                v-model="manualConfirmModal.note"
+                :placeholder="$t('adminOrders.adminNotePlaceholder') || 'e.g. user confirmed in support ticket #1234, reconciler missed it'"
+                :max-length="1000"
+                :rows="3"
+              />
+            </a-form-item>
+          </a-form>
+        </a-modal>
       </a-tab-pane>
 
       <!-- Tab 4: AI Analysis Records -->
@@ -983,7 +1058,7 @@
 </template>
 
 <script>
-import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUserPassword, getRoles, setUserCredits, setUserVip, getSystemStrategies, getAdminOrders, getAdminAiStats, getUserAdminStats } from '@/api/user'
+import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUserPassword, getRoles, setUserCredits, setUserVip, getSystemStrategies, getAdminOrders, manualConfirmOrder, getAdminAiStats, getUserAdminStats } from '@/api/user'
 import { baseMixin } from '@/store/app-mixin'
 import { mapGetters } from 'vuex'
 import * as echarts from 'echarts'
@@ -1063,6 +1138,16 @@ export default {
         total: 0
       },
       ordersLoaded: false,
+      // Admin manual-confirm modal (rescue tool when on-chain reconciler
+      // missed a payment). `record` holds the row currently being
+      // confirmed so the modal body can show plan/amount/chain context.
+      manualConfirmModal: {
+        visible: false,
+        submitting: false,
+        record: null,
+        txHash: '',
+        note: ''
+      },
       // AI Analysis Stats
       aiStatsLoading: false,
       aiUserStats: [],
@@ -1402,6 +1487,13 @@ export default {
           dataIndex: 'created_at',
           width: 150,
           scopedSlots: { customRender: 'orderCreatedAt' }
+        },
+        {
+          title: this.$t('adminOrders.colActions') || 'Actions',
+          key: 'actions',
+          width: 140,
+          fixed: 'right',
+          scopedSlots: { customRender: 'orderActions' }
         }
       ]
     },
@@ -2207,6 +2299,79 @@ export default {
       this.orderPagination.current = pagination.current
       this.orderPagination.pageSize = pagination.pageSize
       this.loadOrders()
+    },
+
+    // --- Manual confirm (admin rescue tool) --------------------------
+    //
+    // Only orders that the on-chain reconciler may have legitimately
+    // missed are eligible: pending (never matched), paid (matched but
+    // confirmation delay glitch), expired (TTL ran out before the
+    // watcher caught up). Cancelled is intentionally excluded so a
+    // refunded order doesn't get accidentally revived.
+    canManualConfirm (status) {
+      return ['pending', 'paid', 'expired'].indexOf(String(status || '').toLowerCase()) >= 0
+    },
+
+    openManualConfirm (record) {
+      this.manualConfirmModal = {
+        visible: true,
+        submitting: false,
+        record,
+        txHash: '',
+        note: ''
+      }
+    },
+
+    closeManualConfirm () {
+      if (this.manualConfirmModal.submitting) return
+      this.manualConfirmModal.visible = false
+      this.manualConfirmModal.record = null
+      this.manualConfirmModal.txHash = ''
+      this.manualConfirmModal.note = ''
+    },
+
+    async submitManualConfirm () {
+      const m = this.manualConfirmModal
+      const order = m.record
+      if (!order) return
+      const tx = (m.txHash || '').trim()
+      if (!tx) {
+        this.$message.warning(this.$t('adminOrders.txHashRequired') || 'Tx hash is required')
+        return
+      }
+      // Hard confirm gate — the modal already warns, but granting a
+      // membership without the on-chain reconciler is irreversible
+      // (the user's VIP dates / bonus credits get rolled), so one
+      // more explicit click prevents fat-finger mistakes.
+      this.$confirm({
+        title: this.$t('adminOrders.manualConfirmFinalTitle') || 'Activate membership now?',
+        content: this.$t('adminOrders.manualConfirmFinalDesc') || 'The user will be granted the membership immediately. This cannot be undone via the UI.',
+        okText: this.$t('adminOrders.manualConfirmOk') || 'Confirm & grant',
+        cancelText: this.$t('common.cancel') || 'Cancel',
+        okType: 'danger',
+        onOk: async () => {
+          m.submitting = true
+          try {
+            const res = await manualConfirmOrder(order.id, { tx_hash: tx, note: m.note || '' })
+            if (res && res.code === 1) {
+              this.$message.success(this.$t('adminOrders.manualConfirmSuccess') || 'Order confirmed and membership granted')
+              this.manualConfirmModal.visible = false
+              this.manualConfirmModal.record = null
+              this.manualConfirmModal.txHash = ''
+              this.manualConfirmModal.note = ''
+              this.loadOrders()
+            } else {
+              const msg = (res && res.msg) || (this.$t('adminOrders.manualConfirmFailed') || 'Failed to confirm order')
+              this.$message.error(msg)
+            }
+          } catch (e) {
+            const apiMsg = e && e.response && e.response.data && e.response.data.msg
+            this.$message.error(apiMsg || (this.$t('adminOrders.manualConfirmFailed') || 'Failed to confirm order'))
+          } finally {
+            m.submitting = false
+          }
+        }
+      })
     },
 
     getOrderStatusColor (status) {
@@ -3112,6 +3277,54 @@ export default {
       display: none;
     }
   }
+}
+
+/* ---- Manual confirm (admin rescue) -------------------------------- */
+.manual-confirm-btn {
+  padding: 0 4px;
+  color: #d4380d;
+  &:hover { color: #fa541c; }
+}
+
+.manual-tag {
+  font-weight: 500;
+  cursor: help;
+}
+
+/* Summary block inside the manual-confirm modal. */
+.mc-summary {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 13px;
+
+  .mc-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.9;
+    word-break: break-all;
+
+    &.mc-row-mono { align-items: flex-start; }
+  }
+
+  .mc-label {
+    color: rgba(0, 0, 0, 0.55);
+    min-width: 64px;
+    flex-shrink: 0;
+  }
+
+  .mc-amount { font-weight: 700; color: #d4380d; }
+  .mc-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 12px; color: rgba(0, 0, 0, 0.78); }
+}
+
+.theme-dark .mc-summary {
+  background: #141414;
+  border-color: #303030;
+  .mc-label { color: rgba(255, 255, 255, 0.55); }
+  .mc-amount { color: #ff7875; }
+  .mc-mono { color: rgba(255, 255, 255, 0.78); }
 }
 </style>
 

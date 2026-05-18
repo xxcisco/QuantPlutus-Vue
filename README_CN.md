@@ -5,7 +5,7 @@
 <h1 align="center">QuantDinger Frontend</h1>
 
 <p align="center">
-  <strong>QuantDinger v3.0.1 的 Vue.js 前端源码</strong><br/>
+  <strong>QuantDinger Vue.js 前端源码</strong><br/>
   <strong>AI 原生量化研究、策略、交易与运营工作台的 Web 界面层</strong>
 </p>
 
@@ -77,36 +77,46 @@
 - 指标社区与市场化相关页面
 - 响应式布局、主题切换与多语言支持
 
-## v3.0.1 文档定位
-
-这份中文版 README 作为英文主 README 的补充版本，保持以下原则：
-
-- 以英文 README 作为前端仓库的主说明文档
-- 中文版用于帮助中文开发者快速理解仓库职责和开发方式
-- 文档口径与主仓库 `v3.0.1` 版本说明保持一致
-
 ## 开发环境启动
 
 ### 前置要求
 
 | 要求 | 版本 |
 |------|------|
-| Node.js | 建议 22+ |
-| npm | 建议 10+ |
-| Backend | 可访问的 QuantDinger 后端，默认 `http://localhost:5000` |
+| Node.js | 建议 **18 LTS**（最低 16.13+，需支持 [corepack](https://nodejs.org/api/corepack.html)） |
+| pnpm | **10.x** — 版本由 `package.json` 的 `packageManager` 锁定；通过 `corepack enable` 安装 |
+| Git | 必需 — 生产构建会通过 `git-revision-webpack-plugin` 写入提交信息 |
+| Backend | QuantDinger 后端可访问，默认 `http://localhost:5000`（见下文） |
+
+请使用 **`pnpm install`** 并保留仓库中的 **`pnpm-lock.yaml`**。不要提交 `package-lock.json`；仅用 npm 安装可能与 CI/Docker 解析出不同的依赖树。
 
 ### 安装与启动
+
+请使用 **Git 克隆**（无 `.git` 的源码 ZIP 可能导致 `pnpm build` 失败）：
 
 ```bash
 git clone https://github.com/brokermr810/QuantDinger-Vue.git
 cd QuantDinger-Vue
-npm install
-npm run serve
+corepack enable
+pnpm install
+pnpm run serve
 ```
 
-开发服务器默认地址：
+若在主仓库目录内开发（例如 `QuantDinger-Vue-src/`），在该目录下执行相同命令即可。
 
-- `http://localhost:8000`
+### 先启动后端
+
+执行 `pnpm run serve` 前，请确保后端在 **5000** 端口可访问。常见方式：
+
+- [QuantDinger 主仓库](https://github.com/brokermr810/QuantDinger)：`docker compose up -d`（整栈）或仅启动后端相关服务
+- 按主仓库 `backend_api_python/README.md` 本地运行 Python API
+
+### 访问地址
+
+| 方式 | 地址 |
+|------|------|
+| `pnpm run serve`（本源码目录） | `http://localhost:8000` |
+| 主仓库 Docker（预构建 `frontend/dist`） | `http://localhost:8888` |
 
 默认登录信息取决于后端配置。在默认 Docker 体验中，常见为：
 
@@ -150,12 +160,43 @@ quantdinger / 123456
 ## 生产构建
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 构建产物输出到 `dist/`，可由 Nginx 或其他静态文件服务托管。
 
-如果你需要完整的生产部署方案，仍建议优先使用主仓库中的交付方式。
+### 同步到 QuantDinger 主仓库
+
+与后端同仓开发时，将 `dist/` 覆盖到主仓库预构建目录，并重启或重建前端容器：
+
+```bash
+# Bash — 在 QuantDinger-Vue-src/（或 QuantDinger-Vue/）下执行
+pnpm run build
+rm -rf ../frontend/dist/*
+cp -r dist/* ../frontend/dist/
+```
+
+```powershell
+# PowerShell
+pnpm run build
+Remove-Item ..\frontend\dist\* -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item -Path dist\* -Destination ..\frontend\dist\ -Recurse -Force
+```
+
+若不想手动拷贝，可直接使用主仓库 Docker Compose，或拉取下方 GHCR 镜像。
+
+## Docker 镜像
+
+本目录提供与 CI 一致的多阶段 `Dockerfile`（Node 构建 + nginx）：
+
+```bash
+docker build -t quantdinger-frontend:local .
+docker run --rm -p 8080:80 -e BACKEND_URL=http://host.docker.internal:5000 quantdinger-frontend:local
+```
+
+- **`BACKEND_URL`** — nginx 转发 `/api/` 时使用的后端地址。镜像默认：`http://backend:5000`（Compose 服务名）。
+- 官方多架构镜像：`ghcr.io/brokermr810/quantdinger-frontend:<tag>`（见主仓库 [`docker-compose.ghcr.yml`](https://github.com/brokermr810/QuantDinger/blob/main/docker-compose.ghcr.yml)）。
+- [QuantDinger-Vue Releases](https://github.com/brokermr810/QuantDinger-Vue/releases) 在发版时可能附带 **`dist.tar.gz`**，便于无 Docker 的静态部署。
 
 ## 功能模块分布
 
@@ -192,6 +233,7 @@ npm run build
 ```text
 QuantDinger-Vue/
 ├── public/                    # 静态资源与 HTML 壳
+├── deploy/                    # Docker / 生产环境 nginx 模板
 ├── src/
 │   ├── api/                   # API 请求模块
 │   ├── assets/                # 图片、图标、样式
@@ -204,9 +246,10 @@ QuantDinger-Vue/
 │   ├── store/                 # Vuex 状态管理
 │   ├── utils/                 # 工具、请求拦截器、加密辅助
 │   └── views/                 # 页面级模块
-├── vue.config.js              # Vue CLI / webpack 与代理配置
+├── vue.config.js              # Vue CLI / webpack 与开发代理
 ├── babel.config.js
 ├── package.json
+├── pnpm-lock.yaml             # 依赖锁定文件，需与 package.json 一并提交
 ├── Dockerfile
 └── LICENSE
 ```
@@ -221,7 +264,7 @@ QuantDinger-Vue/
 | Editor | CodeMirror 5 |
 | Networking | Axios + interceptors |
 | i18n | vue-i18n |
-| Build | Vue CLI、Webpack 4 |
+| Build | Vue CLI 5、Webpack 5、pnpm |
 | Styling | Less + scoped CSS |
 
 ## 国际化

@@ -1,11 +1,15 @@
 <template>
   <div class="indicator-community-container" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- 管理员：标签切换 -->
-    <a-tabs v-if="isAdmin" v-model="activeTab" class="admin-tabs" @change="handleTabChange">
+    <!-- 顶部 tab 切换：所有用户都能看到「指标市场」和「我的指标后台」，
+         审核 tab 仅管理员可见。 -->
+    <a-tabs v-model="activeTab" class="admin-tabs" @change="handleTabChange">
       <a-tab-pane key="market" :tab="$t('community.title')">
         <!-- 市场内容在下方 -->
       </a-tab-pane>
-      <a-tab-pane key="review">
+      <a-tab-pane key="author" :tab="$t('community.authorTab')">
+        <!-- 作者后台内容在下方 -->
+      </a-tab-pane>
+      <a-tab-pane v-if="isAdmin" key="review">
         <template slot="tab">
           <a-badge :count="reviewStats.pending" :offset="[10, 0]">
             {{ $t('community.admin.reviewTab') }}
@@ -91,6 +95,14 @@
           @change="handlePageChange"
         />
       </div>
+    </template>
+
+    <!-- 作者后台（普通用户 + 管理员都可看，仅展示当前用户自己的数据） -->
+    <template v-if="activeTab === 'author'">
+      <author-dashboard
+        :is-dark-theme="isDarkTheme"
+        @view-in-market="handleViewInMarket"
+      />
     </template>
 
     <!-- 管理员审核区域 -->
@@ -226,21 +238,35 @@
       v-model="showMyPurchases"
       :title="$t('community.myPurchases')"
       :footer="null"
-      width="600px"
+      width="640px"
+      :wrap-class-name="myPurchasesWrapClass"
     >
       <a-spin :spinning="purchasesLoading">
         <div v-if="myPurchases.length === 0" class="empty-purchases">
           <a-empty :description="$t('community.noPurchases')" />
         </div>
-        <a-list v-else :data-source="myPurchases" item-layout="horizontal">
+        <a-list v-else :data-source="myPurchases" item-layout="horizontal" class="my-purchases-list">
           <a-list-item slot="renderItem" slot-scope="item">
             <a-list-item-meta>
               <template #title>
-                <a @click="openDetailById(item.indicator.id)">{{ item.indicator.name }}</a>
+                <a class="purchase-item-title" @click="openDetailById(item.indicator.id)">{{ item.indicator.name }}</a>
               </template>
               <template #description>
-                <div>{{ $t('community.purchasedFrom') }}: {{ item.seller.nickname }}</div>
-                <div>{{ $t('community.purchaseTime') }}: {{ formatDate(item.purchase_time) }}</div>
+                <div class="purchase-item-meta">
+                  <span class="meta-label">{{ $t('community.purchasedFrom') }}:</span>
+                  <span class="meta-value">{{ item.seller.nickname }}</span>
+                </div>
+                <div class="purchase-item-meta">
+                  <span class="meta-label">{{ $t('community.purchaseTime') }}:</span>
+                  <span class="meta-value">{{ formatDate(item.purchase_time) }}</span>
+                </div>
+                <div class="purchase-item-meta purchase-item-price">
+                  <span class="meta-label">{{ $t('community.yourPurchasePrice') }}:</span>
+                  <span v-if="(item.purchase_price || 0) > 0" class="price-tag price-tag--paid">
+                    {{ formatPurchasePrice(item.purchase_price) }}&nbsp;{{ $t('community.credits') }}
+                  </span>
+                  <span v-else class="price-tag price-tag--free">{{ $t('community.free') }}</span>
+                </div>
               </template>
             </a-list-item-meta>
             <template #actions>
@@ -259,13 +285,15 @@
 import { mapState } from 'vuex'
 import IndicatorCard from './components/IndicatorCard.vue'
 import IndicatorDetail from './components/IndicatorDetail.vue'
+import AuthorDashboard from './components/AuthorDashboard.vue'
 import request from '@/utils/request'
 
 export default {
   name: 'IndicatorCommunity',
   components: {
     IndicatorCard,
-    IndicatorDetail
+    IndicatorDetail,
+    AuthorDashboard
   },
   computed: {
     ...mapState({
@@ -275,6 +303,12 @@ export default {
     }),
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
+    },
+    /** Apply our themed wrapper class to the "我购买的指标" modal so it
+     * inherits dark styles even when it's portaled out to <body> by Ant. */
+    myPurchasesWrapClass () {
+      const base = 'qd-my-purchases-modal'
+      return this.isDarkTheme ? `${base} ${base}--dark` : base
     },
     isAdmin () {
       if (!this.userRole) return false
@@ -443,6 +477,14 @@ export default {
       return new Date(dateStr).toLocaleString()
     },
 
+    /** Format the price the buyer actually paid. Integer credits are
+     * printed without decimals; fractional credits keep up to 2 dp. */
+    formatPurchasePrice (val) {
+      const n = parseFloat(val)
+      if (isNaN(n)) return '0'
+      return Number.isInteger(n) ? String(n) : n.toFixed(2)
+    },
+
     // ==================== 管理员审核方法 ====================
 
     handleTabChange (tab) {
@@ -450,6 +492,15 @@ export default {
         this.loadPendingIndicators()
         this.loadReviewStats()
       }
+    },
+
+    // 子组件 AuthorDashboard 发出的事件：作者点「到市场查看」时，
+    // 切回 market tab 并打开该指标的详情弹窗（指标本来就是当前用户自己发布的，
+    // 一定能在市场里找到对应记录）。
+    handleViewInMarket (record) {
+      this.activeTab = 'market'
+      this.selectedIndicatorId = record.id
+      this.detailVisible = true
     },
 
     async loadReviewStats () {
@@ -1013,6 +1064,146 @@ export default {
     .indicator-grid {
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 12px;
+    }
+  }
+}
+</style>
+
+<!--
+  Non-scoped style block.
+
+  Ant Modal portals its DOM out to <body>, so the scoped rules above
+  cannot reach the modal's content via class scoping alone. We give the
+  modal a stable wrap class (qd-my-purchases-modal[-dark]) and style it
+  globally here. The .qd-my-purchases-modal prefix keeps these rules
+  from leaking to other modals.
+-->
+<style lang="less">
+.qd-my-purchases-modal {
+  .my-purchases-list {
+    .ant-list-item {
+      padding: 14px 0;
+    }
+
+    .purchase-item-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .purchase-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.8;
+
+      .meta-label {
+        color: rgba(0, 0, 0, 0.45);
+        flex-shrink: 0;
+      }
+
+      .meta-value {
+        color: rgba(0, 0, 0, 0.75);
+      }
+    }
+
+    .purchase-item-price {
+      margin-top: 4px;
+
+      .price-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 13px;
+
+        &--paid {
+          background: rgba(245, 34, 45, 0.08);
+          color: #f5222d;
+        }
+
+        &--free {
+          background: rgba(82, 196, 26, 0.12);
+          color: #52c41a;
+        }
+      }
+    }
+  }
+}
+
+.qd-my-purchases-modal--dark {
+  .ant-modal-content {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .ant-modal-header {
+    background: #1f1f1f;
+    border-bottom-color: #303030;
+
+    .ant-modal-title {
+      color: rgba(255, 255, 255, 0.88);
+    }
+  }
+
+  .ant-modal-close {
+    color: rgba(255, 255, 255, 0.55);
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.88);
+    }
+  }
+
+  .empty-purchases .ant-empty-description {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .my-purchases-list {
+    .ant-list-item {
+      border-color: #303030;
+    }
+
+    .purchase-item-title {
+      color: #69c0ff;
+
+      &:hover {
+        color: #40a9ff;
+      }
+    }
+
+    .purchase-item-meta {
+      .meta-label {
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .meta-value {
+        color: rgba(255, 255, 255, 0.85);
+      }
+    }
+
+    .purchase-item-price .price-tag {
+      &--paid {
+        background: rgba(245, 34, 45, 0.15);
+        color: #ff7875;
+      }
+
+      &--free {
+        background: rgba(82, 196, 26, 0.18);
+        color: #95de64;
+      }
+    }
+
+    .ant-list-item-meta-description {
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    .ant-btn-link {
+      color: #69c0ff;
+
+      &:hover {
+        color: #40a9ff;
+      }
     }
   }
 }

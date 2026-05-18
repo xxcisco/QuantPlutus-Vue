@@ -132,6 +132,15 @@ export function formatBacktestTime (input, opts = {}) {
  * Format instant in the browser's local timezone (ignores profile timezone override).
  * Use for audit-style timestamps (e.g. trade history) so wall clock matches the user's machine.
  */
+/**
+ * Strategy / bot runtime logs: backend emits UTC ISO (Z) via ``to_utc_iso``; naive
+ * strings without a tz suffix are treated as UTC wall clock before applying the
+ * user's profile timezone (or browser local).
+ */
+export function formatStrategyLogTime (input, opts = {}) {
+  return formatBacktestTime(input, { withSeconds: true, ...opts })
+}
+
 export function formatBrowserLocalDateTime (input, opts = {}) {
   const d = parseToDate(input)
   if (!d) return opts.fallback != null ? opts.fallback : '-'

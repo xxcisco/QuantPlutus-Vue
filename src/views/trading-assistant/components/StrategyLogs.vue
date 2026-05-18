@@ -35,12 +35,12 @@
     </div>
 
     <div class="logs-container custom-scrollbar" ref="logsContainer">
-      <div v-if="filteredLogs.length === 0" class="logs-empty">
+      <div v-if="displayLogs.length === 0" class="logs-empty">
         <a-icon type="file-text" style="font-size: 32px; color: #ccc;" />
         <p>{{ $t('trading-assistant.logs.noLogs') }}</p>
       </div>
       <div
-        v-for="(log, idx) in filteredLogs"
+        v-for="(log, idx) in displayLogs"
         :key="idx"
         class="log-entry"
         :class="'level-' + log.level"
@@ -57,7 +57,7 @@
 
 <script>
 import request from '@/utils/request'
-import { formatBrowserLocalDateTime } from '@/utils/userTime'
+import { formatStrategyLogTime } from '@/utils/userTime'
 
 export default {
   name: 'StrategyLogs',
@@ -86,6 +86,10 @@ export default {
     filteredLogs () {
       if (this.filterLevel === 'all') return this.logs
       return this.logs.filter(l => l.level === this.filterLevel)
+    },
+    /** Newest entries first (API returns id DESC). */
+    displayLogs () {
+      return this.filteredLogs.slice()
     }
   },
   watch: {
@@ -111,7 +115,7 @@ export default {
         })
         if (res && res.data) {
           this.logs = res.data
-          this.$nextTick(() => this.scrollToBottom())
+          this.$nextTick(() => this.scrollToTop())
         }
       } catch (e) {
         console.warn('Load logs failed:', e)
@@ -136,9 +140,9 @@ export default {
       }
     },
 
-    scrollToBottom () {
+    scrollToTop () {
       const el = this.$refs.logsContainer
-      if (el) el.scrollTop = el.scrollHeight
+      if (el) el.scrollTop = 0
     },
 
     countByLevel (level) {
@@ -148,7 +152,7 @@ export default {
     formatTime (ts) {
       if (!ts) return ''
       const loc = this.$i18n.locale || 'zh-CN'
-      return formatBrowserLocalDateTime(ts, { locale: loc, fallback: String(ts) })
+      return formatStrategyLogTime(ts, { locale: loc, fallback: String(ts) })
     },
 
     getLevelColor (level) {
