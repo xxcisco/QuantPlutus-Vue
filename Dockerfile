@@ -17,14 +17,14 @@ ARG NGINX_IMAGE=nginx:1.25-alpine
 FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
 WORKDIR /app
 
-# git is needed by git-revision-webpack-plugin at build time.
+# git is needed at build time so vite.config.js can stamp the short hash.
 # corepack ships with Node 16.13+; `enable` installs the pnpm shim. The
 # concrete pnpm version is pinned by `packageManager` in package.json,
 # which corepack auto-downloads on first use.
 RUN apk add --no-cache git && corepack enable
 
-# Copy lockfile + manifest first so the install layer caches.
-COPY package.json pnpm-lock.yaml ./
+# Copy lockfile + manifest + workspace config first so the install layer caches.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .

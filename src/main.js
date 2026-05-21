@@ -1,19 +1,12 @@
-// with polyfills
-import 'core-js/stable'
-import 'regenerator-runtime/runtime'
-
 import Vue from 'vue'
+// ant-design-vue 1.x 全量样式（lazy_use.js 通过 Vue.use 注册组件，但样式仍需整体引入）
+import 'ant-design-vue/dist/antd.less'
 import App from './App.vue'
 import router from './router'
 import store from './store/'
 import i18n from './locales'
 import { VueAxios } from './utils/request'
 import ProLayout, { PageHeaderWrapper } from '@ant-design-vue/pro-layout'
-import themePluginConfig from '../config/themePluginConfig'
-
-// mock
-// WARNING: `mockjs` NOT SUPPORT `IE` PLEASE DO NOT USE IN `production` ENV.
-import './mock'
 
 import bootstrap from './core/bootstrap'
 import './core/lazy_use' // use lazy load components
@@ -45,8 +38,6 @@ Vue.use(VueAxios)
 Vue.component('ProLayout', ProLayout)
 Vue.component('PageContainer', PageHeaderWrapper)
 Vue.component('PageHeaderWrapper', PageHeaderWrapper)
-
-window.umi_plugin_ant_themeVar = themePluginConfig.theme
 
 new Vue({
   router,

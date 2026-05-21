@@ -1,5 +1,5 @@
 import { asyncRouterMap, constantRouterMap } from '@/config/router.config'
-import cloneDeep from 'lodash.clonedeep'
+import { cloneDeep } from 'lodash-es'
 
 /**
  * 单账户多角色时，使用该方法可过滤角色不存在的菜单

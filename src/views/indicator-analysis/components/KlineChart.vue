@@ -172,6 +172,7 @@ import { init, registerIndicator, registerOverlay } from 'klinecharts'
 import request from '@/utils/request'
 import { decryptCodeAuto, needsDecrypt } from '@/utils/codeDecrypt'
 import ExchangeKlineWs from '@/utils/exchangeWs'
+import { usePyodide } from '@/services/pyodide/usePyodide'
 
 export default {
   name: 'KlineChart',
@@ -830,11 +831,16 @@ export default {
       closeIndicatorEditor()
     }
 
-    // Pyodide 相关
-    const pyodide = ref(null)
-    const loadingPython = ref(false)
-    const pythonReady = ref(false)
-    const pyodideLoadFailed = ref(false)
+    // Pyodide 通过 Web Worker 单例运行（src/services/pyodide）。
+    // 这里只接 ready/loading/failed 状态用于模板；执行通过 pyodideRunStrategy。
+    const {
+      ready: pythonReady,
+      loading: loadingPython,
+      failed: pyodideLoadFailed,
+      prewarm: prewarmPyodide,
+      ensureReady: ensurePyodideReady,
+      runStrategy: pyodideRunStrategy
+    } = usePyodide()
 
     // 主题配置
     const themeConfig = computed(() => {
@@ -890,99 +896,9 @@ export default {
       }
     }
 
-    // ========== Pyodide 初始化 ==========
-    const loadPyodide = () => {
-      return new Promise((resolve, reject) => {
-        // 检查是否已经加载
-        if (window.pyodide) {
-          pyodide.value = window.pyodide
-          pythonReady.value = true
-          resolve(window.pyodide)
-          return
-        }
+    // Pyodide 初始化 / 执行已迁移到 src/services/pyodide。
+    // 进入本组件时触发 prewarm（fire-and-forget），首次 runStrategy 也会兜底 ensureReady。
 
-        loadingPython.value = true
-
-        // 动态加载 Pyodide（生产环境默认 CDN 优先，避免本地静态资源缺失导致 404 卡住/报错）
-        // 可通过环境变量自定义：
-        // - VUE_APP_PYODIDE_CDN_BASE: 覆盖 CDN 基础路径（需以 / 结尾或会自动补齐）
-        // - VUE_APP_PYODIDE_LOCAL_BASE: 覆盖本地基础路径（需以 / 结尾或会自动补齐）
-        // - VUE_APP_PYODIDE_PREFER_CDN: 'true'/'false' 强制优先级
-        const PYODIDE_VERSION = '0.25.0'
-        const _ensureTrailingSlash = (s) => (s && s.endsWith('/')) ? s : (s ? (s + '/') : s)
-        const defaultLocalBase = `/assets/pyodide/v${PYODIDE_VERSION}/full/`
-        const defaultCdnBase = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`
-        const localBase = _ensureTrailingSlash(process.env.VUE_APP_PYODIDE_LOCAL_BASE || defaultLocalBase)
-        const cdnBase = _ensureTrailingSlash(process.env.VUE_APP_PYODIDE_CDN_BASE || defaultCdnBase)
-        const preferCdnEnv = (process.env.VUE_APP_PYODIDE_PREFER_CDN || '').toString().toLowerCase()
-        const preferCdn = preferCdnEnv
-          ? (preferCdnEnv === 'true' || preferCdnEnv === '1' || preferCdnEnv === 'yes')
-          : (process.env.NODE_ENV === 'production')
-
-        const loadScript = (src) => new Promise((resolve, reject) => {
-          // If script already inserted, reuse it
-          const existing = document.querySelector(`script[data-pyodide-src="${src}"]`)
-          if (existing) {
-            // If already loaded, resolve immediately.
-            if (typeof window.loadPyodide === 'function') return resolve()
-            // Otherwise wait for load/error.
-            existing.addEventListener('load', () => resolve(), { once: true })
-            existing.addEventListener('error', () => reject(new Error('Pyodide 脚本加载失败')), { once: true })
-            return
-          }
-
-          const s = document.createElement('script')
-          s.dataset.pyodideSrc = src
-          s.src = src
-          s.onload = () => resolve()
-          s.onerror = () => reject(new Error('Pyodide 脚本加载失败'))
-          document.head.appendChild(s)
-        })
-
-        const initFromBase = async (baseUrl) => {
-          if (typeof window.loadPyodide !== 'function') {
-            throw new Error('loadPyodide 函数未找到')
-          }
-          window.pyodide = await window.loadPyodide({ indexURL: baseUrl })
-
-              // 预加载 pandas 和 numpy
-              await window.pyodide.loadPackage(['pandas', 'numpy'])
-
-              pyodide.value = window.pyodide
-              pythonReady.value = true
-              loadingPython.value = false
-              resolve(window.pyodide)
-        }
-
-        (async () => {
-          const tryLoad = async (base) => {
-            await loadScript(base + 'pyodide.js')
-            await initFromBase(base)
-          }
-
-          try {
-            if (preferCdn) {
-              // 1) CDN-first (production default)
-              await tryLoad(cdnBase)
-            } else {
-              // 1) Local-first (dev convenience)
-              await tryLoad(localBase)
-            }
-          } catch (firstErr) {
-            try {
-              // 2) Fallback
-              await tryLoad(preferCdn ? localBase : cdnBase)
-            } catch (secondErr) {
-              throw secondErr || firstErr
-            }
-          }
-        })().catch((err) => {
-          loadingPython.value = false
-          pyodideLoadFailed.value = true
-          reject(err)
-        })
-      })
-    }
 
     // ========== Python 代码解析 ==========
     // 解析 Python 代码，提取参数信息
@@ -1029,34 +945,13 @@ export default {
     }
 
     // ========== Python 执行引擎 ==========
+    // 实际运行在 Web Worker 内，主线程不被阻塞；策略 Python wrapper 集中在
+    // src/services/pyodide/pyodide.worker.js 的 STRATEGY_WRAPPER 内维护。
     const executePythonStrategy = async (userCode, klineData, params = {}, indicatorInfo = {}) => {
-      if (!pythonReady.value || !pyodide.value) {
-        // 如果正在加载，等待一段时间后重试
-        if (loadingPython.value) {
-          // 等待最多 15 秒（30次 * 500ms）
-          let waitCount = 0
-          while (loadingPython.value && waitCount < 30) {
-            await new Promise(resolve => setTimeout(resolve, 500))
-            waitCount++
-            // 如果加载完成，退出循环
-            if (pythonReady.value && pyodide.value) {
-              break
-            }
-          }
-        }
-
-        // 如果仍然未就绪，检查是否加载失败
-        if (!pythonReady.value || !pyodide.value) {
-          // 如果不在加载中，说明加载失败或超时
-          if (!loadingPython.value) {
-            pyodideLoadFailed.value = true
-          } else {
-            // 如果还在加载中但超时了，也标记为失败
-            loadingPython.value = false
-            pyodideLoadFailed.value = true
-          }
-          throw new Error('Python 引擎未就绪，请等待加载完成')
-        }
+      try {
+        await ensurePyodideReady()
+      } catch (err) {
+        throw new Error('Python 引擎未就绪，请等待加载完成')
       }
 
       try {
@@ -1079,17 +974,13 @@ export default {
             throw new Error('缺少必要的解密参数（用户ID或指标ID），无法执行加密指标')
           }
         }
-        // 1. 数据转换：将 JS 的 klineData / params 转换为 JSON 字符串
-        // klineData 可能是内部格式（time）或 KLineChart 格式（timestamp）
+
+        // 数据归一化：兼容 internal(time) / KLineChart(timestamp) 两种字段名，统一为秒级 time。
         const rawData = klineData.map(item => {
-          // 兼容两种格式
           let timeValue = item.timestamp || item.time
-          // 如果是秒级时间戳，转换为毫秒
-          if (timeValue < 1e10) {
-            timeValue = timeValue * 1000
-          }
+          if (timeValue < 1e10) timeValue = timeValue * 1000
           return {
-            time: Math.floor(timeValue / 1000), // Python 端使用秒级时间戳
+            time: Math.floor(timeValue / 1000),
             open: parseFloat(item.open) || 0,
             high: parseFloat(item.high) || 0,
             low: parseFloat(item.low) || 0,
@@ -1097,114 +988,13 @@ export default {
             volume: parseFloat(item.volume) || 0
           }
         })
-        const rawDataJson = JSON.stringify(rawData)
-        const paramsJson = JSON.stringify(params || {})
 
-        // 2. 构建 Python 执行代码
-        // 转义 JSON 字符串中的特殊字符
-        const escapedJson = rawDataJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r')
-        const escapedParams = paramsJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r')
-
-        const pythonCode = `
-import json
-import pandas as pd
-import numpy as np
-
-# 递归清理 NaN 值的函数
-def clean_nan(obj):
-    if isinstance(obj, dict):
-        return {k: clean_nan(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [clean_nan(item) for item in obj]
-    elif isinstance(obj, (pd.Series, np.ndarray)):
-        return [None if (isinstance(x, float) and (np.isnan(x) or np.isinf(x))) else x for x in obj]
-    elif isinstance(obj, (float, np.floating)):
-        if np.isnan(obj) or np.isinf(obj):
-            return None
-        return float(obj)
-    elif pd.isna(obj):
-        return None
-    else:
-        return obj
-
-# 接收 JSON 数据
-raw_data = json.loads('${escapedJson}')
-params = json.loads('${escapedParams}')
-
-# 将前端参数注入为指标代码可直接使用的变量（对齐回测/实盘执行环境）
-# 兼容多种命名（snake_case / camelCase）
-def _get_param(key, default=None):
-    if key in params:
-        return params.get(key, default)
-    # camelCase fallback
-    camel = ''.join([key.split('_')[0]] + [p.capitalize() for p in key.split('_')[1:]])
-    return params.get(camel, default)
-
-try:
-    leverage = float(_get_param('leverage', 1) or 1)
-except Exception:
-    leverage = 1
-
-trade_direction = _get_param('trade_direction', _get_param('tradeDirection', 'both')) or 'both'
-
-try:
-    initial_position = int(_get_param('initial_position', 0) or 0)
-except Exception:
-    initial_position = 0
-
-try:
-    initial_avg_entry_price = float(_get_param('initial_avg_entry_price', 0.0) or 0.0)
-except Exception:
-    initial_avg_entry_price = 0.0
-
-try:
-    initial_position_count = int(_get_param('initial_position_count', 0) or 0)
-except Exception:
-    initial_position_count = 0
-
-try:
-    initial_last_add_price = float(_get_param('initial_last_add_price', 0.0) or 0.0)
-except Exception:
-    initial_last_add_price = 0.0
-
-try:
-    initial_highest_price = float(_get_param('initial_highest_price', 0.0) or 0.0)
-except Exception:
-    initial_highest_price = 0.0
-
-# 转换为 DataFrame
-df = pd.DataFrame(raw_data)
-
-# 转换数据类型
-df['open'] = df['open'].astype(float)
-df['high'] = df['high'].astype(float)
-df['low'] = df['low'].astype(float)
-df['close'] = df['close'].astype(float)
-df['volume'] = df['volume'].astype(float)
-
-# 用户代码（已解密）
-${finalCode}
-
-# 构造输出（如果用户没有定义 output，则尝试从 result_json 获取）
-if 'output' not in locals():
-    if 'result_json' in locals():
-        output = json.loads(result_json)
-    else:
-        output = {"plots": []}
-else:
-    # 确保 output 是字典格式
-    if isinstance(output, str):
-        output = json.loads(output)
-
-# 清理 output 中的所有 NaN 值
-output = clean_nan(output)
-
-# 返回 JSON 字符串
-json.dumps(output)
-`
-
-        // 3. 执行 Python 代码
-        const resultJson = await pyodide.value.runPythonAsync(pythonCode)
+        // 通过 Worker 跨线程执行；comlink 走结构化克隆，无需 JSON 字符串拼接 / 转义。
+        const resultJson = await pyodideRunStrategy({
+          userCode: finalCode,
+          rawData,
+          params: params || {}
+        })
 
         // 检查返回结果
         if (!resultJson || typeof resultJson !== 'string') {
@@ -3881,12 +3671,7 @@ registerOverlay({
                 }
               }
             } catch (err) {
-              // 如果是 Python 引擎未就绪的错误，设置加载失败状态
-              if (err.message && err.message.includes('Python 引擎未就绪')) {
-                if (!loadingPython.value) {
-                  pyodideLoadFailed.value = true
-                }
-              }
+              // Pyodide 加载状态由 worker 服务自动维护（pyodideLoadFailed），此处仅吞掉异常
             }
             continue
           }
@@ -4435,12 +4220,8 @@ registerOverlay({
         chartTheme.value = props.theme
       }
 
-      // 加载 Pyodide
-      try {
-        await loadPyodide()
-      } catch (err) {
-        pyodideLoadFailed.value = true
-      }
+      // 预热 Pyodide Worker（不阻塞首屏；失败状态会通过 pyodideLoadFailed 反映）
+      prewarmPyodide()
 
       nextTick(() => {
         setTimeout(() => {
