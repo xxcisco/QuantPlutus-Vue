@@ -13,6 +13,9 @@ import './core/lazy_use' // use lazy load components
 import './permission' // permission control
 import './utils/filter' // global filter
 import './global.less' // global style
+// Wise design tokens + component overrides (loaded after antd + global so cascade wins)
+import './styles/design-tokens.less'
+import './styles/wise-design.less'
 // 必须在 global.less 之后：覆盖 Pro Layout 顶栏/侧栏底栏（否则会被 global 与组件顺序盖住）
 import './qd-layout-dark-override.less'
 

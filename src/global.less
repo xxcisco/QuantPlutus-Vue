@@ -7,6 +7,12 @@ body,
   height: 100%;
 }
 
+/* Body inherits Wise canvas-soft from design tokens; default fallback while CSS vars resolve */
+html,
+body {
+  background-color: #e8ebe6;
+}
+
 .colorWeak {
   filter: invert(80%);
 }
@@ -29,6 +35,11 @@ body {
 ul,
 ol {
   list-style: none;
+}
+
+/* On any user-facing layout body, ensure background stays Wise canvas-soft */
+body.userLayout {
+  background-color: #e8ebe6;
 }
 
 // 数据列表 样式

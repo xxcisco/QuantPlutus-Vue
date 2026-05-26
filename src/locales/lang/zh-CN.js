@@ -2525,7 +2525,7 @@ const locale = {
   'invite.task.discord.desc': '加入我们的 Discord 社区服务器',
   'message': '-',
   'layouts.usermenu.dialog.title': '信息',
-  'layouts.usermenu.dialog.content': '您确定要注销吗？',
+  'layouts.usermenu.dialog.content': '确定要退出登录吗？',
   'layouts.userLayout.title': '于不确定中，寻见真理',
 
   // Settings

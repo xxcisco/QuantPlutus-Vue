@@ -1,0 +1,186 @@
+/**
+ * Wise-inspired Design Tokens
+ * ---------------------------------------------
+ * Lime-green CTA + sage canvas + near-black ink.
+ * Generous 24px rounded corners. Inter for body, weight 600+ for emphasis.
+ * Mobile-first: tokens reduce smoothly on small screens.
+ */
+
+:root {
+  /* ===== Brand & Accent ===== */
+  --wise-primary: #9fe870;
+  --wise-primary-hover: #cdffad;
+  --wise-primary-active: #b8f48a;
+  --wise-primary-neutral: #c5edab;
+  --wise-primary-pale: #e2f6d5;
+  --wise-on-primary: #0e0f0c;
+
+  /* ===== Surface ===== */
+  --wise-canvas: #ffffff;
+  --wise-canvas-soft: #e8ebe6;
+  --wise-canvas-softer: #f1f3ee;
+
+  /* ===== Text / Ink ===== */
+  --wise-ink: #0e0f0c;
+  --wise-ink-deep: #163300;
+  --wise-body: #454745;
+  --wise-mute: #868685;
+
+  /* ===== Semantic ===== */
+  --wise-positive: #2ead4b;
+  --wise-positive-deep: #054d28;
+  --wise-positive-bg: #e2f6d5;
+
+  --wise-warning: #ffd11a;
+  --wise-warning-deep: #b86700;
+  --wise-warning-content: #4a3b1c;
+  --wise-warning-bg: #fff7d6;
+
+  --wise-negative: #d03238;
+  --wise-negative-deep: #a72027;
+  --wise-negative-darkest: #a7000d;
+  --wise-negative-bg: #320707;
+  --wise-negative-soft: #fbe5e7;
+
+  /* ===== Accents ===== */
+  --wise-accent-orange: #ffc091;
+  --wise-accent-cyan: #38c8ff;
+
+  /* ===== Borders ===== */
+  --wise-border: #0e0f0c;
+  --wise-border-soft: #d5d8d27e;
+  --wise-divider: #e1e4dd;
+
+  /* ===== Typography Family ===== */
+  --wise-font-display: "Inter", "Manrope", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --wise-font-body: "Inter", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  /* ===== Typography Scale ===== */
+  --wise-fs-display-mega: 96px;     /* responsive ceiling on desktop; large hero */
+  --wise-fs-display-xxl: 72px;
+  --wise-fs-display-xl: 56px;
+  --wise-fs-display-lg: 40px;
+  --wise-fs-display-md: 32px;
+  --wise-fs-display-sm: 24px;
+  --wise-fs-display-xs: 20px;
+  --wise-fs-body-lg: 18px;
+  --wise-fs-body-md: 16px;
+  --wise-fs-body-sm: 14px;
+  --wise-fs-caption: 12px;
+
+  --wise-lh-display: 1.05;
+  --wise-lh-body: 1.5;
+  --wise-lh-tight: 1.2;
+
+  --wise-fw-display: 900;
+  --wise-fw-strong: 600;
+  --wise-fw-regular: 400;
+
+  /* ===== Spacing (4px base) ===== */
+  --wise-space-xxs: 2px;
+  --wise-space-xs: 4px;
+  --wise-space-sm: 8px;
+  --wise-space-md: 12px;
+  --wise-space-lg: 16px;
+  --wise-space-xl: 24px;
+  --wise-space-2xl: 32px;
+  --wise-space-3xl: 48px;
+  --wise-space-4xl: 64px;
+
+  /* ===== Radius ===== */
+  --wise-r-none: 0px;
+  --wise-r-sm: 8px;
+  --wise-r-md: 12px;
+  --wise-r-lg: 16px;
+  --wise-r-xl: 24px;
+  --wise-r-pill: 9999px;
+  --wise-r-full: 9999px;
+
+  /* ===== Elevation ===== */
+  --wise-shadow-none: none;
+  --wise-shadow-card: 0 1px 0 rgba(14, 15, 12, 0.04), 0 4px 16px rgba(14, 15, 12, 0.04);
+  --wise-shadow-hover: 0 4px 12px rgba(14, 15, 12, 0.06), 0 12px 32px rgba(14, 15, 12, 0.08);
+  --wise-shadow-popover: 0 8px 32px rgba(14, 15, 12, 0.12);
+
+  /* ===== Motion ===== */
+  --wise-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --wise-dur-fast: 160ms;
+  --wise-dur-base: 240ms;
+  --wise-dur-slow: 360ms;
+
+  /* ===== Layout ===== */
+  --wise-container-max: 1200px;
+  --wise-page-pad-x: 24px;
+  --wise-page-pad-y: 32px;
+}
+
+/* ===== Mobile token adjustments (< 768px) ===== */
+@media (max-width: 767px) {
+  :root {
+    --wise-fs-display-mega: 56px;
+    --wise-fs-display-xxl: 44px;
+    --wise-fs-display-xl: 36px;
+    --wise-fs-display-lg: 28px;
+    --wise-fs-display-md: 24px;
+    --wise-fs-display-sm: 20px;
+    --wise-fs-display-xs: 18px;
+
+    --wise-page-pad-x: 16px;
+    --wise-page-pad-y: 16px;
+
+    --wise-space-3xl: 32px;
+    --wise-space-4xl: 40px;
+  }
+}
+
+/* ===== Dark variant (opt-in via body.realdark/body.dark) ===== */
+body.realdark,
+body.dark {
+  --wise-canvas: #161614;
+  --wise-canvas-soft: #1c1d1a;
+  --wise-canvas-softer: #232422;
+  --wise-ink: #f4f4f1;
+  --wise-ink-deep: #cfe8b3;
+  --wise-body: #cdcfca;
+  --wise-mute: #8a8c87;
+  --wise-border: #2c2d2a;
+  --wise-border-soft: #2c2d2a;
+  --wise-divider: #2c2d2a;
+  --wise-on-primary: #0e0f0c;
+  --wise-shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --wise-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --wise-positive-bg: rgba(159, 232, 112, 0.14);
+  --wise-warning-bg: rgba(255, 209, 26, 0.14);
+  --wise-negative-soft: rgba(208, 50, 56, 0.16);
+}
+
+/* ===== Less variables mirror (so .less files can @import this and use them) ===== */
+@wise-primary: #9fe870;
+@wise-primary-hover: #cdffad;
+@wise-primary-pale: #e2f6d5;
+@wise-on-primary: #0e0f0c;
+@wise-canvas: #ffffff;
+@wise-canvas-soft: #e8ebe6;
+@wise-ink: #0e0f0c;
+@wise-ink-deep: #163300;
+@wise-body: #454745;
+@wise-mute: #868685;
+@wise-positive: #2ead4b;
+@wise-warning: #ffd11a;
+@wise-negative: #d03238;
+@wise-border: #0e0f0c;
+@wise-border-soft: #d5d8d2;
+@wise-divider: #e1e4dd;
+
+@wise-r-sm: 8px;
+@wise-r-md: 12px;
+@wise-r-lg: 16px;
+@wise-r-xl: 24px;
+@wise-r-pill: 9999px;
+
+@wise-space-sm: 8px;
+@wise-space-md: 12px;
+@wise-space-lg: 16px;
+@wise-space-xl: 24px;
+@wise-space-2xl: 32px;
+@wise-space-3xl: 48px;

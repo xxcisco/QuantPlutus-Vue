@@ -1,53 +1,68 @@
 <template>
-
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
-    <div class="container">
-      <div class="fx-layer" aria-hidden="true">
-        <div class="fx-gradient"></div>
-        <div class="fx-grid"></div>
-      </div>
-      <div class="user-layout-lang">
-        <select-lang class="select-lang-trigger" />
-      </div>
-      <div class="user-layout-content">
-        <div class="top">
-          <div class="header">
-            <a href="/">
-              <img :src="loginLogo" class="logo" :alt="brandConfig.app_name">
-              <!-- <span class="title">{{ brandConfig.app_name }}</span> -->
-            </a>
-          </div>
-          <!-- <div class="desc">
-            {{ $t('layouts.userLayout.title') }}
-          </div> -->
+    <div class="wise-canvas">
+      <!-- Decorative band: hero greeting on the left, language on the right (desktop) -->
+      <div class="wise-topbar">
+        <a href="/" class="wise-brand">
+          <img :src="loginLogo" class="wise-logo" :alt="brandConfig.app_name">
+        </a>
+        <div class="wise-lang">
+          <select-lang class="wise-lang-trigger" />
         </div>
+      </div>
 
-        <div class="main-content">
-          <router-view />
-        </div>
-
-        <div class="footer">
-          <div class="copyright">
-            {{ brandConfig.copyright }}
-            <div style="width: 70%; text-align: center; margin-left: 15%; margin-top: 10px;">
-              <a
-                v-if="brandConfig.legal && brandConfig.legal.privacy_policy_url"
-                :href="brandConfig.legal.privacy_policy_url"
-                target="_blank"
-                rel="noopener noreferrer"
-                style="color: #1890ff; cursor: pointer;"
-              >{{ $t('user.login.privacy.view') }}</a>
-              <a v-else @click="toggleRisk" style="color: #1890ff; cursor: pointer;">
-                {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
-              </a>
-              <div v-if="showRisk && !(brandConfig.legal && brandConfig.legal.privacy_policy_url)" style="margin-top: 10px; font-size: 12px; color: rgba(0,0,0,0.65); line-height: 1.6; text-align: left;">
-                <div style="font-weight: 600; margin-bottom: 6px;">{{ $t('user.login.privacy.title') }}</div>
-                {{ (brandConfig.legal && brandConfig.legal.privacy_policy_text) || $t('user.login.privacy.content') }}
-              </div>
+      <main class="wise-stage">
+        <!-- Left column: hero copy (hidden on mobile, kept compact on tablet) -->
+        <section class="wise-hero" aria-hidden="true">
+          <h1 class="wise-hero-display">
+            {{ $t('layouts.userLayout.title') || 'Trade with clarity.' }}
+          </h1>
+          <p class="wise-hero-sub">
+            AI-driven quantitative insights for global markets
+          </p>
+          <div class="wise-hero-stats">
+            <div class="stat-card stat-card--dark">
+              <span class="stat-label">Realtime</span>
+              <span class="stat-value">24/7</span>
+              <span class="stat-foot">Cross-exchange signals</span>
+            </div>
+            <div class="stat-card stat-card--green">
+              <span class="stat-label">Backtested</span>
+              <span class="stat-value">10k+</span>
+              <span class="stat-foot">Strategies validated</span>
             </div>
           </div>
+        </section>
+
+        <!-- Right column: form card (router-view) -->
+        <section class="wise-form-col">
+          <router-view />
+        </section>
+      </main>
+
+      <!-- Footer band -->
+      <footer class="wise-footer">
+        <div class="wise-footer-inner">
+          <div class="wise-copy">{{ brandConfig.copyright }}</div>
+          <div class="wise-privacy">
+            <a
+              v-if="brandConfig.legal && brandConfig.legal.privacy_policy_url"
+              :href="brandConfig.legal.privacy_policy_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ $t('user.login.privacy.view') }}</a>
+            <a v-else @click="toggleRisk">
+              {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
+            </a>
+          </div>
         </div>
-      </div>
+        <div v-if="showRisk && !(brandConfig.legal && brandConfig.legal.privacy_policy_url)" class="wise-risk">
+          <div class="wise-risk-title">{{ $t('user.login.privacy.title') }}</div>
+          <div class="wise-risk-body">
+            {{ (brandConfig.legal && brandConfig.legal.privacy_policy_text) || $t('user.login.privacy.content') }}
+          </div>
+        </div>
+      </footer>
     </div>
   </div>
 </template>
@@ -64,7 +79,7 @@ export default {
     SelectLang
   },
   mixins: [deviceMixin],
-  data() {
+  data () {
     return {
       showRisk: false
     }
@@ -73,22 +88,20 @@ export default {
     ...mapState({
       brandConfig: state => state.brand.config
     }),
-    // Logo on the login / register screen: prefer the light-theme brand URL,
-    // fall back to the bundled asset so the page never renders a broken image.
     loginLogo () {
       const remote = this.brandConfig && this.brandConfig.logos && this.brandConfig.logos.light
       return remote || defaultLogo
     }
   },
   methods: {
-    toggleRisk() {
+    toggleRisk () {
       this.showRisk = !this.showRisk
     }
   },
-  mounted() {
+  mounted () {
     document.body.classList.add('userLayout')
   },
-  beforeDestroy() {
+  beforeDestroy () {
     document.body.classList.remove('userLayout')
   }
 }
@@ -96,212 +109,293 @@ export default {
 
 <style lang="less" scoped>
 #userLayout.user-layout-wrapper {
-  height: 100%;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--wise-canvas-soft);
+  color: var(--wise-ink);
+  font-family: var(--wise-font-body);
+}
 
-  &.mobile {
-    .container {
-      .main {
-        max-width: 368px;
-        width: 98%;
-      }
+.wise-canvas {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  max-width: var(--wise-container-max);
+  margin: 0 auto;
+  padding: 0 var(--wise-page-pad-x);
+  box-sizing: border-box;
+}
+
+/* ===== Top bar ===== */
+.wise-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0;
+
+  .wise-brand {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+
+    .wise-logo {
+      height: 36px;
+      width: auto;
+      object-fit: contain;
+      max-width: 220px;
     }
   }
 
-  .container {
-    width: 100%;
-    min-height: 100%;
-    // background: #f0f2f5 url(~@/assets/background.svg) no-repeat 50%;
-    background-size: 100%;
-    //padding: 50px 0 84px;
-    position: relative;
-
-    .fx-layer {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      z-index: 0;
-      pointer-events: none;
-
-      .fx-gradient {
-        position: absolute;
-        inset: -20% -20% -20% -20%;
-        background: radial-gradient(1200px 600px at 10% 10%, rgba(78, 161, 255, 0.18), transparent 60%),
-          radial-gradient(900px 500px at 90% 20%, rgba(127, 92, 255, 0.18), transparent 60%),
-          radial-gradient(800px 500px at 30% 90%, rgba(0, 210, 170, 0.14), transparent 60%);
-        filter: blur(20px);
-        animation: fxFloat 18s ease-in-out infinite alternate;
-        transform: translateZ(0);
-      }
-
-      .fx-grid {
-        position: absolute;
-        inset: 0;
-        background-image: linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-        background-size: 44px 44px, 44px 44px;
-        background-position: 0 0, 0 0;
-        mix-blend-mode: overlay;
-        animation: gridDrift 40s linear infinite;
-      }
-    }
-
-    .user-layout-lang {
-      width: 100%;
+  .wise-lang {
+    .wise-lang-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
       height: 40px;
-      line-height: 44px;
-      text-align: right;
+      border-radius: var(--wise-r-full);
+      background: var(--wise-canvas);
+      color: var(--wise-ink);
+      cursor: pointer;
+      transition: background var(--wise-dur-fast) var(--wise-ease);
 
-      .select-lang-trigger {
-        cursor: pointer;
-        padding: 12px;
-        margin-right: 24px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        vertical-align: middle;
+      &:hover {
+        background: #fff;
+        box-shadow: var(--wise-shadow-card);
       }
     }
+  }
+}
 
-    .user-layout-content {
-      padding: 32px 0 24px;
-      display: flex;
+/* ===== Stage (hero + form) ===== */
+.wise-stage {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 48px;
+  align-items: center;
+  padding: 32px 0 48px;
+}
+
+/* ===== Hero (left column) ===== */
+.wise-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  .wise-hero-display {
+    font-family: var(--wise-font-display);
+    font-size: clamp(40px, 6vw, 80px);
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    color: var(--wise-ink);
+    margin: 0;
+  }
+
+  .wise-hero-sub {
+    font-size: clamp(16px, 1.4vw, 20px);
+    line-height: 1.5;
+    color: var(--wise-body);
+    margin: 0;
+    max-width: 460px;
+  }
+
+  .wise-hero-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+    max-width: 460px;
+  }
+
+  .stat-card {
+    border-radius: var(--wise-r-xl);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform var(--wise-dur-base) var(--wise-ease);
+
+    &:hover {
+      transform: translateY(-3px);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.75;
+    }
+
+    .stat-value {
+      font-family: var(--wise-font-display);
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-foot {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    &--green {
+      background: var(--wise-primary-pale);
+      color: var(--wise-ink-deep);
+    }
+
+    &--dark {
+      background: var(--wise-primary-neutral);
+      color: var(--wise-positive-deep);
+    }
+  }
+}
+
+/* ===== Form column ===== */
+.wise-form-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  min-height: 100%;
+  width: 100%;
+}
+
+/* ===== Footer ===== */
+.wise-footer {
+  padding: 24px 0 32px;
+  border-top: 1px solid var(--wise-divider);
+
+  .wise-footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .wise-copy {
+    font-size: 13px;
+    color: var(--wise-mute);
+  }
+
+  .wise-privacy a {
+    font-size: 13px;
+    color: var(--wise-ink);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+
+    &:hover {
+      color: var(--wise-positive);
+    }
+  }
+
+  .wise-risk {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--wise-canvas);
+    border-radius: var(--wise-r-lg);
+    font-size: 12px;
+    color: var(--wise-body);
+    line-height: 1.6;
+
+    .wise-risk-title {
+      font-weight: 600;
+      color: var(--wise-ink);
+      margin-bottom: 6px;
+    }
+  }
+}
+
+/* ===== Tablet ===== */
+@media (max-width: 1023px) {
+  .wise-stage {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 24px 0 32px;
+  }
+
+  .wise-hero {
+    text-align: left;
+
+    .wise-hero-display {
+      font-size: clamp(36px, 8vw, 56px);
+    }
+
+    .wise-hero-stats {
+      max-width: 100%;
+    }
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 767px) {
+  .wise-topbar {
+    height: 56px;
+
+    .wise-brand .wise-logo {
+      height: 28px;
+      max-width: 160px;
+    }
+  }
+
+  .wise-stage {
+    padding: 16px 0 24px;
+    gap: 24px;
+  }
+
+  .wise-hero {
+    gap: 16px;
+
+    .wise-hero-display {
+      font-size: 32px;
+      line-height: 1.1;
+    }
+
+    .wise-hero-sub {
+      font-size: 15px;
+    }
+
+    .wise-hero-stats {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+
+      .stat-card {
+        padding: 16px;
+
+        .stat-value {
+          font-size: 24px;
+        }
+
+        .stat-foot {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+
+  .wise-footer {
+    padding: 16px 0 24px;
+
+    .wise-footer-inner {
       flex-direction: column;
-      min-height: calc(100vh - 40px);
-      position: relative;
-      z-index: 1;
-
-      .top {
-        text-align: center;
-
-        .header {
-          height: 56px;
-          line-height: 56px;
-
-          .badge {
-            position: absolute;
-            display: inline-block;
-            line-height: 1;
-            vertical-align: middle;
-            margin-left: -12px;
-            margin-top: -10px;
-            opacity: 0.8;
-          }
-
-          .logo {
-            width: 342px; // approx 3.8:1 when height ~90px, keep responsive
-            max-width: 42vw;
-            height: auto;
-            vertical-align: middle;
-            margin-right: 0;
-            border-style: none;
-          }
-
-          .title {
-            font-size: 33px;
-            color: rgba(0, 0, 0, .85);
-            font-family: Avenir, 'Helvetica Neue', Arial, Helvetica, sans-serif;
-            font-weight: 600;
-            position: relative;
-            top: 2px;
-          }
-        }
-
-        .desc {
-          font-size: 14px;
-          color: rgba(0, 0, 0, 0.45);
-          margin-top: 12px;
-          margin-bottom: 40px;
-        }
-      }
-
-      .main {
-        min-width: 320px;
-        width: 480px;
-        margin: 0 auto;
-      }
-
-      .main-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .footer {
-        width: 100%;
-        padding: 0 16px;
-        margin-top: auto;
-        margin-bottom: 16px;
-        text-align: center;
-
-        .links {
-          margin-bottom: 8px;
-          font-size: 14px;
-
-          a {
-            color: rgba(0, 0, 0, 0.45);
-            transition: all 0.3s;
-
-            &:not(:last-child) {
-              margin-right: 40px;
-            }
-          }
-        }
-
-        .copyright {
-          color: rgba(0, 0, 0, 0.45);
-          font-size: 14px;
-        }
-      }
+      align-items: flex-start;
+      gap: 8px;
     }
-
-    a {
-      text-decoration: none;
-    }
-
   }
 }
 
-@media (max-width: 576px) {
-  #userLayout.user-layout-wrapper .container .user-layout-content .top .header .logo {
-    width: 208px;
-    max-width: 70vw;
-    margin-top: 8px;
-  }
-
-  #userLayout.user-layout-wrapper .container .user-layout-content .main {
-    width: 92vw;
-  }
-}
-
-@keyframes fxFloat {
-  0% {
-    transform: translate3d(-2%, -1%, 0) scale(1);
-  }
-
-  50% {
-    transform: translate3d(1%, 2%, 0) scale(1.02);
-  }
-
-  100% {
-    transform: translate3d(3%, -2%, 0) scale(1.04);
-  }
-}
-
-@keyframes gridDrift {
-  0% {
-    background-position: 0 0, 0 0;
-    transform: rotate(0deg);
-  }
-
-  50% {
-    background-position: 22px 22px, 22px 22px;
-  }
-
-  100% {
-    background-position: 44px 44px, 44px 44px;
-    transform: rotate(0.01turn);
+/* ===== Very small phones ===== */
+@media (max-width: 380px) {
+  .wise-hero .wise-hero-stats {
+    grid-template-columns: 1fr;
   }
 }
 </style>

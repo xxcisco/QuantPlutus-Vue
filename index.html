@@ -14,11 +14,12 @@
         flex-direction: column;
         min-height: 420px;
         height: 100vh;
-        background: #fff;
+        background: #e8ebe6;
         position: relative;
         overflow: hidden;
+        font-family: "Inter", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
       }
-      .first-loading-wrp > h2 { font-size: 32px; margin-bottom: 40px; color: #333; font-weight: 600; }
+      .first-loading-wrp > h2 { font-size: 56px; margin-bottom: 40px; color: #0e0f0c; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
       .first-loading-wrp .loading-wrp { padding: 40px; display: flex; justify-content: center; align-items: center; flex-direction: column; position: relative; width: 100%; max-width: 600px; }
       .pixel-cat-container { position: relative; width: 100%; height: 120px; margin: 0 auto 30px; overflow: hidden; }
       .pixel-cat { position: absolute; left: 0; bottom: 24px; width: 32px; height: 32px; animation: catRun 0.4s steps(2) infinite, catMove 3.5s linear infinite; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
@@ -48,11 +49,11 @@
       @keyframes headBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
       .ground { position: absolute; bottom: 0; left: 0; right: 0; height: 12px; background: repeating-linear-gradient(90deg, #222 0px, #222 6px, #555 6px, #555 12px); animation: groundMove 0.3s linear infinite; image-rendering: pixelated; }
       @keyframes groundMove { 0% { background-position: 0 0; } 100% { background-position: 12px 0; } }
-      .brand-text { display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: 600; color: #333; margin-top: 20px; letter-spacing: 2px; }
+      .brand-text { display: inline-flex; justify-content: center; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: #0e0f0c; margin-top: 20px; padding: 8px 20px; background: #9fe870; border-radius: 9999px; letter-spacing: 0.04em; }
       @media (prefers-color-scheme: dark) {
-        .first-loading-wrp { background: #141414; }
-        .first-loading-wrp > h2 { color: #fff; }
-        .brand-text { color: #fff; }
+        .first-loading-wrp { background: #161614; }
+        .first-loading-wrp > h2 { color: #f4f4f1; }
+        .brand-text { color: #0e0f0c; background: #9fe870; }
         .ground { background: repeating-linear-gradient(90deg, #555 0px, #555 6px, #333 6px, #333 12px); }
         .cat-head { background: linear-gradient(#ddd, #ddd) 2px 4px / 12px 10px no-repeat, linear-gradient(#000, #000) 2px 4px / 6px 10px no-repeat, linear-gradient(#ddd, #ddd) 4px 2px / 8px 2px no-repeat; }
         .cat-body { background: linear-gradient(#ddd, #ddd) 6px 0 / 8px 10px no-repeat, linear-gradient(#000, #000) 0 0 / 8px 10px no-repeat; }
@@ -61,9 +62,9 @@
       }
       .pixel-cat, .pixel-cat * { image-rendering: -moz-crisp-edges; image-rendering: -webkit-crisp-edges; image-rendering: pixelated; image-rendering: crisp-edges; }
       @media (max-width: 768px) {
-        .pixel-cat-container { transform: scale(1.5); }
-        .first-loading-wrp > h2 { font-size: 24px; margin-bottom: 30px; }
-        .brand-text { font-size: 20px; }
+        .pixel-cat-container { transform: scale(1.4); }
+        .first-loading-wrp > h2 { font-size: 36px; margin-bottom: 30px; }
+        .brand-text { font-size: 14px; }
       }
     </style>
   </head>

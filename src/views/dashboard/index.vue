@@ -1089,33 +1089,33 @@ export default {
       }
 
       const isDark = this.isDarkTheme
-      const textColor = isDark ? '#9ca3af' : '#6b7280'
+      const textColor = isDark ? '#cdcfca' : '#868685'
 
-      // Modern gradient colors
+      // Wise-aligned palette: lime green primary + sage / ink / accents
       const colors = [
         new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-          { offset: 0, color: '#3b82f6' },
-          { offset: 1, color: '#1d4ed8' }
+          { offset: 0, color: '#9fe870' },
+          { offset: 1, color: '#2ead4b' }
         ]),
         new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-          { offset: 0, color: '#8b5cf6' },
-          { offset: 1, color: '#6d28d9' }
+          { offset: 0, color: '#0e0f0c' },
+          { offset: 1, color: '#163300' }
         ]),
         new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-          { offset: 0, color: '#10b981' },
-          { offset: 1, color: '#059669' }
+          { offset: 0, color: '#38c8ff' },
+          { offset: 1, color: '#075c87' }
         ]),
         new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-          { offset: 0, color: '#f59e0b' },
-          { offset: 1, color: '#d97706' }
+          { offset: 0, color: '#ffc091' },
+          { offset: 1, color: '#b86700' }
         ]),
         new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-          { offset: 0, color: '#ec4899' },
-          { offset: 1, color: '#be185d' }
+          { offset: 0, color: '#ffd11a' },
+          { offset: 1, color: '#b86700' }
         ]),
         new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-          { offset: 0, color: '#06b6d4' },
-          { offset: 1, color: '#0891b2' }
+          { offset: 0, color: '#c5edab' },
+          { offset: 1, color: '#054d28' }
         ])
       ]
 
@@ -1407,12 +1407,12 @@ export default {
             name: this.$t('dashboard.tradeCount') || 'Trade Count',
             type: 'bar',
             data: counts,
-            barMaxWidth: 16,
+            barMaxWidth: 18,
             itemStyle: {
-              borderRadius: [3, 3, 0, 0],
+              borderRadius: [6, 6, 0, 0],
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#60a5fa' },
-                { offset: 1, color: '#3b82f6' }
+                { offset: 0, color: '#9fe870' },
+                { offset: 1, color: '#2ead4b' }
               ])
             }
           },
@@ -1422,7 +1422,7 @@ export default {
             data: profits,
             smooth: true,
             showSymbol: false,
-            lineStyle: { width: 2, color: '#a855f7' }
+            lineStyle: { width: 2.5, color: '#0e0f0c' }
           }
         ]
       }
@@ -1438,34 +1438,58 @@ export default {
 </script>
 
 <style lang="less" scoped>
-// Design tokens
-@bg-dark: #141414;
-@bg-card-dark: #1c1c1c;
-@bg-card-hover-dark: #252525;
-@border-dark: #2a2a2a;
-@text-primary-dark: #f1f5f9;
-@text-secondary-dark: #888888;
+/* Wise design tokens (mirror of CSS vars for Less consumption) */
+@wise-primary: #9fe870;
+@wise-primary-pale: #e2f6d5;
+@wise-on-primary: #0e0f0c;
+@wise-canvas: #ffffff;
+@wise-canvas-soft: #e8ebe6;
+@wise-ink: #0e0f0c;
+@wise-ink-deep: #163300;
+@wise-body: #454745;
+@wise-mute: #868685;
+@wise-positive: #2ead4b;
+@wise-positive-deep: #054d28;
+@wise-warning: #ffd11a;
+@wise-warning-deep: #b86700;
+@wise-warning-content: #4a3b1c;
+@wise-negative: #d03238;
+@wise-negative-deep: #a72027;
+@wise-negative-bg: #320707;
+@wise-accent-cyan: #38c8ff;
+@wise-accent-orange: #ffc091;
+@wise-border-soft: #d5d8d2;
+@wise-divider: #e1e4dd;
 
-@bg-light: #f8fafc;
-@bg-card-light: #ffffff;
-@border-light: #e2e8f0;
-@text-primary-light: #1e293b;
-@text-secondary-light: #64748b;
+/* Aliases (kept for minimal disruption of the inner cascade) */
+@bg-dark: #161614;
+@bg-card-dark: #1c1d1a;
+@bg-card-hover-dark: #232422;
+@border-dark: #2c2d2a;
+@text-primary-dark: #f4f4f1;
+@text-secondary-dark: #8a8c87;
 
-// Colors
-@green: #10b981;
-@green-light: #34d399;
-@red: #ef4444;
-@red-light: #f87171;
-@blue: #3b82f6;
+@bg-light: @wise-canvas-soft;
+@bg-card-light: @wise-canvas;
+@border-light: @wise-divider;
+@text-primary-light: @wise-ink;
+@text-secondary-light: @wise-mute;
+
+@green: @wise-positive;
+@green-light: lighten(@wise-positive, 10%);
+@red: @wise-negative;
+@red-light: lighten(@wise-negative, 10%);
+@blue: @wise-accent-cyan;
 @purple: #8b5cf6;
-@amber: #f59e0b;
-@cyan: #06b6d4;
+@amber: @wise-warning-deep;
+@cyan: @wise-accent-cyan;
 
 .dashboard-pro {
   min-height: 100vh;
-  padding: 20px;
+  padding: 24px;
   background: @bg-light;
+  font-family: var(--wise-font-body, "Inter", system-ui, sans-serif);
+  color: @wise-ink;
   transition: background 0.3s;
 
   &.theme-dark {
@@ -1700,38 +1724,42 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding: 18px 20px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.16);
-    border-radius: 16px;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding: 24px;
+    background: @wise-primary-pale;
+    border: none;
+    border-radius: 24px;
 
     .setup-guide-copy {
       min-width: 0;
     }
 
     .setup-guide-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: @text-primary-light;
+      font-family: var(--wise-font-display, "Inter", system-ui, sans-serif);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: @wise-ink-deep;
     }
 
     .setup-guide-desc {
-      margin-top: 4px;
-      color: @text-secondary-light;
-      line-height: 1.7;
+      margin-top: 6px;
+      color: @wise-body;
+      line-height: 1.6;
+      font-size: 14px;
     }
 
     .setup-guide-path {
-      margin-top: 6px;
+      margin-top: 8px;
       font-size: 12px;
-      color: #64748b;
+      color: @wise-mute;
+      font-family: 'JetBrains Mono', monospace;
     }
 
     .setup-guide-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       flex-shrink: 0;
     }
   }
@@ -1739,15 +1767,16 @@ export default {
   .kpi-card {
     position: relative;
     background: @bg-card-light;
-    border: 1px solid @border-light;
-    border-radius: 16px;
-    padding: 20px;
+    border: none;
+    border-radius: 24px;
+    padding: 24px;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 0 rgba(14, 15, 12, 0.04), 0 4px 16px rgba(14, 15, 12, 0.04);
+    transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(14, 15, 12, 0.06), 0 12px 32px rgba(14, 15, 12, 0.08);
     }
 
     &.clickable {
@@ -1758,7 +1787,8 @@ export default {
         top: 50%;
         transform: translateY(-50%);
         opacity: 0.4;
-        transition: all 0.3s;
+        color: @wise-ink;
+        transition: all 0.24s;
       }
       &:hover .card-arrow {
         opacity: 1;
@@ -1767,13 +1797,7 @@ export default {
     }
 
     .kpi-glow {
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
-      pointer-events: none;
+      display: none; /* Wise design favors clean surfaces over glows */
     }
 
     .kpi-content {
@@ -1784,28 +1808,28 @@ export default {
     .kpi-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
     .kpi-icon {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      background: rgba(59, 130, 246, 0.1);
-      color: @blue;
+      border-radius: 12px;
+      background: @wise-canvas-soft;
+      color: @wise-ink;
       font-size: 16px;
     }
 
     .kpi-label {
       font-size: 12px;
       font-weight: 600;
-      color: @text-secondary-light;
+      color: @wise-mute;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.08em;
     }
 
     .kpi-value {
@@ -1814,98 +1838,114 @@ export default {
       gap: 2px;
 
       .currency {
-        font-size: 18px;
-        font-weight: 500;
-        color: @text-secondary-light;
+        font-size: 20px;
+        font-weight: 600;
+        color: @wise-body;
       }
 
       .amount {
-        font-size: 28px;
-        font-weight: 700;
-        color: @text-primary-light;
+        font-family: var(--wise-font-display, "Inter", system-ui, sans-serif);
+        font-size: 36px;
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: @wise-ink;
         font-feature-settings: 'tnum';
       }
 
       .unit {
         font-size: 14px;
-        font-weight: 500;
-        color: @text-secondary-light;
+        font-weight: 600;
+        color: @wise-mute;
         margin-left: 4px;
       }
     }
 
     .kpi-sub {
-      margin-top: 8px;
-      font-size: 12px;
-      color: @text-secondary-light;
+      margin-top: 10px;
+      font-size: 13px;
+      color: @wise-body;
 
-      .label { margin: 0 2px; }
-      .divider { margin: 0 6px; opacity: 0.5; }
-      .highlight { font-weight: 600; color: @blue; }
+      .label { margin: 0 2px; color: @wise-mute; }
+      .divider { margin: 0 6px; color: @wise-mute; opacity: 0.6; }
+      .highlight { font-weight: 700; color: @wise-ink; }
     }
 
-    // Primary card with gradient
+    /* Primary KPI — Wise dark card with lime accent */
     &.kpi-primary {
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
+      background: @wise-ink;
+      color: @wise-primary;
       border: none;
 
       .kpi-icon {
-        background: rgba(255, 255, 255, 0.2);
-        color: #fff;
+        background: rgba(159, 232, 112, 0.16);
+        color: @wise-primary;
       }
-      .kpi-label { color: rgba(255, 255, 255, 0.8); }
+      .kpi-label { color: rgba(255, 255, 255, 0.7); }
       .kpi-value {
-        .currency, .amount, .unit { color: #fff; }
+        .currency { color: @wise-primary; opacity: 0.8; }
+        .amount { color: @wise-primary; }
+        .unit { color: rgba(255, 255, 255, 0.6); }
       }
       .kpi-sub { color: rgba(255, 255, 255, 0.7); }
     }
 
-    // Win rate ring
+    /* Win rate — pale green card */
     &.kpi-win-rate {
+      background: @wise-primary-pale;
+
       .kpi-ring {
         position: absolute;
-        right: 12px;
+        right: 16px;
         top: 50%;
         transform: translateY(-50%);
-        width: 60px;
-        height: 60px;
+        width: 64px;
+        height: 64px;
 
         svg {
           transform: rotate(-90deg);
 
           .ring-bg {
             fill: none;
-            stroke: rgba(16, 185, 129, 0.15);
+            stroke: rgba(46, 173, 75, 0.18);
             stroke-width: 3;
           }
 
           .ring-progress {
             fill: none;
-            stroke: @green;
+            stroke: @wise-positive;
             stroke-width: 3;
             stroke-linecap: round;
             transition: stroke-dasharray 0.5s ease;
           }
         }
       }
-      .kpi-icon { background: rgba(16, 185, 129, 0.1); color: @green; }
+      .kpi-icon { background: rgba(46, 173, 75, 0.16); color: @wise-positive-deep; }
     }
 
+    /* Profit factor — sage card */
     &.kpi-profit-factor {
-      .kpi-icon { background: rgba(139, 92, 246, 0.1); color: @purple; }
+      background: @wise-canvas-soft;
+      .kpi-icon { background: @wise-canvas; color: @wise-ink; }
     }
 
+    /* Drawdown — sage card with negative accent */
     &.kpi-drawdown {
-      .kpi-icon { background: rgba(239, 68, 68, 0.1); color: @red; }
-      .kpi-value .amount { color: @red; }
+      background: @wise-canvas-soft;
+      .kpi-icon { background: rgba(208, 50, 56, 0.10); color: @wise-negative; }
+      .kpi-value .amount { color: @wise-negative; }
     }
 
+    /* Trades — peach accent card */
     &.kpi-trades {
-      .kpi-icon { background: rgba(6, 182, 212, 0.1); color: @cyan; }
+      background: lighten(@wise-accent-orange, 12%);
+      .kpi-icon { background: rgba(255, 192, 145, 0.5); color: #6b3a1f; }
     }
 
+    /* Strategies — cyan accent card */
     &.kpi-strategies {
-      .kpi-icon { background: rgba(245, 158, 11, 0.1); color: @amber; }
+      background: lighten(@wise-accent-cyan, 30%);
+      .kpi-icon { background: rgba(56, 200, 255, 0.25); color: #075c87; }
     }
   }
 
@@ -1922,9 +1962,10 @@ export default {
 
   .chart-panel {
     background: @bg-card-light;
-    border: 1px solid @border-light;
-    border-radius: 16px;
+    border: none;
+    border-radius: 24px;
     overflow: hidden;
+    box-shadow: 0 1px 0 rgba(14, 15, 12, 0.04), 0 4px 16px rgba(14, 15, 12, 0.04);
 
     &.chart-main { flex: 2; }
     &.chart-side { flex: 1; min-width: 300px; }
@@ -1934,19 +1975,20 @@ export default {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid @border-light;
+      padding: 20px 24px;
+      border-bottom: 1px solid @wise-divider;
     }
 
     .panel-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: @text-primary-light;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: @wise-ink;
+      letter-spacing: -0.01em;
 
-      .anticon { color: @blue; }
+      .anticon { color: @wise-ink; }
     }
 
     .panel-legend {
@@ -1986,17 +2028,17 @@ export default {
     }
 
     .panel-badge {
-      background: @blue;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 10px;
+      background: @wise-ink;
+      color: @wise-primary;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
     }
 
     .chart-body {
       height: 320px;
-      padding: 16px;
+      padding: 16px 24px 24px;
 
       &.chart-sm { height: 220px; }
       &.calendar-chart { height: 280px; }
@@ -2053,31 +2095,34 @@ export default {
 
       .month-summary {
         display: flex;
-        gap: 20px;
-        margin-bottom: 10px;
-        padding: 8px 12px;
-        background: rgba(241, 245, 249, 0.5);
-        border-radius: 8px;
+        gap: 24px;
+        margin-bottom: 12px;
+        padding: 12px 16px;
+        background: @wise-canvas-soft;
+        border-radius: 16px;
 
         .summary-item {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
 
           .summary-label {
             font-size: 10px;
-            color: @text-secondary-light;
+            color: @wise-mute;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.08em;
+            font-weight: 600;
           }
 
           .summary-value {
-            font-size: 15px;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--wise-font-display, "Inter", system-ui, sans-serif);
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: @wise-ink;
 
-            &.positive { color: @green; }
-            &.negative { color: @red; }
+            &.positive { color: @wise-positive-deep; }
+            &.negative { color: @wise-negative-deep; }
           }
         }
       }
@@ -2103,69 +2148,65 @@ export default {
         gap: 3px;
 
         .calendar-cell {
-          height: 36px;
+          height: 44px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border-radius: 6px;
-          background: rgba(241, 245, 249, 0.5);
-          border: 1px solid transparent;
+          border-radius: 10px;
+          background: @wise-canvas-soft;
+          border: none;
           transition: all 0.2s ease;
           position: relative;
 
           &.empty {
             background: transparent;
-            border: none;
           }
 
           &.no-data {
-            background: rgba(241, 245, 249, 0.3);
+            background: rgba(232, 235, 230, 0.5);
           }
 
           &.profit {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.2) 100%);
-            border-color: rgba(34, 197, 94, 0.3);
+            background: @wise-primary-pale;
 
             &:hover {
-              background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.3) 100%);
+              background: lighten(@wise-primary-pale, 2%);
               transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+              box-shadow: 0 4px 12px rgba(46, 173, 75, 0.18);
             }
           }
 
           &.loss {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.2) 100%);
-            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(208, 50, 56, 0.10);
 
             &:hover {
-              background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.3) 100%);
+              background: rgba(208, 50, 56, 0.16);
               transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+              box-shadow: 0 4px 12px rgba(208, 50, 56, 0.18);
             }
           }
 
           &.zero {
-            background: rgba(161, 161, 170, 0.1);
-            border-color: rgba(161, 161, 170, 0.2);
+            background: @wise-canvas-soft;
           }
 
           .day-number {
-            font-size: 11px;
-            font-weight: 600;
-            color: @text-primary-light;
+            font-size: 12px;
+            font-weight: 700;
+            color: @wise-ink;
             line-height: 1;
           }
 
           .day-profit {
-            font-size: 9px;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             font-family: 'JetBrains Mono', monospace;
-            margin-top: 1px;
+            margin-top: 3px;
             line-height: 1;
 
-            &.positive { color: @green; }
-            &.negative { color: @red; }
+            &.positive { color: @wise-positive-deep; }
+            &.negative { color: @wise-negative-deep; }
           }
         }
       }
@@ -2196,35 +2237,40 @@ export default {
     .ranking-card {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      background: rgba(241, 245, 249, 0.5);
-      border: 1px solid @border-light;
-      border-radius: 12px;
+      gap: 14px;
+      padding: 16px 18px;
+      background: @wise-canvas-soft;
+      border: none;
+      border-radius: 20px;
       position: relative;
       overflow: hidden;
+      transition: transform 0.24s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
 
       &.rank-top {
-        border-color: transparent;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+        background: @wise-primary-pale;
       }
 
       .rank-badge {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 700;
-        background: @text-secondary-light;
-        color: #fff;
+        border-radius: 10px;
+        font-family: var(--wise-font-display, "Inter", system-ui, sans-serif);
+        font-size: 14px;
+        font-weight: 900;
+        background: @wise-mute;
+        color: @wise-canvas;
         flex-shrink: 0;
 
-        &.rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-        &.rank-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); }
-        &.rank-3 { background: linear-gradient(135deg, #cd7f32, #b87333); }
+        &.rank-1 { background: @wise-ink; color: @wise-primary; }
+        &.rank-2 { background: @wise-positive; color: @wise-canvas; }
+        &.rank-3 { background: @wise-accent-orange; color: @wise-ink; }
       }
 
       .rank-info {
@@ -2232,26 +2278,29 @@ export default {
         min-width: 0;
 
         .rank-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: @text-primary-light;
+          font-size: 14px;
+          font-weight: 700;
+          color: @wise-ink;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
 
         .rank-stats {
           display: flex;
-          gap: 12px;
+          gap: 14px;
           flex-wrap: wrap;
 
           .stat {
             font-size: 11px;
 
             label {
-              color: @text-secondary-light;
+              color: @wise-mute;
               margin-right: 4px;
+              text-transform: uppercase;
+              font-size: 10px;
+              letter-spacing: 0.06em;
             }
           }
         }
@@ -2262,16 +2311,16 @@ export default {
         bottom: 0;
         left: 0;
         right: 0;
-        height: 3px;
-        background: rgba(0, 0, 0, 0.05);
+        height: 4px;
+        background: rgba(14, 15, 12, 0.06);
 
         .bar-fill {
           height: 100%;
-          border-radius: 0 3px 3px 0;
+          border-radius: 0 4px 4px 0;
           transition: width 0.5s ease;
 
-          &.positive { background: linear-gradient(90deg, @green, @green-light); }
-          &.negative { background: linear-gradient(90deg, @red, @red-light); }
+          &.positive { background: @wise-positive; }
+          &.negative { background: @wise-negative; }
         }
       }
     }
@@ -2292,33 +2341,35 @@ export default {
   .table-panel {
     flex: 1;
     background: @bg-card-light;
-    border: 1px solid @border-light;
-    border-radius: 16px;
+    border: none;
+    border-radius: 24px;
     overflow: hidden;
+    box-shadow: 0 1px 0 rgba(14, 15, 12, 0.04), 0 4px 16px rgba(14, 15, 12, 0.04);
 
     .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid @border-light;
+      padding: 20px 24px;
+      border-bottom: 1px solid @wise-divider;
     }
 
     .panel-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: @text-primary-light;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: @wise-ink;
+      letter-spacing: -0.01em;
 
-      .anticon { color: @blue; }
+      .anticon { color: @wise-ink; }
 
       .sound-toggle {
         margin-left: 8px;
         font-size: 16px;
         cursor: pointer;
-        color: @green;
+        color: @wise-positive;
         transition: all 0.2s;
 
         &:hover {
@@ -2326,18 +2377,18 @@ export default {
         }
 
         &.sound-off {
-          color: @text-secondary-light;
+          color: @wise-mute;
         }
       }
     }
 
     .panel-badge {
-      background: @blue;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 10px;
+      background: @wise-ink;
+      color: @wise-primary;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
     }
   }
 
@@ -2348,31 +2399,32 @@ export default {
   // Pro table styles
   .pro-table {
     ::v-deep .ant-table {
-      font-size: 13px;
+      font-size: 14px;
     }
 
     ::v-deep .ant-table-thead > tr > th {
-      background: rgba(241, 245, 249, 0.8);
+      background: @wise-canvas-soft;
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: @text-secondary-light;
-      border-bottom: 1px solid @border-light;
+      letter-spacing: 0.08em;
+      color: @wise-mute;
+      border-bottom: 1px solid @wise-divider;
       padding: 12px 16px;
     }
 
     ::v-deep .ant-table-tbody > tr > td {
-      padding: 12px 16px;
-      border-bottom: 1px solid @border-light;
+      padding: 14px 16px;
+      border-bottom: 1px solid @wise-divider;
+      color: @wise-ink;
     }
 
     ::v-deep .ant-table-tbody > tr:hover > td {
-      background: rgba(59, 130, 246, 0.04);
+      background: @wise-primary-pale;
     }
 
     ::v-deep .ant-pagination {
-      padding: 12px 16px;
+      padding: 16px 24px;
       margin: 0;
     }
   }
@@ -2382,96 +2434,109 @@ export default {
     .symbol-name {
       font-weight: 600;
       display: block;
+      color: @wise-ink;
     }
     .symbol-strategy {
-      font-size: 11px;
-      color: @text-secondary-light;
+      font-size: 12px;
+      color: @wise-mute;
     }
   }
 
   .side-tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 12px;
+    border-radius: 9999px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 
     &.long {
-      background: rgba(16, 185, 129, 0.1);
-      color: @green;
+      background: @wise-primary-pale;
+      color: @wise-positive-deep;
     }
     &.short {
-      background: rgba(239, 68, 68, 0.1);
-      color: @red;
+      background: @wise-negative-bg;
+      color: #fff;
     }
   }
 
   .type-tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 12px;
+    border-radius: 9999px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 
     &.long {
-      background: rgba(16, 185, 129, 0.1);
-      color: @green;
+      background: @wise-primary-pale;
+      color: @wise-positive-deep;
     }
     &.short {
-      background: rgba(239, 68, 68, 0.1);
-      color: @red;
+      background: @wise-negative-bg;
+      color: #fff;
     }
     &.close-long {
-      background: rgba(245, 158, 11, 0.1);
-      color: @amber;
+      background: rgba(255, 209, 26, 0.20);
+      color: @wise-warning-content;
     }
     &.close-short {
-      background: rgba(139, 92, 246, 0.1);
-      color: @purple;
+      background: rgba(255, 192, 145, 0.35);
+      color: #6b3a1f;
     }
   }
 
   .symbol-tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 12px;
+    border-radius: 9999px;
     font-size: 11px;
-    font-weight: 600;
-    background: rgba(59, 130, 246, 0.1);
-    color: @blue;
+    font-weight: 700;
+    background: @wise-canvas-soft;
+    color: @wise-ink;
+    letter-spacing: 0.02em;
   }
 
   .exchange-tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 12px;
+    border-radius: 9999px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 
-    &.binance { background: rgba(240, 185, 11, 0.1); color: #f0b90b; }
-    &.okx { background: rgba(139, 92, 246, 0.1); color: @purple; }
-    &.bitget { background: rgba(6, 182, 212, 0.1); color: @cyan; }
-    &.signal { background: rgba(59, 130, 246, 0.1); color: @blue; }
+    &.binance { background: rgba(255, 209, 26, 0.20); color: @wise-warning-deep; }
+    &.okx { background: @wise-ink; color: @wise-primary; }
+    &.bitget { background: rgba(56, 200, 255, 0.20); color: #075c87; }
+    &.signal { background: @wise-canvas-soft; color: @wise-ink; }
   }
 
   .market-type {
     font-size: 10px;
-    color: @text-secondary-light;
+    color: @wise-mute;
     margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
   .status-tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 12px;
+    border-radius: 9999px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 
-    &.pending { background: rgba(245, 158, 11, 0.1); color: @amber; }
-    &.processing { background: rgba(59, 130, 246, 0.1); color: @blue; }
-    &.completed { background: rgba(16, 185, 129, 0.1); color: @green; }
-    &.failed { background: rgba(239, 68, 68, 0.1); color: @red; }
-    &.cancelled { background: rgba(100, 116, 139, 0.1); color: @text-secondary-light; }
+    &.pending { background: rgba(255, 209, 26, 0.20); color: @wise-warning-content; }
+    &.processing { background: rgba(56, 200, 255, 0.20); color: #075c87; }
+    &.completed { background: @wise-primary-pale; color: @wise-positive-deep; }
+    &.failed { background: @wise-negative-bg; color: #fff; }
+    &.cancelled { background: @wise-canvas-soft; color: @wise-mute; }
   }
 
   .error-hint {
@@ -2516,17 +2581,28 @@ export default {
     color: @text-secondary-light;
   }
 
-  .positive { color: @green; }
-  .negative { color: @red; }
+  .positive { color: @wise-positive; font-weight: 600; }
+  .negative { color: @wise-negative; font-weight: 600; }
 
-  // Responsive
-  @media (max-width: 768px) {
+  // Tablet
+  @media (max-width: 1023px) {
+    padding: 16px;
+
+    .kpi-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+  }
+
+  // Mobile
+  @media (max-width: 767px) {
     padding: 12px;
 
     .setup-guide-card {
       flex-direction: column;
       align-items: stretch;
-      padding: 16px;
+      padding: 18px;
+      border-radius: 20px;
 
       .setup-guide-actions {
         width: 100%;
@@ -2539,32 +2615,95 @@ export default {
 
     .kpi-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
     .kpi-card {
-      padding: 14px;
+      padding: 16px;
+      border-radius: 20px;
+
+      .kpi-header {
+        margin-bottom: 12px;
+        gap: 8px;
+      }
+
+      .kpi-icon {
+        width: 32px;
+        height: 32px;
+      }
 
       .kpi-value .amount {
-        font-size: 22px;
+        font-size: 26px;
+      }
+
+      .kpi-sub {
+        font-size: 12px;
       }
 
       &.kpi-win-rate .kpi-ring {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         right: 8px;
       }
     }
 
-    .chart-panel .chart-body {
-      height: 260px;
-      padding: 12px;
+    .chart-panel,
+    .table-panel {
+      border-radius: 20px;
 
-      &.chart-sm { height: 180px; }
+      .panel-header {
+        padding: 16px 18px;
+
+        .panel-title {
+          font-size: 14px;
+        }
+      }
+
+      .chart-body {
+        height: 260px;
+        padding: 12px 18px 18px;
+
+        &.chart-sm { height: 200px; }
+      }
     }
 
     .ranking-grid {
       grid-template-columns: 1fr;
+    }
+
+    .strategy-ranking {
+      padding: 16px 18px;
+    }
+
+    .profit-calendar {
+      padding: 12px 18px 18px;
+
+      .calendar-grid .calendar-cell {
+        height: 40px;
+
+        .day-number { font-size: 12px; }
+        .day-profit { font-size: 9px; }
+      }
+
+      .month-summary {
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+
+        .summary-value { font-size: 14px; }
+      }
+    }
+  }
+
+  // Very small phones
+  @media (max-width: 380px) {
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-card .kpi-value .amount {
+      font-size: 28px;
     }
   }
 }
