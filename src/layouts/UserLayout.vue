@@ -1,11 +1,6 @@
 <template>
 
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
-    <div class="scene">
-      <div class="grid-plane">
-        <div class="grid-lines"></div>
-      </div>
-    </div>
     <div class="container">
       <div class="fx-layer" aria-hidden="true">
         <div class="fx-gradient"></div>
@@ -100,71 +95,6 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.scene {
-  position: absolute;
-  inset: 0;
-  perspective: 1560px;
-  perspective-origin: 50% -50%;
-}
-
-.grid-plane {
-  --coin-tile: url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23d7a93d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M0 48h16M80 48h16M48 0v16M48 80v16' opacity='.42'/%3E%3Ccircle cx='48' cy='48' r='31'/%3E%3Ccircle cx='48' cy='48' r='25' opacity='.46'/%3E%3Crect x='37' y='37' width='22' height='22'/%3E%3Cpath d='M48 22v7M48 67v7M22 48h7M67 48h7' opacity='.75'/%3E%3C/g%3E%3Cg fill='%23ffe18a' opacity='.32'%3E%3Ccircle cx='35' cy='27' r='1.4'/%3E%3Ccircle cx='61' cy='69' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
-  position: absolute;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
-  height: 158%;
-  transform: rotateX(67deg);
-  transform-origin: center bottom;
-  filter: drop-shadow(0 0 5px rgba(255, 215, 112, 0.58));
-}
-
-.grid-lines {
-  position: absolute;
-  inset: 0;
-  background-image: var(--coin-tile);
-  background-size: 68px 68px;
-  animation: grid-travel 2s linear infinite;
-  box-shadow:
-    inset 0 0 76px rgba(255, 226, 135, 0.16),
-    0 0 28px rgba(255, 211, 98, 0.22);
-  opacity: 0.3;
-}
-
-.grid-lines::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: var(--coin-tile);
-  background-size: 68px 68px;
-  background-position: 1px 1px;
-  mix-blend-mode: screen;
-  animation: glow-breathe 6s ease-in-out infinite;
-  opacity: 0.1;
-}
-
-@keyframes grid-travel {
-  from {
-    background-position: 0 0;
-  }
-
-  to {
-    background-position: 0 68px;
-  }
-}
-
-@keyframes glow-breathe {
-
-  0%,
-  100% {
-    opacity: 0;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-}
-
 #userLayout.user-layout-wrapper {
   height: 100%;
 

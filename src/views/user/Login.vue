@@ -1,11 +1,5 @@
 <template>
   <div class="main">
-    <div class="scene">
-      <div class="grid-plane">
-        <div class="grid-lines"></div>
-      </div>
-    </div>
-
     <div class="auth-intro">
       <div class="desc">AI driven quantitative insights for global markets</div>
     </div>
