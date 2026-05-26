@@ -5,6 +5,7 @@ const api = {
   get: '/api/credentials/get',
   create: '/api/credentials/create',
   delete: '/api/credentials/delete',
+  updateName: '/api/credentials/update-name',
   egressIp: '/api/credentials/egress-ip',
   desktopBrokersPolicy: '/api/credentials/desktop-brokers-policy'
 }
@@ -38,6 +39,15 @@ export function deleteExchangeCredential (id, params = {}) {
     url: api.delete,
     method: 'delete',
     params: { id, ...params }
+  })
+}
+
+/** Update display name only (API keys unchanged). */
+export function updateExchangeCredentialName (data) {
+  return request({
+    url: api.updateName,
+    method: 'put',
+    data
   })
 }
 

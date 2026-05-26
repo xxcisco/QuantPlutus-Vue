@@ -351,7 +351,9 @@ export default {
       return names[id] || id
     },
     _validateFieldNamesForSave () {
-      const f = ['exchange_id']
+      // Include `name` so validateFields returns it in values (Ant Design Vue only
+      // passes back the fields listed here — omitting name caused empty DB names).
+      const f = ['exchange_id', 'name']
       if (this.addExchangeType === 'crypto') {
         f.push('api_key', 'secret_key')
         if (this.addExchangeNeedsPassphrase) f.push('passphrase')
@@ -383,6 +385,9 @@ export default {
     },
     _normalizeCredentialPayload (values) {
       const p = { ...values }
+      if (typeof p.name === 'string') {
+        p.name = p.name.trim()
+      }
       if (p.exchange_id === 'mt5' && p.mt5_login != null && p.mt5_login !== '') {
         p.mt5_login = String(p.mt5_login)
       }

@@ -1499,6 +1499,7 @@ import { ACCESS_TOKEN } from '@/store/mutation-types'
 import { baseMixin } from '@/store/app-mixin'
 import request from '@/utils/request'
 import { formatBacktestTime } from '@/utils/userTime'
+import { resolveExperimentIndicatorParams } from '@/utils/experimentOverrides'
 import { getUserInfo } from '@/api/login'
 import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
 import KlineChart from '@/views/indicator-analysis/components/KlineChart.vue'
@@ -3538,7 +3539,8 @@ export default {
       }
       const norm = k => String(k || '').replace(/strategy_config\./gi, 'strategyConfig.')
       Object.keys(overrides).forEach(k => {
-        if (k === 'indicatorParams' || k === 'riskParams') return
+        if (k === 'indicatorParams' || k === 'indicator_params' || k === 'riskParams') return
+        if (k.startsWith('indicator_params.') || k.startsWith('indicatorParams.')) return
         if (k === 'leverage') {
           out.leverage = Number(overrides[k])
           return
@@ -3632,8 +3634,11 @@ export default {
         })
       })
 
-      const indicatorParams = candidate.overrides.indicatorParams
-      if (indicatorParams && typeof indicatorParams === 'object') {
+      const indicatorParams = resolveExperimentIndicatorParams(
+        candidate.overrides,
+        candidate.snapshot
+      )
+      if (indicatorParams && typeof indicatorParams === 'object' && Object.keys(indicatorParams).length) {
         Object.keys(indicatorParams).forEach(name => {
           const prevValue = (currentState.indicatorParams || {})[name]
           const nextValue = indicatorParams[name]
@@ -3730,10 +3735,10 @@ export default {
       }
       return changed ? lines.join('\n') : code
     },
-    applyExperimentOverridesToCode (code, overrides) {
+    applyExperimentOverridesToCode (code, overrides, snapshot) {
       const strat = this.flattenExperimentOverrides(overrides)
       let next = this.applyStrategyAnnotationsToCode(code, strat)
-      const ip = overrides.indicatorParams
+      const ip = resolveExperimentIndicatorParams(overrides, snapshot)
       if (ip && typeof ip === 'object' && Object.keys(ip).length) {
         next = this.applyIndicatorParamsToCode(next, ip)
       }
@@ -3756,7 +3761,7 @@ export default {
       const changeEntries = this.buildExperimentChangeEntries(candidate, prev)
       const changedEntries = changeEntries.filter(item => item.changed)
       const flatOverrides = this.flattenExperimentOverrides(candidate.overrides)
-      const next = this.applyExperimentOverridesToCode(prev, candidate.overrides)
+      const next = this.applyExperimentOverridesToCode(prev, candidate.overrides, candidate.snapshot)
       if (next === prev && !changedEntries.length) {
         this.$message.info(this.$t('indicatorIde.applyCandidateNoChanges'))
         return

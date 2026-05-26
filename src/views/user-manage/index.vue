@@ -452,7 +452,7 @@
 
             <!-- Exchange Column -->
             <template slot="exchangeInfo" slot-scope="text">
-              <span v-if="text" class="exchange-name">{{ text }}</span>
+              <span v-if="text" class="exchange-name">{{ formatExchangeName(text) }}</span>
               <span v-else class="text-muted">-</span>
             </template>
 
@@ -1062,6 +1062,7 @@ import { getUserList, exportUsers, createUser, updateUser, deleteUser, resetUser
 import { baseMixin } from '@/store/app-mixin'
 import { mapGetters } from 'vuex'
 import * as echarts from 'echarts'
+import { getExchangeDisplayName } from '@/utils/exchangeCredential'
 
 export default {
   name: 'UserManage',
@@ -1955,6 +1956,17 @@ export default {
       const val = Number(pnl)
       const prefix = val >= 0 ? '+' : ''
       return prefix + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+    },
+
+    /** Map exchange_id (binance / alpaca / ibkr …) to a human label. */
+    formatExchangeName (exchangeId) {
+      const id = String(exchangeId || '').trim().toLowerCase()
+      if (!id) return '-'
+      const i18nKey = `brokerAccounts.${id}.name`
+      if (this.$te && this.$te(i18nKey)) {
+        return this.$t(i18nKey)
+      }
+      return getExchangeDisplayName(id)
     },
 
     truncate (str, maxLen) {

@@ -1346,6 +1346,7 @@
 import { getStrategyList, startStrategy, stopStrategy, deleteStrategy, updateStrategy, createStrategy, getStrategyEquityCurve, getStrategyPositions, batchCreateStrategies, batchStartStrategies, batchStopStrategies, batchDeleteStrategies } from '@/api/strategy'
 import { getWatchlist, addWatchlist, searchSymbols, getHotSymbols } from '@/api/market'
 import { listExchangeCredentials } from '@/api/credentials'
+import { formatExchangeCredentialLabel } from '@/utils/exchangeCredential'
 import { getNotificationSettings } from '@/api/user'
 import { baseMixin } from '@/store/app-mixin'
 import request from '@/utils/request'
@@ -2429,11 +2430,7 @@ export default {
       }
     },
     formatCredentialLabel (cred) {
-      if (!cred) return ''
-      const name = (cred.name || '').trim()
-      const ex = cred.exchange_id || ''
-      const hint = cred.api_key_hint || ''
-      return name ? `${ex.toUpperCase()} - ${name} (${hint})` : `${ex.toUpperCase()} (${hint})`
+      return formatExchangeCredentialLabel(cred)
     },
     // Check if credential is compatible with current market category.
     //

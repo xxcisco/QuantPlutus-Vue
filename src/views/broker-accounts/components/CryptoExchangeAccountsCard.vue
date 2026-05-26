@@ -14,6 +14,9 @@
         <a-button :loading="loading" @click="loadCredentials">
           <a-icon type="reload" /> {{ $t('brokerAccounts.refresh') }}
         </a-button>
+        <a-button class="crypto-open-account-btn" @click="signupModalVisible = true">
+          <a-icon type="rocket" /> {{ $t('profile.exchange.openAccount') }}
+        </a-button>
         <a-button type="primary" @click="openAddModal">
           <a-icon type="plus" /> {{ $t('brokerAccounts.cryptoSection.addAccount') }}
         </a-button>
@@ -42,7 +45,7 @@
             <div class="crypto-item-name">
               {{ exchangeDisplayName(item.exchange_id) }}
               <span class="crypto-item-sep">·</span>
-              <span class="crypto-item-alias">{{ item.name || $t('brokerAccounts.cryptoSection.unnamed') }}</span>
+              <span class="crypto-item-alias">{{ credentialAlias(item) }}</span>
             </div>
             <div class="crypto-item-line">
               <span v-if="item.api_key_hint" class="crypto-item-hint">{{ item.api_key_hint }}</span>
@@ -50,6 +53,9 @@
             </div>
           </div>
           <div class="crypto-item-actions">
+            <a-button size="small" type="link" @click="openRenameModal(item)">
+              <a-icon type="edit" /> {{ $t('brokerAccounts.cryptoSection.editName') }}
+            </a-button>
             <a-popconfirm
               :title="$t('brokerAccounts.cryptoSection.confirmDelete', { name: item.name || exchangeDisplayName(item.exchange_id) })"
               :ok-text="$t('brokerAccounts.confirm')"
@@ -70,12 +76,24 @@
       :visible.sync="addModalVisible"
       @success="onCredentialSaved"
     />
+    <rename-credential-modal
+      :visible.sync="renameModalVisible"
+      :credential="renameTarget"
+      @success="onCredentialRenamed"
+    />
+    <exchange-signup-modal
+      :visible.sync="signupModalVisible"
+      :is-dark-theme="isDarkTheme"
+    />
   </div>
 </template>
 
 <script>
 import { listExchangeCredentials, deleteExchangeCredential } from '@/api/credentials'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
+import ExchangeSignupModal from '@/components/ExchangeSignupModal/ExchangeSignupModal.vue'
+import RenameCredentialModal from '@/components/RenameCredentialModal/RenameCredentialModal.vue'
+import { getExchangeDisplayName } from '@/utils/exchangeCredential'
 import moment from 'moment'
 
 const CRYPTO_EXCHANGE_IDS = new Set([
@@ -113,7 +131,7 @@ const ICON_COLORS = {
 
 export default {
   name: 'CryptoExchangeAccountsCard',
-  components: { ExchangeAccountModal },
+  components: { ExchangeAccountModal, ExchangeSignupModal, RenameCredentialModal },
   props: {
     isDarkTheme: { type: Boolean, default: false }
   },
@@ -121,7 +139,10 @@ export default {
     return {
       items: [],
       loading: false,
-      addModalVisible: false
+      addModalVisible: false,
+      signupModalVisible: false,
+      renameModalVisible: false,
+      renameTarget: null
     }
   },
   computed: {
@@ -134,7 +155,14 @@ export default {
   },
   methods: {
     exchangeDisplayName (id) {
-      return DISPLAY_NAMES[id] || (id ? id.toUpperCase() : '--')
+      return getExchangeDisplayName(id) || DISPLAY_NAMES[id] || (id ? id.toUpperCase() : '--')
+    },
+    credentialAlias (item) {
+      const alias = (item && item.name && String(item.name).trim()) || ''
+      if (alias) return alias
+      const hint = item && item.api_key_hint
+      if (hint) return hint
+      return this.$t('brokerAccounts.cryptoSection.unnamed')
     },
     exchangeInitial (id) {
       const name = this.exchangeDisplayName(id)
@@ -168,6 +196,13 @@ export default {
       this.addModalVisible = true
     },
     onCredentialSaved () {
+      this.loadCredentials()
+    },
+    openRenameModal (item) {
+      this.renameTarget = item ? { ...item } : null
+      this.renameModalVisible = true
+    },
+    onCredentialRenamed () {
       this.loadCredentials()
     },
     async deleteItem (item) {
@@ -230,6 +265,11 @@ export default {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.crypto-open-account-btn {
+  margin-right: 0;
 }
 .crypto-empty {
   text-align: center;
@@ -313,6 +353,11 @@ export default {
 }
 .crypto-item-time { color: #bfbfbf; font-size: 11px; }
 .crypto-card.theme-dark .crypto-item-time { color: rgba(255, 255, 255, 0.4); }
-.crypto-item-actions { flex-shrink: 0; }
+.crypto-item-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 .crypto-item-delete { color: #cf1322; }
 </style>

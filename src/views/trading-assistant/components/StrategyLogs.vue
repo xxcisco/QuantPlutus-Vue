@@ -152,7 +152,12 @@ export default {
     formatTime (ts) {
       if (!ts) return ''
       const loc = this.$i18n.locale || 'zh-CN'
-      return formatStrategyLogTime(ts, { locale: loc, fallback: String(ts) })
+      const profileTz = (this.$store.getters.userInfo || {}).timezone
+      return formatStrategyLogTime(ts, {
+        locale: loc,
+        timeZone: profileTz,
+        fallback: String(ts)
+      })
     },
 
     getLevelColor (level) {

@@ -82,7 +82,7 @@
                 :key="cred.id"
                 :value="cred.id"
               >
-                {{ cred.name || cred.exchange_id }} ({{ cred.exchange_id }}{{ cred.api_key_hint ? ' · ' + cred.api_key_hint : '' }})
+                {{ formatCredentialOptionLabel(cred) }}
               </a-select-option>
             </a-select>
             <div class="form-hint" style="margin-top: 6px;">
@@ -435,6 +435,7 @@ import request from '@/utils/request'
 import { mapGetters } from 'vuex'
 import { createStrategy, updateStrategy } from '@/api/strategy'
 import { listExchangeCredentials } from '@/api/credentials'
+import { formatExchangeCredentialLabel } from '@/utils/exchangeCredential'
 import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
 import { generateBotScript } from './botScriptTemplates'
 import GridConfig from './configs/GridConfig.vue'
@@ -835,6 +836,11 @@ export default {
     }
   },
   methods: {
+    formatCredentialOptionLabel (cred) {
+      return formatExchangeCredentialLabel(cred, {
+        unnamed: this.$t('brokerAccounts.cryptoSection.unnamed')
+      })
+    },
     shouldShowStrategyParam (key) {
       if (key === 'referencePrice') return this.botType === 'grid'
       // Hide the trailing TP activation / callback details on the confirm

@@ -68,7 +68,7 @@
               :notFoundContent="$t('quickTrade.noExchange')"
             >
               <a-select-option v-for="c in credentials" :key="c.id" :value="c.id">
-                <span style="text-transform: capitalize;">{{ c.exchange_id || c.name }}</span>
+                {{ formatCredentialOptionLabel(c) }}
                 <a-tag v-if="c.enable_demo_trading" color="orange" size="small" style="margin-left: 6px;">{{ $t('quickTrade.testnetTag') }}</a-tag>
                 <a-tag v-if="c.market_type" size="small" style="margin-left: 6px;">{{ c.market_type }}</a-tag>
               </a-select-option>
@@ -390,6 +390,7 @@
 <script>
 import { mapState } from 'vuex'
 import { listExchangeCredentials } from '@/api/credentials'
+import { formatExchangeCredentialLabel } from '@/utils/exchangeCredential'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
 import { placeQuickOrder, getQuickTradeBalance, getQuickTradePosition, getQuickTradeHistory, closeQuickTradePosition } from '@/api/quick-trade'
 import { searchSymbols, getWatchlist } from '@/api/market'
@@ -578,6 +579,11 @@ export default {
     }
   },
   methods: {
+    formatCredentialOptionLabel (cred) {
+      return formatExchangeCredentialLabel(cred, {
+        unnamed: this.$t('brokerAccounts.cryptoSection.unnamed')
+      })
+    },
     qtSelectPopupContainer (triggerNode) {
       if (typeof this.overlayGetContainer === 'function') {
         return this.overlayGetContainer(triggerNode)

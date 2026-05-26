@@ -126,9 +126,11 @@ const user = {
             reject(new Error('登录数据异常'))
             return
           }
-          storage.set(ACCESS_TOKEN, token, new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+          const expiresAt = new Date().getTime() + 7 * 24 * 60 * 60 * 1000
+          storage.set(ACCESS_TOKEN, token, expiresAt)
           commit('SET_TOKEN', token)
           commit('SET_INFO', userInfo)
+          storage.set(USER_INFO, userInfo, expiresAt)
 
           if (userInfo.nickname) {
             commit('SET_NAME', { name: userInfo.nickname, welcome: welcome() })

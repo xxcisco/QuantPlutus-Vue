@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ant-design-vue/pro-layout": "^1.0.12",
+    "@ant-design/colors": "^8.0.1",
     "@antv/data-set": "^0.10.2",
     "@iconify/vue2": "^2.1.0",
     "ant-design-vue": "^1.7.8",

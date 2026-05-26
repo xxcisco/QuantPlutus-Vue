@@ -173,6 +173,22 @@ import request from '@/utils/request'
 import { decryptCodeAuto, needsDecrypt } from '@/utils/codeDecrypt'
 import ExchangeKlineWs from '@/utils/exchangeWs'
 import { usePyodide } from '@/services/pyodide/usePyodide'
+import {
+  calculateSMA,
+  calculateEMA,
+  calculateBollingerBands,
+  calculateRSI,
+  calculateMACD,
+  calculateATR,
+  calculateCCI,
+  calculateWilliamsR,
+  calculateMFI,
+  calculateADX,
+  calculateOBV,
+  calculateAD,
+  calculateADOSC,
+  calculateKDJ
+} from '@/utils/technicalIndicators'
 
 export default {
   name: 'KlineChart',
@@ -1057,522 +1073,7 @@ export default {
       }
     }
 
-    // --- 指标计算函数 ---
-    // 这些函数可能通过 indicator.calculate 间接调用，所以 ESLint 可能无法识别
-
-    // eslint-disable-next-line no-unused-vars
-    function calculateSMA (data, length) {
-      const result = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < length - 1) {
-          result.push(null)
-        } else {
-          let sum = 0
-          for (let j = i - length + 1; j <= i; j++) {
-            sum += data[j].close
-          }
-          result.push(sum / length)
-        }
-      }
-      return result
-    }
-
-    function calculateEMA (data, length) {
-      const result = []
-      const multiplier = 2 / (length + 1)
-      let ema = null
-      for (let i = 0; i < data.length; i++) {
-        if (i === 0) {
-          ema = data[i].close
-        } else {
-          ema = (data[i].close - ema) * multiplier + ema
-        }
-        result.push(ema)
-      }
-      return result
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    function calculateBollingerBands (data, length, mult) {
-      // 内部计算SMA
-      const sma = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < length - 1) {
-          sma.push(null)
-        } else {
-          let sum = 0
-          for (let j = i - length + 1; j <= i; j++) {
-            sum += data[j].close
-          }
-          sma.push(sum / length)
-        }
-      }
-
-      const result = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < length - 1) {
-          result.push({ upper: null, middle: null, lower: null })
-          continue
-        }
-        let sum = 0
-        for (let j = i - length + 1; j <= i; j++) {
-          sum += Math.pow(data[j].close - sma[i], 2)
-        }
-        const std = Math.sqrt(sum / length)
-        result.push({
-          upper: sma[i] + mult * std,
-          middle: sma[i],
-          lower: sma[i] - mult * std
-        })
-      }
-      return result
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    function calculateRSI (data, length) {
-      const result = []
-      let avgGain = 0
-      let avgLoss = 0
-
-      for (let i = 0; i < data.length; i++) {
-        if (i === 0) {
-          result.push(null)
-          continue
-        }
-
-        const change = data[i].close - data[i - 1].close
-        const gain = change > 0 ? change : 0
-        const loss = change < 0 ? Math.abs(change) : 0
-
-        if (i < length) {
-          // 前length-1个值，累积但不计算RSI
-          result.push(null)
-        } else if (i === length) {
-          // 第length个值，计算初始平均值
-          let sumGain = 0
-          let sumLoss = 0
-          for (let j = 1; j <= length; j++) {
-            const chg = data[j].close - data[j - 1].close
-            if (chg > 0) sumGain += chg
-            else sumLoss += Math.abs(chg)
-          }
-          avgGain = sumGain / length
-          avgLoss = sumLoss / length
-          const rs = avgLoss === 0 ? 100 : avgGain / avgLoss
-          result.push(100 - (100 / (1 + rs)))
-        } else {
-          // 后续值，使用平滑移动平均
-          avgGain = (avgGain * (length - 1) + gain) / length
-          avgLoss = (avgLoss * (length - 1) + loss) / length
-          const rs = avgLoss === 0 ? 100 : avgGain / avgLoss
-          result.push(100 - (100 / (1 + rs)))
-        }
-      }
-      return result
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    function calculateMACD (data, fast, slow, signal) {
-      const fastEMA = calculateEMA(data, fast)
-      const slowEMA = calculateEMA(data, slow)
-      const macdLine = []
-
-      // 计算MACD线
-      for (let i = 0; i < data.length; i++) {
-        if (fastEMA[i] == null || slowEMA[i] == null) {
-          macdLine.push(null)
-        } else {
-          macdLine.push(fastEMA[i] - slowEMA[i])
-        }
-      }
-
-      // 计算Signal线 (MACD的EMA)
-      // 需要保持原始数组长度，对null值进行特殊处理
-      const signalLine = []
-      const histogram = []
-      let signalEMA = null
-      let signalStartIdx = -1
-
-      // 找到第一个非null的MACD值作为signal计算的起点
-      for (let i = 0; i < macdLine.length; i++) {
-        if (macdLine[i] !== null && signalStartIdx === -1) {
-          signalStartIdx = i
-          signalEMA = macdLine[i]
-          break
-        }
-      }
-
-      // 如果找到了起点，继续计算signal
-      if (signalStartIdx >= 0) {
-        const multiplier = 2 / (signal + 1)
-        for (let i = 0; i < macdLine.length; i++) {
-          if (i < signalStartIdx + signal - 1) {
-            // signal需要等待足够的MACD值
-            signalLine.push(null)
-            histogram.push(null)
-          } else if (macdLine[i] === null) {
-            signalLine.push(null)
-            histogram.push(null)
-          } else {
-            if (i === signalStartIdx + signal - 1) {
-              // 第一个signal值：计算前signal个MACD值的平均值
-              let sum = 0
-              let count = 0
-              for (let j = signalStartIdx; j <= i; j++) {
-                if (macdLine[j] !== null) {
-                  sum += macdLine[j]
-                  count++
-                }
-              }
-              signalEMA = sum / count
-            } else {
-              // 后续值：使用EMA公式
-              signalEMA = (macdLine[i] - signalEMA) * multiplier + signalEMA
-            }
-            signalLine.push(signalEMA)
-            histogram.push(macdLine[i] - signalEMA)
-          }
-        }
-      } else {
-        // 如果没有有效的MACD值，全部设为null
-        for (let i = 0; i < macdLine.length; i++) {
-          signalLine.push(null)
-          histogram.push(null)
-        }
-      }
-
-      return { macd: macdLine, signal: signalLine, histogram }
-    }
-
-    // 计算ATR（平均真实波幅）
-    function calculateATR (data, period) {
-      const tr = [] // 真实波幅
-      for (let i = 0; i < data.length; i++) {
-        if (i === 0) {
-          tr.push(data[i].high - data[i].low)
-        } else {
-          const hl = data[i].high - data[i].low
-          const hc = Math.abs(data[i].high - data[i - 1].close)
-          const lc = Math.abs(data[i].low - data[i - 1].close)
-          tr.push(Math.max(hl, hc, lc))
-        }
-      }
-
-      // 计算ATR（TR的SMA）
-      const atr = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) {
-          atr.push(null)
-        } else {
-          let sum = 0
-          for (let j = i - period + 1; j <= i; j++) {
-            sum += tr[j]
-          }
-          atr.push(sum / period)
-        }
-      }
-      return atr
-    }
-
-    // 计算CCI (商品通道指数)
-    function calculateCCI (data, length) {
-      const cci = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < length - 1) {
-          cci.push(null)
-        } else {
-          // 计算典型价格 (TP)
-          const tp = []
-          for (let j = i - length + 1; j <= i; j++) {
-            tp.push((data[j].high + data[j].low + data[j].close) / 3)
-          }
-          // 计算TP的SMA
-          const sma = tp.reduce((sum, val) => sum + val, 0) / length
-          // 计算平均偏差
-          const meanDev = tp.reduce((sum, val) => sum + Math.abs(val - sma), 0) / length
-          // 计算CCI
-          const currentTP = (data[i].high + data[i].low + data[i].close) / 3
-          const cciValue = meanDev === 0 ? 0 : (currentTP - sma) / (0.015 * meanDev)
-          cci.push(cciValue)
-        }
-      }
-      return cci
-    }
-
-    // 计算Williams %R (威廉指标)
-    function calculateWilliamsR (data, length) {
-      const williamsR = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < length - 1) {
-          williamsR.push(null)
-        } else {
-          let highest = -Infinity
-          let lowest = Infinity
-          for (let j = i - length + 1; j <= i; j++) {
-            highest = Math.max(highest, data[j].high)
-            lowest = Math.min(lowest, data[j].low)
-          }
-          const wr = (highest - lowest) === 0 ? -50 : ((highest - data[i].close) / (highest - lowest)) * -100
-          williamsR.push(wr)
-        }
-      }
-      return williamsR
-    }
-
-    // 计算MFI (资金流量指标)
-    function calculateMFI (data, length) {
-      const mfi = []
-      for (let i = 0; i < data.length; i++) {
-        if (i < length) {
-          mfi.push(null)
-        } else {
-          let positiveFlow = 0
-          let negativeFlow = 0
-          for (let j = i - length + 1; j <= i; j++) {
-            const typicalPrice = (data[j].high + data[j].low + data[j].close) / 3
-            const rawMoneyFlow = typicalPrice * data[j].volume
-            if (j > i - length + 1) {
-              const prevTypicalPrice = (data[j - 1].high + data[j - 1].low + data[j - 1].close) / 3
-              if (typicalPrice > prevTypicalPrice) {
-                positiveFlow += rawMoneyFlow
-              } else if (typicalPrice < prevTypicalPrice) {
-                negativeFlow += rawMoneyFlow
-              }
-            }
-          }
-          const moneyFlowRatio = negativeFlow === 0 ? 100 : positiveFlow / negativeFlow
-          const mfiValue = 100 - (100 / (1 + moneyFlowRatio))
-          mfi.push(mfiValue)
-        }
-      }
-      return mfi
-    }
-
-    // 计算ADX (平均趋向指数) 和 DMI (+DI, -DI)
-    function calculateADX (data, length) {
-      const plusDI = []
-      const minusDI = []
-      const adx = []
-
-      // 计算真实波幅(TR)和方向移动(+DM, -DM)
-      const tr = []
-      const plusDM = []
-      const minusDM = []
-
-      for (let i = 0; i < data.length; i++) {
-        if (i === 0) {
-          tr.push(data[i].high - data[i].low)
-          plusDM.push(0)
-          minusDM.push(0)
-        } else {
-          const hl = data[i].high - data[i].low
-          const hc = Math.abs(data[i].high - data[i - 1].close)
-          const lc = Math.abs(data[i].low - data[i - 1].close)
-          tr.push(Math.max(hl, hc, lc))
-
-          const upMove = data[i].high - data[i - 1].high
-          const downMove = data[i - 1].low - data[i].low
-
-          if (upMove > downMove && upMove > 0) {
-            plusDM.push(upMove)
-          } else {
-            plusDM.push(0)
-          }
-
-          if (downMove > upMove && downMove > 0) {
-            minusDM.push(downMove)
-          } else {
-            minusDM.push(0)
-          }
-        }
-      }
-
-      // 计算平滑的TR, +DM, -DM
-      const smoothTR = []
-      const smoothPlusDM = []
-      const smoothMinusDM = []
-
-      for (let i = 0; i < data.length; i++) {
-        if (i < length - 1) {
-          smoothTR.push(null)
-          smoothPlusDM.push(null)
-          smoothMinusDM.push(null)
-          plusDI.push(null)
-          minusDI.push(null)
-          adx.push(null)
-        } else if (i === length - 1) {
-          // 初始值：简单求和
-          let sumTR = 0
-          let sumPlusDM = 0
-          let sumMinusDM = 0
-          for (let j = 0; j <= i; j++) {
-            sumTR += tr[j]
-            sumPlusDM += plusDM[j]
-            sumMinusDM += minusDM[j]
-          }
-          smoothTR.push(sumTR)
-          smoothPlusDM.push(sumPlusDM)
-          smoothMinusDM.push(sumMinusDM)
-        } else {
-          // 平滑计算：Wilder's smoothing
-          smoothTR.push(smoothTR[i - 1] - (smoothTR[i - 1] / length) + tr[i])
-          smoothPlusDM.push(smoothPlusDM[i - 1] - (smoothPlusDM[i - 1] / length) + plusDM[i])
-          smoothMinusDM.push(smoothMinusDM[i - 1] - (smoothMinusDM[i - 1] / length) + minusDM[i])
-        }
-
-        if (i >= length - 1) {
-          const trVal = smoothTR[i]
-          const plusDMVal = smoothPlusDM[i]
-          const minusDMVal = smoothMinusDM[i]
-
-          if (trVal === 0) {
-            plusDI.push(0)
-            minusDI.push(0)
-          } else {
-            plusDI.push((plusDMVal / trVal) * 100)
-            minusDI.push((minusDMVal / trVal) * 100)
-          }
-
-          // 计算DX
-          if (i >= length - 1) {
-            const diSum = plusDI[i] + minusDI[i]
-            const dx = diSum === 0 ? 0 : Math.abs(plusDI[i] - minusDI[i]) / diSum * 100
-
-            // 计算ADX (DX的平滑)
-            if (i === length - 1) {
-              adx.push(dx)
-            } else if (i === length) {
-              // 第二个ADX值：前两个DX的平均值
-              const prevDX = Math.abs(plusDI[i - 1] - minusDI[i - 1]) / (plusDI[i - 1] + minusDI[i - 1]) * 100
-              adx.push((prevDX + dx) / 2)
-            } else {
-              // ADX平滑：Wilder's smoothing
-              adx.push((adx[i - 1] * (length - 1) + dx) / length)
-            }
-          }
-        }
-      }
-
-      return { adx, plusDI, minusDI }
-    }
-
-    // 计算OBV (能量潮指标)
-    function calculateOBV (data) {
-      const obv = []
-      let obvValue = 0
-
-      for (let i = 0; i < data.length; i++) {
-        if (i === 0) {
-          obvValue = data[i].volume
-        } else {
-          if (data[i].close > data[i - 1].close) {
-            obvValue += data[i].volume
-          } else if (data[i].close < data[i - 1].close) {
-            obvValue -= data[i].volume
-          }
-          // 如果收盘价相同，OBV不变
-        }
-        obv.push(obvValue)
-      }
-      return obv
-    }
-
-    // 计算AD (积累/派发线)
-    function calculateAD (data) {
-      const ad = []
-      let adValue = 0
-
-      for (let i = 0; i < data.length; i++) {
-        const high = data[i].high
-        const low = data[i].low
-        const close = data[i].close
-        const volume = data[i].volume
-
-        if (high !== low) {
-          const clv = ((close - low) - (high - close)) / (high - low)
-          adValue += clv * volume
-        }
-        ad.push(adValue)
-      }
-      return ad
-    }
-
-    // 计算ADOSC (积累/派发振荡器) = AD的快速EMA - AD的慢速EMA
-    function calculateADOSC (data, fast, slow) {
-      const ad = calculateAD(data)
-      const fastEMA = []
-      const slowEMA = []
-      const adosc = []
-
-      const fastMultiplier = 2 / (fast + 1)
-      const slowMultiplier = 2 / (slow + 1)
-
-      let fastEMAValue = ad[0]
-      let slowEMAValue = ad[0]
-
-      for (let i = 0; i < ad.length; i++) {
-        if (i === 0) {
-          fastEMA.push(ad[0])
-          slowEMA.push(ad[0])
-          adosc.push(0)
-        } else {
-          fastEMAValue = (ad[i] - fastEMAValue) * fastMultiplier + fastEMAValue
-          slowEMAValue = (ad[i] - slowEMAValue) * slowMultiplier + slowEMAValue
-
-          fastEMA.push(fastEMAValue)
-          slowEMA.push(slowEMAValue)
-          adosc.push(fastEMAValue - slowEMAValue)
-        }
-      }
-
-      return adosc
-    }
-
-    // 计算KDJ (随机指标)
-    function calculateKDJ (data, period, kPeriod, dPeriod) {
-      const kValues = []
-      const dValues = []
-      const jValues = []
-
-      for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) {
-          kValues.push(null)
-          dValues.push(null)
-          jValues.push(null)
-        } else {
-          // 找到period内的最高价和最低价
-          let highest = -Infinity
-          let lowest = Infinity
-          for (let j = i - period + 1; j <= i; j++) {
-            highest = Math.max(highest, data[j].high)
-            lowest = Math.min(lowest, data[j].low)
-          }
-
-          // 计算RSV
-          const rsv = (highest - lowest) === 0 ? 50 : ((data[i].close - lowest) / (highest - lowest)) * 100
-
-          // 计算K值 (RSV的移动平均)
-          if (kValues[i - 1] === null) {
-            kValues.push(rsv)
-          } else {
-            kValues.push((rsv * 2 + kValues[i - 1] * (kPeriod - 2)) / kPeriod)
-          }
-
-          // 计算D值 (K值的移动平均)
-          if (dValues[i - 1] === null) {
-            dValues.push(kValues[i])
-          } else {
-            dValues.push((kValues[i] * 2 + dValues[i - 1] * (dPeriod - 2)) / dPeriod)
-          }
-
-          // 计算J值
-          jValues.push(3 * kValues[i] - 2 * dValues[i])
-        }
-      }
-
-      return { k: kValues, d: dValues, j: jValues }
-    }
-
+    // --- 指标计算函数：见 @/utils/technicalIndicators.js ---
     // ========== 注册自定义信号 Overlay (Signal Tag) ==========
     // 这是一个能够绘制 "圆点 + 带背景色文字框" 的自定义覆盖物
 // ========== 注册自定义信号 Overlay (Signal Tag) ==========
@@ -3695,14 +3196,23 @@ registerOverlay({
               style: 'solid'
             })
           })
-          const buildBarFigure = (key, title, figureColor = color) => ({
+          const buildBarFigure = (key, title, {
+            baseValue = 0,
+            upColor = '#ef5350',
+            downColor = '#26a69a'
+          } = {}) => ({
             key,
             title,
             type: 'bar',
-            color: figureColor,
-            styles: () => ({
-              color: figureColor
-            })
+            baseValue,
+            styles: (data) => {
+              const value = data?.current?.indicatorData?.[key]
+              if (value == null || Number.isNaN(Number(value))) {
+                return { color: upColor, borderColor: upColor }
+              }
+              const barColor = Number(value) >= 0 ? upColor : downColor
+              return { color: barColor, borderColor: barColor }
+            }
           })
 
           // 根据指标类型创建 KLineChart 指标
@@ -3749,7 +3259,7 @@ registerOverlay({
                 [
                   buildLineFigure('macd', `MACD(${fast},${slow})`, color, lineWidth),
                   buildLineFigure('signal', `SIGNAL(${signal})`, '#fa8c16', lineWidth),
-                  buildBarFigure('histogram', 'HIST', '#722ed1')
+                  buildBarFigure('histogram', 'HIST')
                 ],
                 [fast, slow, signal]
               )

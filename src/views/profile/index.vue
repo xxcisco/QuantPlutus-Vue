@@ -248,6 +248,9 @@
                     {{ formatTime(text) }}
                   </template>
                   <template slot="action" slot-scope="text, record">
+                    <a-button size="small" type="link" icon="edit" @click="openRenameCredentialModal(record)">
+                      {{ $t('profile.exchange.editName') }}
+                    </a-button>
                     <a-popconfirm
                       :title="$t('profile.exchange.deleteConfirm')"
                       @confirm="handleDeleteCredential(record.id)"
@@ -619,44 +622,16 @@
       @success="loadExchangeCredentials"
     />
 
-    <a-modal
-      :title="$t('profile.exchange.openAccountTitle')"
-      :visible="showExchangeSignupModal"
-      :wrap-class-name="exchangeModalWrapClass"
-      @cancel="showExchangeSignupModal = false"
-      :footer="null"
-      width="860px"
-    >
-      <div class="exchange-signup-modal">
-        <div class="exchange-signup-promo">{{ $t('profile.exchange.openAccountPromo') }}</div>
-        <div class="exchange-signup-grid">
-          <div
-            v-for="item in exchangeSignupCards"
-            :key="item.id"
-            class="exchange-signup-card"
-          >
-            <div class="exchange-signup-card__header">
-              <div class="exchange-signup-logo" :style="{ background: item.brandBg, color: item.brandColor }">
-                {{ item.short }}
-              </div>
-              <div class="exchange-signup-meta">
-                <div class="exchange-signup-name">{{ item.name }}</div>
-              </div>
-            </div>
-            <div class="exchange-signup-actions">
-              <a-button
-                type="primary"
-                block
-                :disabled="!item.signupUrl"
-                @click="openExchangeSignupLink(item.signupUrl)"
-              >
-                {{ $t('profile.exchange.openAccountButton') }}
-              </a-button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </a-modal>
+    <rename-credential-modal
+      :visible.sync="showRenameCredentialModal"
+      :credential="renameCredentialTarget"
+      @success="loadExchangeCredentials"
+    />
+
+    <exchange-signup-modal
+      :visible.sync="showExchangeSignupModal"
+      :is-dark-theme="isDarkTheme"
+    />
   </div>
 </template>
 
@@ -666,11 +641,13 @@ import { getSettingsValues } from '@/api/settings'
 import { listExchangeCredentials, deleteExchangeCredential } from '@/api/credentials'
 import { baseMixin } from '@/store/app-mixin'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
+import ExchangeSignupModal from '@/components/ExchangeSignupModal/ExchangeSignupModal.vue'
+import RenameCredentialModal from '@/components/RenameCredentialModal/RenameCredentialModal.vue'
 import { formatBrowserLocalDateTime } from '@/utils/userTime'
 
 export default {
   name: 'Profile',
-  components: { ExchangeAccountModal },
+  components: { ExchangeAccountModal, ExchangeSignupModal, RenameCredentialModal },
   mixins: [baseMixin],
   data () {
     return {
@@ -765,57 +742,9 @@ export default {
       // the "unbound" red-dot badge so it doesn't flash on first render.
       exchangeLoaded: false,
       showAddExchangeModal: false,
-      showExchangeSignupModal: false,
-      exchangeSignupCards: [
-        {
-          id: 'binance',
-          name: 'Binance',
-          short: 'BN',
-          brandBg: 'rgba(243, 186, 47, 0.16)',
-          brandColor: '#f0b90b',
-          signupUrl: 'https://www.bsmkweb.cc/register?ref=35189078'
-        },
-        {
-          id: 'bitget',
-          name: 'Bitget',
-          short: 'BG',
-          brandBg: 'rgba(0, 193, 255, 0.14)',
-          brandColor: '#00c1ff',
-          signupUrl: 'https://www.bitget.com/zh-CN/referral/register?clacCode=WTG4UW05&from=%2Fzh-CN%2Fevents%2Freferral-all-program&source=events&utmSource=PremierInviter'
-        },
-        {
-          id: 'bybit',
-          name: 'Bybit',
-          short: 'BY',
-          brandBg: 'rgba(247, 166, 0, 0.14)',
-          brandColor: '#f7a600',
-          signupUrl: 'https://www.bybit.com/invite?ref=JP9MN4P'
-        },
-        {
-          id: 'okx',
-          name: 'OKX',
-          short: 'OK',
-          brandBg: 'rgba(17, 24, 39, 0.08)',
-          brandColor: '#111827',
-          signupUrl: 'https://www.asdfghjklqw.com/join/1861249'
-        },
-        {
-          id: 'gate',
-          name: 'Gate.io',
-          short: 'GT',
-          brandBg: 'rgba(42, 93, 255, 0.12)',
-          brandColor: '#2a5dff',
-          signupUrl: 'https://www.gate.com/zh/rewards_hub?ch=RewardsHub&ref=VlgXUl0K&ref_type=145'
-        },
-        {
-          id: 'htx',
-          name: 'HTX',
-          short: 'HX',
-          brandBg: 'rgba(22, 119, 255, 0.12)',
-          brandColor: '#1677ff',
-          signupUrl: 'https://www.htx.com/invite/zh-cn/1f?invite_code=928je223'
-        }
-      ]
+      showRenameCredentialModal: false,
+      renameCredentialTarget: null,
+      showExchangeSignupModal: false
     }
   },
   computed: {
@@ -902,7 +831,11 @@ export default {
           title: this.$t('profile.exchange.colName') || 'Name',
           dataIndex: 'name',
           width: 140,
-          customRender: (text) => text || '-'
+          customRender: (text, record) => {
+            const alias = (text && String(text).trim()) || ''
+            if (alias) return alias
+            return (record && record.api_key_hint) || '-'
+          }
         },
         {
           title: this.$t('profile.exchange.colHint') || 'Connection Info',
@@ -917,7 +850,7 @@ export default {
         },
         {
           title: this.$t('profile.exchange.colActions') || 'Actions',
-          width: 120,
+          width: 180,
           scopedSlots: { customRender: 'action' }
         }
       ]
@@ -1425,17 +1358,13 @@ export default {
       this.showAddExchangeModal = true
     },
 
+    openRenameCredentialModal (record) {
+      this.renameCredentialTarget = record ? { ...record } : null
+      this.showRenameCredentialModal = true
+    },
+
     openExchangeSignupModal () {
       this.showExchangeSignupModal = true
-    },
-
-    openExternalLink (url) {
-      if (!url) return
-      window.open(url, '_blank')
-    },
-
-    openExchangeSignupLink (url) {
-      this.openExternalLink(url)
     },
 
     getExchangeDisplayName (id) {
@@ -2881,88 +2810,3 @@ export default {
 }
 </style>
 
-<style lang="less">
-/* 交易所弹窗样式已迁至 ExchangeAccountModal.vue（全局），此处保留开户引导弹窗 */
-@exchange-dark-bg: #1c1c1c;
-@exchange-dark-border: #2a2a2a;
-@exchange-dark-title: #e0e6ed;
-
-.exchange-signup-modal {
-  .exchange-signup-promo {
-    margin-bottom: 18px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: linear-gradient(90deg, rgba(22, 119, 255, 0.12) 0%, rgba(99, 102, 241, 0.1) 100%);
-    border: 1px solid rgba(22, 119, 255, 0.2);
-    color: #1e40af;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.5;
-    text-align: center;
-  }
-
-  .exchange-signup-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .exchange-signup-card {
-    border: 1px solid #eef1f5;
-    border-radius: 16px;
-    padding: 16px;
-    background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
-  }
-
-  .exchange-signup-card__header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .exchange-signup-logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .exchange-signup-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1f2937;
-  }
-
-  .exchange-signup-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-}
-
-.profile-exchange-modal--dark {
-  .exchange-signup-modal {
-    .exchange-signup-promo {
-      color: #93c5fd;
-      background: linear-gradient(90deg, rgba(59, 130, 246, 0.18) 0%, rgba(99, 102, 241, 0.14) 100%);
-      border-color: rgba(96, 165, 250, 0.35);
-    }
-
-    .exchange-signup-card {
-      background: linear-gradient(180deg, #171717 0%, #1f1f1f 100%);
-      border-color: @exchange-dark-border;
-      box-shadow: none;
-    }
-
-    .exchange-signup-name {
-      color: @exchange-dark-title;
-    }
-  }
-}
-</style>
