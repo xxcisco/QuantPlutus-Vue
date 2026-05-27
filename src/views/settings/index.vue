@@ -1086,14 +1086,14 @@ export default {
 
         &:hover {
           background: rgba(88, 166, 255, 0.12);
-          color: #58a6ff;
-          .anticon { color: #58a6ff; }
+          color: var(--wise-positive-deep) !important;
+          .anticon { color: var(--wise-positive-deep) !important; }
         }
 
         &.ant-menu-item-selected {
           background: linear-gradient(135deg, rgba(88, 166, 255, 0.18), rgba(19, 194, 194, 0.10));
-          color: #58a6ff;
-          .anticon { color: #58a6ff; }
+          color: var(--wise-positive-deep) !important;
+          .anticon { color: var(--wise-positive-deep) !important; }
         }
       }
     }

@@ -18,6 +18,8 @@ import './styles/design-tokens.less'
 import './styles/wise-design.less'
 // 必须在 global.less 之后：覆盖 Pro Layout 顶栏/侧栏底栏（否则会被 global 与组件顺序盖住）
 import './qd-layout-dark-override.less'
+// Pro Layout 导航 Wise 样式（选择器锚定 .basic-layout-wrapper + .ant-pro-basicLayout）
+import './layouts/BasicLayout.less'
 
 Vue.config.productionTip = false
 

@@ -127,57 +127,58 @@ body.userLayout {
   }
 }
 
-// ========== 暗黑主题全局纯黑覆盖 ==========
-// 覆盖 Ant Design Pro Layout 的 #001529 深蓝色
+// ========== 暗黑主题全局覆盖（Wise tokens；导航细节见 layouts/BasicLayout.less）==========
 body.dark,
 body.realdark {
-  // 侧边栏
+  // 侧边栏 — ink 深底（BasicLayout.less 对 .basic-layout-wrapper 有更高优先级）
   .ant-layout-sider,
   .ant-layout-sider-dark,
   .ant-pro-sider-menu-sider,
   .ant-pro-sider-menu-sider.ant-layout-sider-dark,
   aside.ant-layout-sider.ant-layout-sider-dark {
-    background: #0a0a0a !important;
+    background: #0e0f0c !important;
   }
   .ant-layout-sider-children {
-    background: #0a0a0a !important;
+    background: #0e0f0c !important;
   }
   .ant-pro-sider-menu-logo {
-    background: #0a0a0a !important;
+    background: #0e0f0c !important;
   }
   .ant-menu-dark,
   .ant-menu.ant-menu-dark,
   .ant-menu-dark .ant-menu-inline.ant-menu-sub,
   ul.ant-menu.ant-menu-dark.ant-menu-root.ant-menu-inline {
-    background: #0a0a0a !important;
+    background: #0e0f0c !important;
   }
   .ant-menu-dark .ant-menu-sub,
   .ant-menu.ant-menu-dark .ant-menu-sub {
-    background: #111111 !important;
+    background: #161614 !important;
+  }
+  .ant-menu-dark .ant-menu-item-selected {
+    background: rgba(159, 232, 112, 0.14) !important;
+    color: #9fe870 !important;
   }
   .ant-layout-sider-trigger {
-    background: #111111 !important;
-    border-top: 1px solid #1c1c1c;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    background: #161614 !important;
+    border-top: 1px solid #2c2d2a;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   }
-  // 顶栏 - 与侧栏「亮黑」#111 一致 + 顶缘内高光
   .ant-layout-header {
-    background: #111111 !important;
-    border-bottom: 1px solid #1c1c1c !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    background: #161614 !important;
+    border-bottom: 1px solid #2c2d2a !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   }
   .ant-pro-global-header {
-    background: #111111 !important;
+    background: #161614 !important;
     border-bottom: none !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   }
-  // 主内容区域
   .ant-layout {
-    background: #0a0a0a !important;
+    background: #1c1d1a !important;
   }
   .ant-layout-content,
   .ant-pro-basicLayout-content {
-    background: #141414 !important;
+    background: #1c1d1a !important;
   }
   // 各页面通用卡片、表格背景
   .ant-card {

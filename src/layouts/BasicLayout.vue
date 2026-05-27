@@ -616,7 +616,7 @@ export default {
 </script>
 
 <style lang="less">
-@import "./BasicLayout.less";
+/* BasicLayout.less 已在 main.js 全局引入（锚定 .basic-layout-wrapper + .ant-pro-basicLayout） */
 
 /* 侧栏顶部 Logo 区域 */
 .sidebar-logo-wrapper {
@@ -717,8 +717,8 @@ export default {
     left: 0;
     z-index: 100;
     width: 256px; /* 统一固定宽度 256px */
-    background: #111111;
-    border-top: 1px solid #1c1c1c;
+    background: var(--wise-canvas);
+    border-top: 1px solid var(--wise-divider);
     /* 与菜单栏抽屉动画同步：使用相同的过渡时间和缓动函数 */
     /* Ant Design Vue Drawer 使用 0.3s 和 cubic-bezier(0.78, 0.14, 0.15, 0.86) */
     transition: left 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86),
@@ -914,7 +914,7 @@ export default {
   }
 
   /* 监听菜单折叠状态，动态调整宽度 */
-  ::v-deep .ant-pro-layout {
+  ::v-deep .ant-pro-basicLayout {
     &.ant-pro-sider-collapsed ~ .custom-menu-footer,
     .ant-pro-sider-collapsed ~ .custom-menu-footer {
       width: 80px;
@@ -983,44 +983,49 @@ export default {
   }
 }
 
-/* 暗黑主题样式 */
+/* 暗黑主题样式 — Wise tokens（与 BasicLayout.less 一致）*/
 .basic-layout-wrapper.dark,
 .basic-layout-wrapper.realdark {
-  /* Header 适配 - 与侧栏亮黑 #111 一致 + 顶缘内高光 */
   .ant-layout-header {
-    background: #111111 !important;
-    border-bottom: 1px solid #1c1c1c !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    background: var(--wise-canvas) !important;
+    border-bottom: 1px solid var(--wise-divider) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   }
+
   .ant-pro-global-header {
-    background: #111111 !important;
+    background: var(--wise-canvas) !important;
     border-bottom: none !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-    color: rgba(255, 255, 255, 0.85) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    color: var(--wise-ink) !important;
 
     .ant-pro-global-header-trigger {
-      color: rgba(255, 255, 255, 0.85) !important;
+      color: var(--wise-body) !important;
+
       &:hover {
-        background: rgba(255, 255, 255, 0.06) !important;
+        color: var(--wise-primary) !important;
+        background: rgba(159, 232, 112, 0.12) !important;
       }
     }
 
     .action {
-      color: rgba(255, 255, 255, 0.85) !important;
+      color: var(--wise-body) !important;
+
       &:hover {
-        background: rgba(255, 255, 255, 0.06) !important;
+        color: var(--wise-primary) !important;
+        background: rgba(159, 232, 112, 0.12) !important;
       }
     }
   }
 
-  /* Content 适配 */
-  .ant-pro-basicLayout-content {
-    background-color: #141414 !important;
+  .ant-pro-basicLayout-content,
+  .ant-layout {
+    background-color: var(--wise-canvas-soft) !important;
   }
 
-  /* 确保 Layout 本身也是深色 */
-  .ant-layout {
-    background-color: #141414 !important;
+  .custom-menu-footer {
+    background: var(--wise-canvas) !important;
+    border-top-color: var(--wise-divider) !important;
+    color: var(--wise-ink) !important;
   }
 }
 

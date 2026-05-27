@@ -4,25 +4,29 @@
  * 不依赖 body.dark，避免不同步时顶栏、侧栏底部 footer 仍是浅灰/深蓝。
  */
 
-/* ========== 顶栏：亮黑 #111 + 顶缘高光 ========== */
+/* ========== 顶栏：Wise canvas + divider ========== */
+.basic-layout-wrapper.dark .ant-pro-basicLayout .ant-layout-header,
+.basic-layout-wrapper.realdark .ant-pro-basicLayout .ant-layout-header,
 .basic-layout-wrapper.dark .ant-layout-header,
 .basic-layout-wrapper.realdark .ant-layout-header,
 body.dark .basic-layout-wrapper .ant-layout-header,
 body.realdark .basic-layout-wrapper .ant-layout-header {
-  background: #111111 !important;
-  background-color: #111111 !important;
-  border-bottom: 1px solid #1c1c1c !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  background: var(--wise-canvas) !important;
+  background-color: var(--wise-canvas) !important;
+  border-bottom: 1px solid var(--wise-divider) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
+.basic-layout-wrapper.dark .ant-pro-basicLayout .ant-pro-global-header,
+.basic-layout-wrapper.realdark .ant-pro-basicLayout .ant-pro-global-header,
 .basic-layout-wrapper.dark .ant-pro-global-header,
 .basic-layout-wrapper.realdark .ant-pro-global-header,
 body.dark .basic-layout-wrapper .ant-pro-global-header,
 body.realdark .basic-layout-wrapper .ant-pro-global-header {
-  background: #111111 !important;
-  background-color: #111111 !important;
+  background: var(--wise-canvas) !important;
+  background-color: var(--wise-canvas) !important;
   border-bottom: none !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
 /* 页面容器（例如 dashboard / settings 等）去蓝灰 */
@@ -36,8 +40,8 @@ body.dark .basic-layout-wrapper .ant-pro-page-header-wrap,
 body.realdark .basic-layout-wrapper .ant-pro-page-header-wrap,
 body.dark .basic-layout-wrapper .ant-pro-page-header-wrap-children-content,
 body.realdark .basic-layout-wrapper .ant-pro-page-header-wrap-children-content {
-  background: #141414 !important;
-  background-color: #141414 !important;
+  background: var(--wise-canvas-soft) !important;
+  background-color: var(--wise-canvas-soft) !important;
 }
 
 /* ========== 侧栏底部「联系我们」：深黑底 + 区块亮一层（去掉 opacity 发灰）========== */
@@ -45,11 +49,11 @@ body.realdark .basic-layout-wrapper .ant-pro-page-header-wrap-children-content {
 .basic-layout-wrapper.realdark .custom-menu-footer,
 body.dark .basic-layout-wrapper .custom-menu-footer,
 body.realdark .basic-layout-wrapper .custom-menu-footer {
-  background: #111111 !important;
-  background-color: #111111 !important;
-  border-top: 1px solid #1c1c1c !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
-  color: rgba(255, 255, 255, 0.88) !important;
+  background: var(--wise-canvas) !important;
+  background-color: var(--wise-canvas) !important;
+  border-top: 1px solid var(--wise-divider) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  color: var(--wise-ink) !important;
 }
 
 .basic-layout-wrapper.dark .custom-menu-footer .menu-footer-content .footer-section,
@@ -107,11 +111,11 @@ body.realdark .basic-layout-wrapper .custom-menu-footer {
 
 /* ========== 浅色主题 footer（显式覆盖，避免残留暗色）========== */
 .basic-layout-wrapper.light .custom-menu-footer {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  border-top-color: #e8e8e8 !important;
+  background: var(--wise-canvas) !important;
+  background-color: var(--wise-canvas) !important;
+  border-top-color: var(--wise-divider) !important;
   box-shadow: none !important;
-  color: rgba(0, 0, 0, 0.85) !important;
+  color: var(--wise-ink) !important;
 }
 
 .basic-layout-wrapper.light .custom-menu-footer .footer-section .section-links {
@@ -139,17 +143,17 @@ body.realdark .ant-modal-confirm {
     border-color: #434343 !important;
     color: rgba(255, 255, 255, 0.85) !important;
     &:hover {
-      border-color: #1890ff !important;
-      color: #1890ff !important;
+      border-color: var(--wise-primary) !important;
+      color: var(--wise-primary) !important;
     }
   }
   .ant-btn-primary {
-    background: #1890ff !important;
-    border-color: #1890ff !important;
-    color: #fff !important;
+    background: var(--wise-primary) !important;
+    border-color: var(--wise-primary) !important;
+    color: var(--wise-on-primary) !important;
     &:hover {
-      background: #40a9ff !important;
-      border-color: #40a9ff !important;
+      background: var(--wise-primary-hover) !important;
+      border-color: var(--wise-primary-hover) !important;
     }
   }
 }
