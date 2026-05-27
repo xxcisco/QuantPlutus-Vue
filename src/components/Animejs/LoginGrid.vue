@@ -1,10 +1,6 @@
 <template>
   <div ref="container" class="login-grid" :style="containerStyle">
-    <div
-      v-for="i in totalCells"
-      :key="`cell-${gridKey}-${i}`"
-      class="login-grid__square"
-    ></div>
+    <div v-for="i in totalCells" :key="`cell-${gridKey}-${i}`" class="login-grid__square"></div>
   </div>
 </template>
 
@@ -33,23 +29,26 @@ export default {
     /** Cap on how many cells we render (perf guard for very large screens). */
     maxCells: { type: Number, default: 2400 }
   },
-  data () {
+  data() {
     return {
       cols: 0,
       rows: 0,
       gridKey: 0,
-      ro: null,
-      currentAnim: null,
-      animId: 0,
       destroyed: false
     }
   },
+  created() {
+    // Keep anime.js / ResizeObserver handles off reactive data (circular refs → stack overflow)
+    this.ro = null
+    this.currentAnim = null
+    this.animId = 0
+  },
   computed: {
-    totalCells () {
+    totalCells() {
       const raw = this.cols * this.rows
       return Math.min(raw, this.maxCells)
     },
-    containerStyle () {
+    containerStyle() {
       return {
         '--lg-size': `${this.squareSize}px`,
         '--lg-gap': `${this.gap}px`,
@@ -64,21 +63,22 @@ export default {
     }
   },
   watch: {
-    totalCells () {
+    totalCells(n, o) {
+      if (!n || n === o) return
       this.gridKey++
       this.$nextTick(() => this.startAnimation())
     },
-    squareSize () { this.recalc() },
-    gap () { this.recalc() },
-    color () { this.recalc() },
-    staggerDelay () { this.$nextTick(() => this.startAnimation()) },
-    scaleMax () { this.$nextTick(() => this.startAnimation()) }
+    squareSize() { this.recalc() },
+    gap() { this.recalc() },
+    color() { this.recalc() },
+    staggerDelay() { this.$nextTick(() => this.startAnimation()) },
+    scaleMax() { this.$nextTick(() => this.startAnimation()) }
   },
-  mounted () {
+  mounted() {
     this.recalc()
     this.setupResizeObserver()
   },
-  beforeDestroy () {
+  beforeDestroy() {
     this.destroyed = true
     if (this.ro) {
       this.ro.disconnect()
@@ -87,7 +87,7 @@ export default {
     this.stopAnimation()
   },
   methods: {
-    setupResizeObserver () {
+    setupResizeObserver() {
       if (typeof ResizeObserver === 'undefined') {
         window.addEventListener('resize', this.recalc)
         this._fallbackResize = true
@@ -96,7 +96,7 @@ export default {
       this.ro = new ResizeObserver(() => this.recalc())
       if (this.$refs.container) this.ro.observe(this.$refs.container)
     },
-    recalc () {
+    recalc() {
       const el = this.$refs.container
       if (!el) return
       const w = el.clientWidth
@@ -110,13 +110,13 @@ export default {
         this.rows = rows
       }
     },
-    stopAnimation () {
+    stopAnimation() {
       if (this.currentAnim && typeof this.currentAnim.pause === 'function') {
         this.currentAnim.pause()
       }
       this.currentAnim = null
     },
-    startAnimation () {
+    startAnimation() {
       this.stopAnimation()
       if (this.destroyed || !this.cols || !this.rows) return
       const squares = this.$el
@@ -127,7 +127,7 @@ export default {
       const id = ++this.animId
       this._runLoop(Array.from(squares), id)
     },
-    _runLoop (squares, id) {
+    _runLoop(squares, id) {
       if (this.destroyed || id !== this.animId || !squares.length) return
       this.currentAnim = animate(squares, {
         scale: [
