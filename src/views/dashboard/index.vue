@@ -1871,28 +1871,28 @@ export default {
       .highlight { font-weight: 700; color: @wise-ink; }
     }
 
-    /* Primary KPI — Wise dark card with lime accent */
+    /* Primary KPI — finance style: dark + gold */
     &.kpi-primary {
-      background: @wise-ink;
-      color: @wise-primary;
+      background: linear-gradient(135deg, #0b1220 0%, #0f1a2e 55%, #111827 100%);
+      color: #d4af37;
       border: none;
 
       .kpi-icon {
-        background: rgba(159, 232, 112, 0.16);
-        color: @wise-primary;
+        background: rgba(212, 175, 55, 0.16);
+        color: #d4af37;
       }
       .kpi-label { color: rgba(255, 255, 255, 0.7); }
       .kpi-value {
-        .currency { color: @wise-primary; opacity: 0.8; }
-        .amount { color: @wise-primary; }
+        .currency { color: rgba(212, 175, 55, 0.92); }
+        .amount { color: #d4af37; }
         .unit { color: rgba(255, 255, 255, 0.6); }
       }
       .kpi-sub { color: rgba(255, 255, 255, 0.7); }
     }
 
-    /* Win rate — pale green card */
+    /* Win rate — finance style: muted green surface */
     &.kpi-win-rate {
-      background: @wise-primary-pale;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.02) 0%, rgba(16, 185, 129, 0.10) 55%, rgba(16, 185, 129, 0.06) 100%);
 
       .kpi-ring {
         position: absolute;
@@ -1907,7 +1907,7 @@ export default {
 
           .ring-bg {
             fill: none;
-            stroke: rgba(46, 173, 75, 0.18);
+            stroke: rgba(16, 185, 129, 0.18);
             stroke-width: 3;
           }
 
@@ -1920,32 +1920,32 @@ export default {
           }
         }
       }
-      .kpi-icon { background: rgba(46, 173, 75, 0.16); color: @wise-positive-deep; }
+      .kpi-icon { background: rgba(16, 185, 129, 0.16); color: #0f766e; }
     }
 
-    /* Profit factor — sage card */
+    /* Profit factor — finance style: deep blue surface */
     &.kpi-profit-factor {
-      background: @wise-canvas-soft;
-      .kpi-icon { background: @wise-canvas; color: @wise-ink; }
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.10) 0%, rgba(37, 99, 235, 0.08) 55%, rgba(15, 23, 42, 0.02) 100%);
+      .kpi-icon { background: rgba(37, 99, 235, 0.14); color: #1d4ed8; }
     }
 
-    /* Drawdown — sage card with negative accent */
+    /* Drawdown — finance style: muted red risk surface */
     &.kpi-drawdown {
-      background: @wise-canvas-soft;
-      .kpi-icon { background: rgba(208, 50, 56, 0.10); color: @wise-negative; }
-      .kpi-value .amount { color: @wise-negative; }
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.10) 0%, rgba(190, 18, 60, 0.08) 55%, rgba(15, 23, 42, 0.02) 100%);
+      .kpi-icon { background: rgba(239, 68, 68, 0.14); color: #be123c; }
+      .kpi-value .amount { color: #be123c; }
     }
 
-    /* Trades — peach accent card */
+    /* Trades — finance style: graphite surface with warm accent */
     &.kpi-trades {
-      background: lighten(@wise-accent-orange, 12%);
-      .kpi-icon { background: rgba(255, 192, 145, 0.5); color: #6b3a1f; }
+      background: linear-gradient(135deg, rgba(51, 65, 85, 0.10) 0%, rgba(30, 41, 59, 0.08) 60%, rgba(15, 23, 42, 0.02) 100%);
+      .kpi-icon { background: rgba(212, 175, 55, 0.14); color: #8b6b16; }
     }
 
-    /* Strategies — cyan accent card */
+    /* Strategies — finance style: indigo/purple surface */
     &.kpi-strategies {
-      background: lighten(@wise-accent-cyan, 30%);
-      .kpi-icon { background: rgba(56, 200, 255, 0.25); color: #075c87; }
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(79, 70, 229, 0.10) 55%, rgba(15, 23, 42, 0.02) 100%);
+      .kpi-icon { background: rgba(79, 70, 229, 0.14); color: #4338ca; }
     }
   }
 
