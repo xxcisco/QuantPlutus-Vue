@@ -1207,7 +1207,7 @@ export default {
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  background: var(--wise-canvas);
+  background: #fffffff2;
   padding: 32px;
   border-radius: var(--wise-r-xl);
   box-shadow: var(--wise-shadow-card);

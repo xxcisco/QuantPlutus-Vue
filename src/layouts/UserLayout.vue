@@ -1,8 +1,8 @@
 <template>
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
     <LoginGrid
-      :square-size="isMobile ? 16 : 22"
-      :gap="isMobile ? 6 : 10"
+      :square-size="isMobile ? 16 : 26"
+      :gap="isMobile ? 6 : 16"
       :stagger-delay="120"
       :scale-max="1.3"
       glow-size="1rem"
@@ -378,9 +378,10 @@ export default {
     .wise-hero-stats {
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+      display: none;
 
       .stat-card {
-        padding: 16px;
+        padding: 12px;
 
         .stat-value {
           font-size: 24px;
@@ -404,10 +405,4 @@ export default {
   }
 }
 
-/* ===== Very small phones ===== */
-@media (max-width: 380px) {
-  .wise-hero .wise-hero-stats {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
