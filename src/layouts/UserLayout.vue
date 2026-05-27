@@ -53,20 +53,6 @@
       <footer class="wise-footer">
         <div class="wise-footer-inner">
           <div class="wise-copy">{{ brandConfig.copyright }}</div>
-          <div class="wise-privacy">
-            <a v-if="brandConfig.legal && brandConfig.legal.privacy_policy_url"
-              :href="brandConfig.legal.privacy_policy_url" target="_blank" rel="noopener noreferrer">{{
-                $t('user.login.privacy.view') }}</a>
-            <a v-else @click="toggleRisk">
-              {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
-            </a>
-          </div>
-        </div>
-        <div v-if="showRisk && !(brandConfig.legal && brandConfig.legal.privacy_policy_url)" class="wise-risk">
-          <div class="wise-risk-title">{{ $t('user.login.privacy.title') }}</div>
-          <div class="wise-risk-body">
-            {{ (brandConfig.legal && brandConfig.legal.privacy_policy_text) || $t('user.login.privacy.content') }}
-          </div>
         </div>
       </footer>
     </div>
@@ -188,7 +174,7 @@ export default {
   grid-template-columns: 1.05fr 1fr;
   gap: 48px;
   align-items: center;
-  padding: 32px 0 48px;
+  padding: 16px 0 32px;
 }
 
 /* ===== Hero (left column) ===== */
@@ -280,8 +266,7 @@ export default {
 
 /* ===== Footer ===== */
 .wise-footer {
-  padding: 24px 0 32px;
-  border-top: 1px solid var(--wise-divider);
+  padding: 16px 0 24px;
 
   .wise-footer-inner {
     display: flex;

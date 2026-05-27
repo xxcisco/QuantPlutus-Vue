@@ -297,22 +297,49 @@
         <div class="legal-wrap">
           <div class="legal-header">
             <div class="legal-title">{{ $t('user.login.legal.title') }}</div>
-            <a class="legal-toggle" @click="showLegal = !showLegal">
-              {{ showLegal ? $t('user.login.legal.collapse') : $t('user.login.legal.view') }}
-            </a>
-          </div>
-          <div v-show="showLegal" class="legal-content">
-            {{ $t('user.login.legal.content') }}
           </div>
           <div class="legal-agree">
-            <a-checkbox v-model="legalAgreed">
-              {{ $t('user.login.legal.agree') }}
-            </a-checkbox>
+            <div>
+              <a-checkbox v-model="legalAgreed">
+                {{ $t('user.login.legal.agree') }}
+              </a-checkbox>
+              <a class="legal-toggle" @click="showLegalModel = !showLegalModel">
+                {{ $t('user.login.legal.view') }}
+              </a>
+              <span>、</span>
+              <a class="legal-toggle" @click="showPrivacyModel = !showPrivacyModel">
+                {{ $t('user.login.privacy.view') }}
+              </a>
+            </div>
             <div v-if="legalError" class="legal-error">{{ $t('user.login.legal.required') }}</div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 法律免责声明-->
+    <a-modal v-model="showLegalModel" :title="$t('user.login.legal.view')" :footer="null">
+      <div class="legal-content">
+        {{ $t('user.login.legal.content') }}
+      </div>
+      <a-form-item style="margin-top:24px">
+        <a-button size="large" type="primary" htmlType="submit" class="submit-button" block
+          @click="showLegalModel = false">
+          {{ $t('user.login.legal.agreeButton') }}</a-button>
+      </a-form-item>
+    </a-modal>
+
+    <!-- 用户隐私协议-->
+    <a-modal v-model="showPrivacyModel" :title="$t('user.login.privacy.view')" :footer="null">
+      <div class="legal-content">
+        {{ $t('user.login.privacy.content') }}
+      </div>
+      <a-form-item style="margin-top:24px">
+        <a-button size="large" type="primary" htmlType="submit" class="submit-button" block
+          @click="showPrivacyModel = false">
+          {{ $t('user.login.legal.agreeButton') }}</a-button>
+      </a-form-item>
+    </a-modal>
 
     <!-- Reset Password Modal -->
     <a-modal v-model="showResetModal" :title="$t('user.resetPassword.title') || 'Reset Password'" :footer="null"
@@ -478,7 +505,8 @@ export default {
   data() {
     return {
       activeTab: 'login',
-      showLegal: false,
+      showLegalModel: false,
+      showPrivacyModel: false,
       legalAgreed: true,
       legalError: false,
 
@@ -1438,6 +1466,7 @@ export default {
     font-weight: 600;
     cursor: pointer;
     border-bottom: 1px solid var(--wise-ink);
+    margin-right: 4px;
 
     &:hover {
       color: var(--wise-positive);

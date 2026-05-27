@@ -675,7 +675,8 @@ const locale = {
   'user.login.privacy.view': 'View Privacy Policy',
   'user.login.privacy.collapse': 'Hide Privacy Policy',
   'user.login.privacy.content': 'We value your privacy and data protection. (1) Scope of collection: We only collect information necessary to provide the service (e.g., email, mobile number, country code, Web3 wallet address) and limited logs/device data. (2) Purpose of use: Account login and security verification, feature provisioning, troubleshooting, and compliance requirements. (3) Storage & security: Data is encrypted and access-controlled to prevent unauthorized access, disclosure, or loss. (4) Sharing & third parties: We do not share personal data with third parties except as required by law or to deliver the service; where third-party services are involved (e.g., wallets, SMS providers), processing is limited to the minimum scope required. (5) Cookies/local storage: Used for session and login state (e.g., tokens, PHPSESSID). You may clear or restrict them in your browser. (6) Your rights: You may exercise rights of access, correction, deletion, and consent withdrawal as permitted by law. (7) Changes & notices: We will provide prominent notice for updates. Continued use indicates that you have read and agreed to the updated terms. If you do not agree, please stop using the service and contact us.',
-
+  'user.login.legal.agreeButton': 'Agree',
+  
   // Login page additions
   'user.login.username': 'Username',
   'user.login.usernameRequired': 'Please enter username',
