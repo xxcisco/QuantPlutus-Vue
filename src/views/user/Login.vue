@@ -3,7 +3,8 @@
     <div class="auth-card">
       <div class="auth-card-head">
         <div class="auth-eyebrow">Welcome</div>
-        <div class="auth-headline">{{ activeTab === 'register' ? ($t('user.register.tab') || 'Create your account') : ($t('user.login.tab') || 'Sign in') }}</div>
+        <div class="auth-headline">{{ activeTab === 'register' ? ($t('user.register.tab') || 'Create your account') :
+          ($t('user.login.tab') || 'Sign in') }}</div>
       </div>
 
       <!-- OAuth Token Handler (invisible) -->
@@ -1259,6 +1260,7 @@ export default {
 ::v-deep .ant-tabs-nav-container {
   font-size: 15px;
 }
+
 ::v-deep .ant-tabs-nav .ant-tabs-tab {
   font-weight: 600;
   font-size: 15px;
@@ -1266,14 +1268,17 @@ export default {
   margin-right: 32px;
   color: var(--wise-mute);
 }
+
 ::v-deep .ant-tabs-nav .ant-tabs-tab-active {
   color: var(--wise-ink) !important;
 }
+
 ::v-deep .ant-tabs-ink-bar {
   background-color: var(--wise-ink) !important;
   height: 3px;
   border-radius: var(--wise-r-pill);
 }
+
 ::v-deep .ant-tabs-bar {
   border-bottom-color: var(--wise-divider);
   margin-bottom: 24px;
@@ -1491,7 +1496,7 @@ export default {
 .password-requirements {
   font-size: 13px;
 
-  > div {
+  >div {
     display: flex;
     align-items: center;
     gap: 8px;

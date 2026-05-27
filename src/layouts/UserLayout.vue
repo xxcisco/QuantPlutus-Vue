@@ -1,5 +1,14 @@
 <template>
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
+    <LoginGrid
+      :square-size="isMobile ? 16 : 22"
+      :gap="isMobile ? 6 : 10"
+      :stagger-delay="120"
+      :scale-max="1.3"
+      glow-size="1rem"
+      color="#9fe870"
+      :opacity="0.85"
+    />
     <div class="wise-canvas">
       <!-- Decorative band: hero greeting on the left, language on the right (desktop) -->
       <div class="wise-topbar">
@@ -45,12 +54,9 @@
         <div class="wise-footer-inner">
           <div class="wise-copy">{{ brandConfig.copyright }}</div>
           <div class="wise-privacy">
-            <a
-              v-if="brandConfig.legal && brandConfig.legal.privacy_policy_url"
-              :href="brandConfig.legal.privacy_policy_url"
-              target="_blank"
-              rel="noopener noreferrer"
-            >{{ $t('user.login.privacy.view') }}</a>
+            <a v-if="brandConfig.legal && brandConfig.legal.privacy_policy_url"
+              :href="brandConfig.legal.privacy_policy_url" target="_blank" rel="noopener noreferrer">{{
+                $t('user.login.privacy.view') }}</a>
             <a v-else @click="toggleRisk">
               {{ showRisk ? $t('user.login.privacy.collapse') : $t('user.login.privacy.view') }}
             </a>
@@ -72,14 +78,16 @@ import { mapState } from 'vuex'
 import { deviceMixin } from '@/store/device-mixin'
 import SelectLang from '@/components/SelectLang'
 import defaultLogo from '@/assets/logo.png'
+import LoginGrid from '@/components/Animejs/LoginGrid'
 
 export default {
   name: 'UserLayout',
   components: {
-    SelectLang
+    SelectLang,
+    LoginGrid
   },
   mixins: [deviceMixin],
-  data () {
+  data() {
     return {
       showRisk: false
     }
@@ -88,20 +96,20 @@ export default {
     ...mapState({
       brandConfig: state => state.brand.config
     }),
-    loginLogo () {
+    loginLogo() {
       const remote = this.brandConfig && this.brandConfig.logos && this.brandConfig.logos.light
       return remote || defaultLogo
     }
   },
   methods: {
-    toggleRisk () {
+    toggleRisk() {
       this.showRisk = !this.showRisk
-    }
+    },
   },
-  mounted () {
+  mounted() {
     document.body.classList.add('userLayout')
   },
-  beforeDestroy () {
+  beforeDestroy() {
     document.body.classList.remove('userLayout')
   }
 }
@@ -109,14 +117,18 @@ export default {
 
 <style lang="less" scoped>
 #userLayout.user-layout-wrapper {
+  position: relative;
   min-height: 100vh;
   width: 100%;
   background: var(--wise-canvas-soft);
   color: var(--wise-ink);
   font-family: var(--wise-font-body);
+  overflow: hidden;
 }
 
 .wise-canvas {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
