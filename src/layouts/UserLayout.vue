@@ -350,8 +350,7 @@ export default {
     gap: 16px;
 
     .wise-hero-display {
-      font-size: 32px;
-      line-height: 1.1;
+      font-size: 24px;
     }
 
     .wise-hero-sub {
