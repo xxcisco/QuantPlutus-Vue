@@ -57,7 +57,7 @@
                 :enabled="securityConfig.turnstile_enabled" @success="(t) => loginTurnstileToken = t"
                 @error="() => loginTurnstileToken = null" />
 
-              <a-form-item style="margin-top:24px">
+              <a-form-item style="margin-top:24px;margin-bottom: 12px;">
                 <a-button size="large" type="primary" htmlType="submit" class="submit-button" :loading="loginLoading"
                   :disabled="loginLoading || (securityConfig.turnstile_enabled && !loginTurnstileToken)" block>{{
                     $t('user.login.submit') || 'Login' }}</a-button>
@@ -118,7 +118,7 @@
                 :enabled="securityConfig.turnstile_enabled" @success="(t) => codeLoginTurnstileToken = t"
                 @error="() => codeLoginTurnstileToken = null" />
 
-              <a-form-item style="margin-top:24px">
+              <a-form-item style="margin:24px">
                 <a-button size="large" type="primary" htmlType="submit" class="submit-button"
                   :loading="codeLoginLoading"
                   :disabled="codeLoginLoading || (securityConfig.turnstile_enabled && !codeLoginTurnstileToken)"
@@ -295,9 +295,6 @@
 
         <!-- Legal Agreement -->
         <div class="legal-wrap">
-          <div class="legal-header">
-            <div class="legal-title">{{ $t('user.login.legal.title') }}</div>
-          </div>
           <div class="legal-agree">
             <div>
               <a-checkbox v-model="legalAgreed">
@@ -1233,7 +1230,7 @@ export default {
 
 .auth-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 460px;
   margin: 0 auto;
   background: #fffffff2;
   padding: 32px;
@@ -1242,7 +1239,7 @@ export default {
   box-sizing: border-box;
 
   .auth-card-head {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .auth-eyebrow {
@@ -1369,15 +1366,14 @@ export default {
 }
 
 .auth-links {
-  text-align: center;
-  margin-top: 16px;
+  text-align: right;
   font-size: 14px;
+  margin-right: 8px;
 
   a {
     color: var(--wise-ink);
     font-weight: 600;
     cursor: pointer;
-    border-bottom: 1px solid var(--wise-ink);
     padding-bottom: 1px;
     transition: all var(--wise-dur-fast) var(--wise-ease);
 
@@ -1442,8 +1438,8 @@ export default {
 }
 
 .legal-wrap {
-  margin-top: 24px;
-  padding: 16px;
+  margin-top: 16px;
+  padding: 12px 16px;
   background: var(--wise-canvas-soft);
   border-radius: var(--wise-r-lg);
 
@@ -1486,7 +1482,6 @@ export default {
   }
 
   .legal-agree {
-    margin-top: 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
