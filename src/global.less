@@ -218,7 +218,7 @@ body.realdark {
     a { color: rgba(255, 255, 255, 0.85) !important; }
   }
   .ant-pagination-item-active {
-    border-color: #1890ff !important;
+    border-color: var(--wise-primary) !important;
   }
   .ant-pagination-prev .ant-pagination-item-link,
   .ant-pagination-next .ant-pagination-item-link {
@@ -253,7 +253,7 @@ body.realdark {
   .ant-input-number-handler:hover .ant-input-number-handler-down-inner,
   .ant-select-arrow:hover,
   .ant-select-clear:hover {
-    color: #58a6ff !important;
+    color: var(--wise-primary) !important;
   }
   // 按钮
   .ant-btn-default {
@@ -261,8 +261,8 @@ body.realdark {
     border-color: #2a2a2a !important;
     color: rgba(255, 255, 255, 0.85) !important;
     &:hover {
-      border-color: #1890ff !important;
-      color: #1890ff !important;
+      border-color: var(--wise-primary) !important;
+      color: var(--wise-primary) !important;
     }
   }
   // Breadcrumb & PageHeader
@@ -286,7 +286,7 @@ body.realdark {
     &:hover { color: #d4d4d4 !important; }
   }
   .ant-tabs-tab-active {
-    color: #1890ff !important;
+    color: var(--wise-primary) !important;
   }
   // Modal
   .ant-modal-content {
@@ -310,7 +310,10 @@ body.realdark {
       color: rgba(255, 255, 255, 0.85) !important;
       &:hover { background: #252525 !important; }
       &-active { background: #252525 !important; }
-      &-selected { background: rgba(24, 144, 255, 0.1) !important; color: #1890ff !important; }
+      &-selected {
+        background: rgba(159, 232, 112, 0.14) !important;
+        color: var(--wise-primary) !important;
+      }
     }
   }
 }

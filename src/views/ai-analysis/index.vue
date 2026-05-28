@@ -161,7 +161,7 @@
                 </span>
               </a-select-option>
               <a-select-option key="add-stock-option" value="__add_stock_option__" class="add-stock-option">
-                <div style="text-align: center; padding: 4px 0; color: #1890ff;">
+                <div style="text-align: center; padding: 4px 0; color: var(--wise-primary);">
                   <a-icon type="plus" style="margin-right: 4px;" />{{ $t('dashboard.analysis.watchlist.add') }}
                 </div>
               </a-select-option>
@@ -840,7 +840,7 @@ export default {
     ...mapGetters(['userInfo']),
     ...mapState({
       navTheme: state => state.app.theme,
-      primaryColor: state => state.app.color || '#1890ff'
+      primaryColor: state => state.app.color || '#9fe870'
     }),
     isDarkTheme() {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
@@ -2771,7 +2771,7 @@ export default {
 
         .anticon {
           margin-right: 6px;
-          color: var(--primary-color, #1890ff);
+          color: var(--primary-color, #9fe870);
         }
       }
     }
@@ -2902,8 +2902,8 @@ export default {
     }
 
     .analyze-button {
-      background: var(--primary-color, #1890ff);
-      border-color: var(--primary-color, #1890ff);
+      background: var(--primary-color, #9fe870);
+      border-color: var(--primary-color, #9fe870);
       border-radius: 8px;
       font-weight: 600;
     }
@@ -3399,8 +3399,8 @@ export default {
 
       &:hover {
         background: #333336;
-        border-color: var(--primary-color, #1890ff);
-        color: var(--primary-color, #1890ff);
+        border-color: var(--primary-color, #9fe870);
+        color: var(--primary-color, #9fe870);
       }
     }
 
@@ -3416,8 +3416,8 @@ export default {
         }
 
         &.active {
-          background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
-          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent);
+          background: color-mix(in srgb, var(--primary-color, #9fe870) 8%, transparent);
+          border-color: color-mix(in srgb, var(--primary-color, #9fe870) 28%, transparent);
         }
 
         .wl-symbol {
@@ -3461,8 +3461,8 @@ export default {
         }
 
         .wl-hover-btn:hover {
-          color: var(--primary-color, #1890ff);
-          background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+          color: var(--primary-color, #9fe870);
+          background: color-mix(in srgb, var(--primary-color, #9fe870) 12%, transparent);
         }
 
         .wl-hover-btn.danger:hover {
@@ -3472,7 +3472,7 @@ export default {
       }
 
       .wl-card.active .wl-card-hover-actions {
-        background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent) 30%);
+        background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--primary-color, #9fe870) 6%, transparent) 30%);
       }
 
       .watchlist-empty {
@@ -3491,9 +3491,9 @@ export default {
     }
 
     .hero-badge {
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
-      color: var(--primary-color, #1890ff);
+      background: color-mix(in srgb, var(--primary-color, #9fe870) 10%, transparent);
+      border-color: color-mix(in srgb, var(--primary-color, #9fe870) 25%, transparent);
+      color: var(--primary-color, #9fe870);
     }
 
     .hero-title {
@@ -3512,13 +3512,13 @@ export default {
     }
 
     .hstat:hover {
-      border-color: color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent);
-      box-shadow: 0 4px 16px color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
+      border-color: color-mix(in srgb, var(--primary-color, #9fe870) 35%, transparent);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--primary-color, #9fe870) 12%, transparent);
     }
 
     .hstat-icon {
-      background: color-mix(in srgb, var(--primary-color, #1890ff) 12%, transparent);
-      color: var(--primary-color, #1890ff);
+      background: color-mix(in srgb, var(--primary-color, #9fe870) 12%, transparent);
+      color: var(--primary-color, #9fe870);
     }
 
     .hstat-val {
@@ -3530,7 +3530,7 @@ export default {
     }
 
     .hero-cta .ant-btn-primary {
-      box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color, #9fe870) 35%, transparent);
     }
   }
 
@@ -3544,8 +3544,8 @@ export default {
 
       &:hover,
       &.active {
-        border-color: var(--primary-color, #1890ff);
-        background: rgba(24, 144, 255, 0.08);
+        border-color: var(--primary-color, #9fe870);
+        background: rgba(159, 232, 112, 0.08);
       }
 
       .chip-symbol {
@@ -3637,8 +3637,8 @@ export default {
         color: #ccc;
 
         &:hover {
-          border-color: color-mix(in srgb, var(--primary-color, #1890ff) 45%, transparent);
-          color: var(--primary-color, #1890ff);
+          border-color: color-mix(in srgb, var(--primary-color, #9fe870) 45%, transparent);
+          color: var(--primary-color, #9fe870);
         }
       }
     }
@@ -3650,8 +3650,8 @@ export default {
     color: #d4d4d4;
 
     &:hover {
-      border-color: #1890ff;
-      color: #1890ff;
+      border-color: var(--wise-primary);
+      color: var(--wise-primary);
     }
   }
 
@@ -3668,8 +3668,8 @@ export default {
   }
 
   .panel-header-icon:hover {
-    color: var(--primary-color, #1890ff);
-    background: color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+    color: var(--primary-color, #9fe870);
+    background: color-mix(in srgb, var(--primary-color, #9fe870) 10%, transparent);
   }
 
   .panel-summary {
@@ -3696,8 +3696,8 @@ export default {
 
     &:hover {
       background: #333336 !important;
-      border-color: var(--primary-color, #1890ff) !important;
-      color: var(--primary-color, #1890ff) !important;
+      border-color: var(--primary-color, #9fe870) !important;
+      color: var(--primary-color, #9fe870) !important;
     }
   }
 
@@ -3715,8 +3715,8 @@ export default {
 
       &:hover,
       &.active {
-        border-color: var(--primary-color, #1890ff);
-        background: rgba(24, 144, 255, 0.08);
+        border-color: var(--primary-color, #9fe870);
+        background: rgba(159, 232, 112, 0.08);
       }
 
       .chip-symbol {
@@ -3760,11 +3760,11 @@ export default {
     }
 
     .ant-tabs-tab-active {
-      color: #1890ff !important;
+      color: var(--wise-primary) !important;
     }
 
     .ant-tabs-ink-bar {
-      background-color: #1890ff;
+      background-color: var(--wise-primary);
     }
 
     .ant-input {
@@ -3815,13 +3815,13 @@ export default {
       color: #d4d4d4;
 
       &:hover {
-        border-color: #1890ff;
-        color: #1890ff;
+        border-color: var(--wise-primary);
+        color: var(--wise-primary);
       }
     }
 
     .ant-alert {
-      background: rgba(24, 144, 255, 0.06);
+      background: rgba(159, 232, 112, 0.06);
       border-color: #2a2a2a;
     }
 
@@ -3902,7 +3902,7 @@ export default {
   height: 320px;
   top: -80px;
   right: -60px;
-  background: radial-gradient(circle, rgba(24, 144, 255, 0.10) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(159, 232, 112, 0.10) 0%, transparent 70%);
   animation: hero-float 6s ease-in-out infinite;
 }
 
@@ -3919,8 +3919,8 @@ export default {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(24, 144, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(24, 144, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(159, 232, 112, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(159, 232, 112, 0.03) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
@@ -3950,9 +3950,9 @@ export default {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: var(--primary-color, #1890ff);
-  background: rgba(24, 144, 255, 0.08);
-  border: 1px solid rgba(24, 144, 255, 0.2);
+  color: var(--primary-color, #9fe870);
+  background: rgba(159, 232, 112, 0.08);
+  border: 1px solid rgba(159, 232, 112, 0.2);
   margin-bottom: 16px;
 }
 
@@ -3996,8 +3996,8 @@ export default {
 }
 
 .hstat:hover {
-  border-color: var(--primary-color, #1890ff);
-  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.10);
+  border-color: var(--primary-color, #9fe870);
+  box-shadow: 0 4px 16px rgba(159, 232, 112, 0.10);
   transform: translateY(-2px);
 }
 
@@ -4008,9 +4008,9 @@ export default {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.10) 0%, rgba(114, 46, 209, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(159, 232, 112, 0.10) 0%, rgba(114, 46, 209, 0.08) 100%);
   font-size: 16px;
-  color: var(--primary-color, #1890ff);
+  color: var(--primary-color, #9fe870);
   flex-shrink: 0;
 }
 
@@ -4056,7 +4056,7 @@ export default {
 }
 
 .hero-cta .ant-btn-primary {
-  box-shadow: 0 4px 14px rgba(24, 144, 255, 0.3);
+  box-shadow: 0 4px 14px rgba(159, 232, 112, 0.3);
 }
 
 .hero-hint {
@@ -4081,8 +4081,8 @@ export default {
 }
 
 .panel-header-icon:hover {
-  color: var(--primary-color, #1890ff);
-  background: rgba(24, 144, 255, 0.08);
+  color: var(--primary-color, #9fe870);
+  background: rgba(159, 232, 112, 0.08);
 }
 
 /* ===== Panel Summary ===== */
@@ -4163,7 +4163,7 @@ export default {
 }
 
 .batch-bar .ant-btn-primary {
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--primary-color, #1890ff) 20%, transparent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--primary-color, #9fe870) 20%, transparent);
 
   &:hover {
     filter: brightness(1.05);
@@ -4199,9 +4199,9 @@ export default {
 }
 
 .wl-card.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #1890ff) 6%, #fff) 0%, color-mix(in srgb, var(--primary-color, #1890ff) 4%, #fff) 100%);
-  border-color: color-mix(in srgb, var(--primary-color, #1890ff) 28%, transparent);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--primary-color, #1890ff) 10%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #9fe870) 6%, #fff) 0%, color-mix(in srgb, var(--primary-color, #9fe870) 4%, #fff) 100%);
+  border-color: color-mix(in srgb, var(--primary-color, #9fe870) 28%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--primary-color, #9fe870) 10%, transparent);
 }
 
 .wl-card-cb {
@@ -4424,7 +4424,7 @@ export default {
 }
 
 .wl-hover-btn:hover {
-  color: var(--primary-color, #1890ff);
+  color: var(--primary-color, #9fe870);
   background: #e6f7ff;
 }
 
@@ -4544,13 +4544,13 @@ export default {
     border-width: 1px;
 
     &.ant-btn-primary {
-      background: var(--primary-color, #1890ff);
-      border-color: var(--primary-color, #1890ff);
+      background: var(--primary-color, #9fe870);
+      border-color: var(--primary-color, #9fe870);
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 
       &:hover {
         filter: brightness(1.05);
-        box-shadow: 0 2px 6px color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--primary-color, #9fe870) 25%, transparent);
       }
     }
 
@@ -4816,8 +4816,8 @@ export default {
       color: #d4d4d4;
 
       &:hover {
-        border-color: #1890ff;
-        color: #1890ff;
+        border-color: var(--wise-primary);
+        color: var(--wise-primary);
       }
     }
   }
@@ -4873,7 +4873,7 @@ export default {
   }
 
   .ant-tabs-tab-active {
-    color: #1890ff !important;
+    color: var(--wise-primary) !important;
   }
 
   .ant-tag {
@@ -4883,13 +4883,13 @@ export default {
   }
 
   .ant-tag-blue {
-    background: rgba(24, 144, 255, 0.1);
-    border-color: rgba(24, 144, 255, 0.3);
-    color: #1890ff;
+    background: rgba(159, 232, 112, 0.1);
+    border-color: rgba(159, 232, 112, 0.3);
+    color: var(--wise-primary);
   }
 
   .ant-alert {
-    background: rgba(24, 144, 255, 0.06);
+    background: rgba(159, 232, 112, 0.06);
     border-color: #2a2a2a;
   }
 
@@ -4898,7 +4898,7 @@ export default {
   }
 
   .ant-alert-info .ant-alert-icon {
-    color: #1890ff;
+    color: var(--wise-primary);
   }
 
   .ant-list-item {
@@ -4962,9 +4962,9 @@ export default {
   }
 
   .batch-symbols-preview .ant-tag {
-    background: rgba(24, 144, 255, 0.1);
-    border-color: rgba(24, 144, 255, 0.3);
-    color: #1890ff;
+    background: rgba(159, 232, 112, 0.1);
+    border-color: rgba(159, 232, 112, 0.3);
+    color: var(--wise-primary);
   }
 
   .task-item {
@@ -5056,8 +5056,8 @@ export default {
 
   .task-item-actions .ant-btn {
     &.ant-btn-primary {
-      background: var(--primary-color, #1890ff);
-      border-color: var(--primary-color, #1890ff);
+      background: var(--primary-color, #9fe870);
+      border-color: var(--primary-color, #9fe870);
 
       &:hover {
         filter: brightness(1.1);
@@ -5071,8 +5071,8 @@ export default {
 
       &:hover {
         background: #333336;
-        border-color: var(--primary-color, #1890ff);
-        color: var(--primary-color, #1890ff);
+        border-color: var(--primary-color, #9fe870);
+        color: var(--primary-color, #9fe870);
       }
     }
 
@@ -5095,8 +5095,8 @@ export default {
     color: #d4d4d4;
 
     &:hover {
-      border-color: #1890ff;
-      color: #1890ff;
+      border-color: var(--wise-primary);
+      color: var(--wise-primary);
     }
   }
 
@@ -5143,8 +5143,8 @@ body.colorWeak .ant-select-dropdown,
   }
 
   .ant-select-dropdown-menu-item-selected {
-    background: rgba(24, 144, 255, 0.1);
-    color: #1890ff;
+    background: rgba(159, 232, 112, 0.1);
+    color: var(--wise-primary);
   }
 }
 </style>

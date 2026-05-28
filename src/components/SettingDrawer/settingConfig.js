@@ -22,7 +22,7 @@ const getColorList = () => {
       key: i18n.t('app.setting.themecolor.green'), color: '#52C41A'
     },
     {
-      key: i18n.t('app.setting.themecolor.daybreak'), color: '#1890FF'
+      key: i18n.t('app.setting.themecolor.daybreak'), color: '#9fe870'
     },
     {
       key: i18n.t('app.setting.themecolor.geekblue'), color: '#2F54EB'

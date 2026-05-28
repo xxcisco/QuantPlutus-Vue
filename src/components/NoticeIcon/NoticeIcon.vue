@@ -274,13 +274,13 @@ export default {
       const colorMap = {
         'ai_monitor': '#722ed1',
         'price_alert': '#faad14',
-        'signal': '#1890ff',
+        'signal': '#9fe870',
         'buy': '#52c41a',
         'sell': '#f5222d',
         'hold': '#faad14',
         'trade': '#13c2c2'
       }
-      return colorMap[signalType] || '#1890ff'
+      return colorMap[signalType] || '#9fe870'
     },
     getNoticeTypeLabel (signalType) {
       const labelMap = {
@@ -508,11 +508,11 @@ export default {
 
   .notice-action {
     font-size: 12px;
-    color: #1890ff;
+    color: var(--wise-primary);
     cursor: pointer;
 
     &:hover {
-      color: #40a9ff;
+      color: var(--wise-primary-hover);
     }
   }
 }
@@ -533,10 +533,10 @@ export default {
   }
 
   &.unread {
-    background: #e6f7ff;
+    background: rgba(159, 232, 112, 0.14);
 
     &:hover {
-      background: #bae7ff;
+      background: rgba(159, 232, 112, 0.22);
     }
   }
 
@@ -591,11 +591,11 @@ export default {
   border-top: 1px solid #f0f0f0;
 
   a {
-    color: #1890ff;
+    color: var(--wise-primary);
     cursor: pointer;
 
     &:hover {
-      color: #40a9ff;
+      color: var(--wise-primary-hover);
     }
   }
 }
@@ -767,10 +767,10 @@ body.realdark,
       }
 
       &.unread {
-        background: rgba(24, 144, 255, 0.15);
+        background: rgba(159, 232, 112, 0.14);
 
         &:hover {
-          background: rgba(24, 144, 255, 0.25);
+          background: rgba(159, 232, 112, 0.24);
         }
       }
 

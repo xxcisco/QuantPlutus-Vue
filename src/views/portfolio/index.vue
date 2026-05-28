@@ -326,7 +326,7 @@
                   <template slot="header">
                     <div class="group-header">
                       <span class="group-name">
-                        <a-icon type="folder" style="margin-right: 8px; color: #1890ff;" />
+                        <a-icon type="folder" style="margin-right: 8px; color: var(--wise-primary);" />
                         {{ group.name }}
                       </span>
                       <span class="group-stats">
@@ -536,9 +536,9 @@
               :value="symbolSearchKeyword.toUpperCase()"
             >
               <div class="symbol-option manual-input">
-                <a-icon type="edit" style="margin-right: 6px; color: #1890ff;" />
+                <a-icon type="edit" style="margin-right: 6px; color: var(--wise-primary);" />
                 <span>{{ $t('portfolio.form.useAsSymbol') }} </span>
-                <strong style="color: #1890ff;">{{ symbolSearchKeyword.toUpperCase() }}</strong>
+                <strong style="color: var(--wise-primary);">{{ symbolSearchKeyword.toUpperCase() }}</strong>
                 <span> {{ $t('portfolio.form.asSymbolCode') }}</span>
               </div>
             </a-select-option>
@@ -2091,7 +2091,7 @@ export default {
     &.sync {
       background: rgba(59, 130, 246, 0.1);
       color: @blue;
-      &.syncing { color: #1890ff; }
+      &.syncing { color: var(--wise-primary); }
     }
   }
 
@@ -2371,9 +2371,9 @@ export default {
     }
 
     .scope-selected {
-      color: #1890ff;
+      color: var(--wise-primary);
       cursor: help;
-      border-bottom: 1px dashed #1890ff;
+      border-bottom: 1px dashed var(--wise-primary);
     }
 
     .scope-all {
@@ -2562,7 +2562,7 @@ export default {
 
     .price {
       font-weight: 600;
-      color: #1890ff;
+      color: var(--wise-primary);
       font-size: 14px;
     }
   }
@@ -2624,7 +2624,7 @@ export default {
     transition: background 0.2s;
 
     &:hover {
-      background: rgba(24, 144, 255, 0.05);
+      background: rgba(159, 232, 112, 0.08);
     }
 
     &:last-child {
@@ -2724,7 +2724,7 @@ export default {
   }
 
   .position-checkbox-item:hover {
-    background: rgba(24, 144, 255, 0.1);
+    background: rgba(159, 232, 112, 0.14);
   }
 
   .position-checkbox-label {
@@ -2738,14 +2738,14 @@ export default {
 
   .alert-symbol-info {
     .current-price-info {
-      background: linear-gradient(135deg, rgba(24, 144, 255, 0.15) 0%, rgba(114, 46, 209, 0.1) 100%);
+      background: linear-gradient(135deg, rgba(159, 232, 112, 0.2) 0%, rgba(114, 46, 209, 0.1) 100%);
 
       .label {
         color: rgba(255, 255, 255, 0.65);
       }
 
       .price {
-        color: #40a9ff;
+        color: var(--wise-primary);
       }
     }
   }

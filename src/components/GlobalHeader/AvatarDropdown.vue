@@ -104,7 +104,7 @@ body.realdark .ant-dropdown-menu,
     &:hover,
     &.ant-dropdown-menu-item-selected {
       background-color: #262626;
-      color: #1890ff;
+      color: var(--wise-primary);
     }
 
     .anticon {

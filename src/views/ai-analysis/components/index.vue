@@ -417,9 +417,9 @@
                 <svg class="neural-network" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:rgba(24, 144, 255, 0.6);stop-opacity:1" />
+                      <stop offset="0%" style="stop-color:rgba(159, 232, 112, 0.6);stop-opacity:1" />
                       <stop offset="50%" style="stop-color:rgba(114, 46, 209, 0.4);stop-opacity:1" />
-                      <stop offset="100%" style="stop-color:rgba(24, 144, 255, 0.6);stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:rgba(159, 232, 112, 0.6);stop-opacity:1" />
                     </linearGradient>
                   </defs>
                   <!-- 连接线 -->
@@ -478,8 +478,8 @@
                 <svg class="candlestick-chart" viewBox="0 0 400 150" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style="stop-color:rgba(24, 144, 255, 0.4);stop-opacity:1" />
-                      <stop offset="100%" style="stop-color:rgba(24, 144, 255, 0);stop-opacity:0" />
+                      <stop offset="0%" style="stop-color:rgba(159, 232, 112, 0.4);stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:rgba(159, 232, 112, 0);stop-opacity:0" />
                     </linearGradient>
                     <filter id="glow">
                       <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -498,7 +498,7 @@
                       :y1="i * 30"
                       x2="400"
                       :y2="i * 30"
-                      stroke="rgba(24, 144, 255, 0.1)"
+                      stroke="rgba(159, 232, 112, 0.1)"
                       stroke-width="1"/>
                   </g>
                   <!-- K线 -->
@@ -508,7 +508,7 @@
                       :y1="getCandleHigh(i)"
                       :x2="i * 30 + 15"
                       :y2="getCandleLow(i)"
-                      stroke="rgba(24, 144, 255, 0.6)"
+                      stroke="rgba(159, 232, 112, 0.6)"
                       stroke-width="1"/>
                     <rect
                       :x="i * 30 + 10"
@@ -516,7 +516,7 @@
                       :width="10"
                       :height="Math.abs(getCandleOpen(i) - getCandleClose(i))"
                       :fill="getCandleColor(i)"
-                      stroke="rgba(24, 144, 255, 0.8)"
+                      stroke="rgba(159, 232, 112, 0.8)"
                       stroke-width="1"/>
                   </g>
                   <!-- 价格线 -->
@@ -524,7 +524,7 @@
                     class="price-line"
                     :d="getPriceLinePath()"
                     fill="none"
-                    stroke="rgba(24, 144, 255, 0.8)"
+                    stroke="rgba(159, 232, 112, 0.8)"
                     stroke-width="2"
                     filter="url(#glow)"/>
                 </svg>
@@ -668,7 +668,7 @@ export default {
           name: 'Technical Analyst',
           nameKey: 'ai-analysis.agent.technical',
           roleKey: 'ai-analysis.agent.role.technical',
-          color: '#1890ff',
+          color: '#9fe870',
           scripts: ['ai-analysis.script.technical'],
           resultKey: 'technical' // 对应 technical 标签
         },
@@ -724,7 +724,7 @@ export default {
           name: 'Trader Agent',
           nameKey: 'ai-analysis.agent.trader',
           roleKey: 'ai-analysis.agent.role.trader',
-          color: '#1890ff',
+          color: '#9fe870',
           scripts: ['ai-analysis.panel.thinking'],
           resultKey: 'trader_decision' // 对应 trader_decision
         },
@@ -798,7 +798,7 @@ export default {
       return this.$store.getters.theme
     },
     primaryColor () {
-      return this.$store.state.app.color || '#1890ff'
+      return this.$store.state.app.color || '#9fe870'
     },
     currentStageName () {
       if (this.currentStep === 0) return this.$t('ai-analysis.stage.idle')
@@ -819,7 +819,7 @@ export default {
           r: parseInt(result[1], 16),
           g: parseInt(result[2], 16),
           b: parseInt(result[3], 16)
-        } : { r: 24, g: 144, b: 255 }
+        } : { r: 159, g: 232, b: 112 }
       }
       const rgb = hexToRgb(primary)
 
@@ -2379,7 +2379,7 @@ export default {
       justify-content: center;
       margin: 0 auto;
       overflow: hidden;
-      background: radial-gradient(circle at center, rgba(24, 144, 255, 0.03) 0%, transparent 70%);
+      background: radial-gradient(circle at center, rgba(159, 232, 112, 0.03) 0%, transparent 70%);
 
       // 科技背景层
       .tech-background {
@@ -2551,9 +2551,9 @@ export default {
             height: 200%;
             background: linear-gradient(to bottom,
               transparent 0%,
-              rgba(24, 144, 255, 0.1) 20%,
-              rgba(24, 144, 255, 0.6) 50%,
-              rgba(24, 144, 255, 0.1) 80%,
+              rgba(159, 232, 112, 0.1) 20%,
+              rgba(159, 232, 112, 0.6) 50%,
+              rgba(159, 232, 112, 0.1) 80%,
               transparent 100%);
             animation: matrixFall linear infinite;
             font-family: 'Courier New', monospace;
@@ -2609,7 +2609,7 @@ export default {
               &.ring-1 {
                 width: 100%;
                 height: 100%;
-                box-shadow: 0 0 20px rgba(24, 144, 255, 0.5);
+                box-shadow: 0 0 20px rgba(159, 232, 112, 0.5);
               }
 
               &.ring-2 {
@@ -2624,7 +2624,7 @@ export default {
                 width: 60%;
                 height: 60%;
                 animation-duration: 2s;
-                box-shadow: 0 0 10px rgba(24, 144, 255, 0.3);
+                box-shadow: 0 0 10px rgba(159, 232, 112, 0.3);
               }
             }
 
@@ -2634,7 +2634,7 @@ export default {
               border-radius: 50%;
               position: relative;
               z-index: 2;
-              filter: drop-shadow(0 0 15px rgba(24, 144, 255, 0.8));
+              filter: drop-shadow(0 0 15px rgba(159, 232, 112, 0.8));
               border: 2px solid var(--primary-color);
             }
 
@@ -2677,7 +2677,7 @@ export default {
             font-weight: bold;
             margin-bottom: 12px;
             color: var(--text-color);
-            text-shadow: 0 0 15px rgba(24, 144, 255, 0.8);
+            text-shadow: 0 0 15px rgba(159, 232, 112, 0.8);
             font-family: 'Orbitron', monospace;
           }
           .current-task-detail {
@@ -2715,7 +2715,7 @@ export default {
           }
 
           .price-line {
-            filter: drop-shadow(0 0 3px rgba(24, 144, 255, 0.8));
+            filter: drop-shadow(0 0 3px rgba(159, 232, 112, 0.8));
             stroke-dasharray: 10, 5;
             animation: priceLineFlow 3s ease-in-out infinite;
           }
@@ -2734,8 +2734,8 @@ export default {
         gap: 12px;
 
         .metric-card {
-          background: rgba(24, 144, 255, 0.05);
-          border: 1px solid rgba(24, 144, 255, 0.3);
+          background: rgba(159, 232, 112, 0.05);
+          border: 1px solid rgba(159, 232, 112, 0.3);
           border-radius: 4px;
           padding: 10px;
           backdrop-filter: blur(5px);
@@ -2762,7 +2762,7 @@ export default {
           .metric-bar {
             width: 100%;
             height: 4px;
-            background: rgba(24, 144, 255, 0.1);
+            background: rgba(159, 232, 112, 0.1);
             border-radius: 2px;
             overflow: hidden;
 
@@ -3071,13 +3071,13 @@ export default {
 @keyframes hologramPulse {
   0%, 100% {
     box-shadow:
-      0 0 20px rgba(24, 144, 255, 0.5),
-      inset 0 0 20px rgba(24, 144, 255, 0.2);
+      0 0 20px rgba(159, 232, 112, 0.5),
+      inset 0 0 20px rgba(159, 232, 112, 0.2);
   }
   50% {
     box-shadow:
-      0 0 40px rgba(24, 144, 255, 0.8),
-      inset 0 0 30px rgba(24, 144, 255, 0.4);
+      0 0 40px rgba(159, 232, 112, 0.8),
+      inset 0 0 30px rgba(159, 232, 112, 0.4);
   }
 }
 
@@ -3395,7 +3395,7 @@ export default {
         transform: scale(1.05);
         margin-right: 0;
         border-width: 2px;
-        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+        box-shadow: 0 4px 12px rgba(159, 232, 112, 0.3);
       }
 
       .agent-avatar {

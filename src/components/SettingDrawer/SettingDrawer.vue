@@ -197,7 +197,7 @@ export default {
       return this.settings.theme || this.navTheme || 'light'
     },
     currentPrimaryColor () {
-      return this.settings.primaryColor || this.primaryColor || '#1890FF'
+      return this.settings.primaryColor || this.primaryColor || '#9fe870'
     },
     currentFixedHeader () {
       return this.settings.fixedHeader !== undefined ? this.settings.fixedHeader : (this.fixedHeader || false)
@@ -354,7 +354,7 @@ export default {
           padding-top: 15px;
           padding-left: 24px;
           height: 100%;
-          color: #1890ff;
+          color: var(--wise-primary);
           font-size: 14px;
           font-weight: 700;
         }

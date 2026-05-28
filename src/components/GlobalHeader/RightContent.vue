@@ -72,8 +72,6 @@ export default {
 </script>
 
 <style lang="less">
-@import '~ant-design-vue/es/style/themes/default.less';
-
 /* 浅色主题（默认） */
 .ant-pro-global-header-index-right {
   display: flex;
@@ -84,16 +82,17 @@ export default {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: @layout-header-height;
+    height: 64px;
     padding: 0 12px;
-    color: rgba(0, 0, 0, 0.65);
+    color: var(--wise-body);
     transition: all 0.3s;
     cursor: pointer;
     vertical-align: top;
+    border-radius: var(--wise-r-sm);
 
     &:hover {
-      color: @primary-color;
-      background: rgba(0, 0, 0, 0.04);
+      color: var(--wise-primary);
+      background: rgba(159, 232, 112, 0.12);
     }
   }
 }
@@ -133,8 +132,8 @@ body.realdark,
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
-        background: rgba(255, 255, 255, 0.08) !important;
+        color: var(--wise-primary) !important;
+        background: rgba(159, 232, 112, 0.12) !important;
       }
     }
 
@@ -151,8 +150,8 @@ body.realdark,
       color: rgba(255, 255, 255, 0.85) !important;
 
       &:hover {
-        color: #1890ff !important;
-        background: rgba(255, 255, 255, 0.08) !important;
+        color: var(--wise-primary) !important;
+        background: rgba(159, 232, 112, 0.12) !important;
       }
 
       .anticon {

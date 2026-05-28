@@ -13,7 +13,7 @@
           <a-progress
             :percent="progressPercent"
             :showInfo="false"
-            strokeColor="#1890ff"
+            strokeColor="#9fe870"
             :strokeWidth="8"
           />
           <span class="progress-text">{{ formatProgress(progressPercent) }}%</span>
@@ -607,7 +607,7 @@ export default {
     confidenceColor () {
       const c = this.result?.confidence || 50
       if (c >= 70) return '#52c41a'
-      if (c >= 50) return '#1890ff'
+      if (c >= 50) return '#9fe870'
       return '#faad14'
     },
     consensusBlock () {
@@ -907,7 +907,7 @@ export default {
     },
     getScoreColor (score) {
       if (score >= 70) return '#52c41a'
-      if (score >= 50) return '#1890ff'
+      if (score >= 50) return '#9fe870'
       if (score >= 30) return '#faad14'
       return '#ff4d4f'
     },
@@ -1073,17 +1073,17 @@ export default {
 
       .loading-header {
         display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 32px;
-        .loading-icon-pro { font-size: 26px; color: var(--primary-color, #1890ff); }
+        .loading-icon-pro { font-size: 26px; color: var(--primary-color, #9fe870); }
         .loading-title { font-size: 18px; font-weight: 700; color: @rpt-text; }
       }
       .progress-wrapper {
         margin-bottom: 24px; position: relative;
-        .progress-text { position: absolute; right: 0; top: -22px; font-size: 13px; font-weight: 700; color: var(--primary-color, #1890ff); }
+        .progress-text { position: absolute; right: 0; top: -22px; font-size: 13px; font-weight: 700; color: var(--primary-color, #9fe870); }
       }
       .current-step {
         display: flex; align-items: center; justify-content: center; gap: 8px;
-        padding: 10px 20px; background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent); border-radius: 8px; margin-bottom: 20px;
-        color: var(--primary-color, #1890ff); font-size: 13px; font-weight: 600;
+        padding: 10px 20px; background: color-mix(in srgb, var(--primary-color, #9fe870) 6%, transparent); border-radius: 8px; margin-bottom: 20px;
+        color: var(--primary-color, #9fe870); font-size: 13px; font-weight: 600;
         .anticon { font-size: 15px; }
       }
       .steps-list {
@@ -1094,7 +1094,7 @@ export default {
           .step-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; transition: all 0.3s; }
           .step-text { flex: 1; }
           .step-check { color: @rpt-green; font-size: 13px; }
-          &.active { background: color-mix(in srgb, var(--primary-color, #1890ff) 6%, transparent); color: var(--primary-color, #1890ff); font-weight: 600; .step-dot { background: var(--primary-color, #1890ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #1890ff) 15%, transparent); } }
+          &.active { background: color-mix(in srgb, var(--primary-color, #9fe870) 6%, transparent); color: var(--primary-color, #9fe870); font-weight: 600; .step-dot { background: var(--primary-color, #9fe870); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #9fe870) 15%, transparent); } }
           &.done { color: @rpt-green; .step-dot { background: @rpt-green; } }
         }
       }
@@ -1119,9 +1119,9 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color, #1890ff) 6%, @rpt-surface), @rpt-surface);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color, #9fe870) 6%, @rpt-surface), @rpt-surface);
     margin-bottom: 2px;
-    border-left: 3px solid var(--primary-color, #1890ff);
+    border-left: 3px solid var(--primary-color, #9fe870);
 
     .gp-label {
       display: flex;
@@ -1129,7 +1129,7 @@ export default {
       gap: 6px;
       font-size: 12px;
       font-weight: 700;
-      color: var(--primary-color, #1890ff);
+      color: var(--primary-color, #9fe870);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       .anticon { font-size: 14px; }
@@ -1209,7 +1209,7 @@ export default {
       font-size: 13px;
       font-weight: 700;
       color: @rpt-text;
-      .anticon { color: var(--primary-color, #1890ff); font-size: 15px; }
+      .anticon { color: var(--primary-color, #9fe870); font-size: 15px; }
       .indicators-pro-badge { margin: 0; font-size: 10px; line-height: 16px; font-weight: 600; }
     }
   }
@@ -1243,7 +1243,7 @@ export default {
 
       &::after {
         content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: var(--primary-color, #1890ff);
+        background: var(--primary-color, #9fe870);
       }
       &.decision-buy::after  { background: linear-gradient(90deg, @rpt-green, #34d399); }
       &.decision-sell::after { background: linear-gradient(90deg, @rpt-red, #f87171); }
@@ -1265,8 +1265,8 @@ export default {
       .decision-summary { font-size: 14px; line-height: 1.75; color: @rpt-text2; padding-top: 14px; border-top: 1px solid @rpt-border; }
       .consensus-strip {
         margin-top: 12px; padding: 10px 14px; border-radius: 8px;
-        background: color-mix(in srgb, var(--primary-color, #1890ff) 4%, transparent); font-size: 12px; color: @rpt-text2;
-        .consensus-strip-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 6px; color: var(--primary-color, #1890ff); font-size: 12px; }
+        background: color-mix(in srgb, var(--primary-color, #9fe870) 4%, transparent); font-size: 12px; color: @rpt-text2;
+        .consensus-strip-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 6px; color: var(--primary-color, #9fe870); font-size: 12px; }
         .consensus-strip-metrics { display: flex; flex-wrap: wrap; gap: 8px 18px; .cm-item em { font-style: normal; color: @rpt-text3; margin-right: 4px; } }
       }
 
@@ -1295,8 +1295,8 @@ export default {
         .price-hint { font-size: 9px; color: #bbb; margin-top: 4px; .anticon { margin-right: 2px; } }
         .price-change { font-size: 13px; margin-top: 3px; font-weight: 700; font-family: @rpt-mono; &.positive { color: @rpt-green; } &.negative { color: @rpt-red; } }
 
-        &.current .price-label { color: #3b82f6; }
-        &.entry .price-label { color: var(--primary-color, #1890ff); }
+        &.current .price-label { color: var(--wise-primary); }
+        &.entry .price-label { color: var(--primary-color, #9fe870); }
         &.stop .price-label { color: @rpt-red; }
         &.target .price-label { color: @rpt-green; }
       }
@@ -1308,7 +1308,7 @@ export default {
 
       .trend-outlook-header {
         display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: @rpt-text; margin-bottom: 10px;
-        .anticon { color: var(--primary-color, #1890ff); font-size: 15px; }
+        .anticon { color: var(--primary-color, #9fe870); font-size: 15px; }
       }
       .trend-outlook-summary { font-size: 12px; line-height: 1.65; color: @rpt-text2; margin-bottom: 12px; padding: 10px 12px; background: rgba(0,0,0,0.02); border-radius: 8px; }
       .trend-outlook-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -1334,10 +1334,10 @@ export default {
           content: ''; position: absolute; right: 0; top: 16%; height: 68%; width: 1px; background: @rpt-border;
         }
 
-        .score-header { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: @rpt-text3; margin-bottom: 8px; .anticon { font-size: 14px; color: var(--primary-color, #1890ff); } }
+        .score-header { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: @rpt-text3; margin-bottom: 8px; .anticon { font-size: 14px; color: var(--primary-color, #9fe870); } }
         .score-value { text-align: right; font-size: 22px; font-weight: 800; color: @rpt-text; margin-top: 6px; font-family: @rpt-mono; }
 
-        &.overall { background: color-mix(in srgb, var(--primary-color, #1890ff) 3%, transparent); .score-header .anticon { color: var(--primary-color, #1890ff); } }
+        &.overall { background: color-mix(in srgb, var(--primary-color, #9fe870) 3%, transparent); .score-header .anticon { color: var(--primary-color, #9fe870); } }
       }
     }
 
@@ -1356,15 +1356,15 @@ export default {
         &::before {
           content: ''; position: absolute; left: 0; top: 20px; bottom: 20px; width: 3px; border-radius: 2px;
         }
-        &.technical::before { background: #3b82f6; }
-        &.fundamental::before { background: var(--primary-color, #1890ff); }
+        &.technical::before { background: var(--wise-primary); }
+        &.fundamental::before { background: var(--primary-color, #9fe870); }
         &.sentiment::before { background: @rpt-pink; }
 
         .analysis-card-header {
           display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; font-weight: 700; color: @rpt-text; padding-left: 12px;
           .anticon { font-size: 16px; }
-          &.technical .anticon { color: #3b82f6; }
-          &.fundamental .anticon { color: var(--primary-color, #1890ff); }
+          &.technical .anticon { color: var(--wise-primary); }
+          &.fundamental .anticon { color: var(--primary-color, #9fe870); }
           &.sentiment .anticon { color: @rpt-pink; }
         }
         .analysis-card-content { font-size: 13px; line-height: 1.85; color: @rpt-text2; padding-left: 12px; }
@@ -1408,19 +1408,19 @@ export default {
         display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
         font-size: 13px; font-weight: 700; margin-bottom: 8px; color: @rpt-text;
         text-transform: uppercase; letter-spacing: 0.3px;
-        .anticon { color: var(--primary-color, #1890ff); }
+        .anticon { color: var(--primary-color, #9fe870); }
         .indicators-pro-badge { margin: 0; font-size: 10px; line-height: 16px; font-weight: 600; }
       }
 
       .indicators-methodology {
         display: flex; align-items: flex-start; gap: 8px; font-size: 11px; line-height: 1.5; color: @rpt-text3;
         margin-bottom: 14px; padding: 8px 12px; background: rgba(0,0,0,0.02); border-radius: 6px; border: none;
-        .anticon { color: var(--primary-color, #1890ff); margin-top: 1px; }
+        .anticon { color: var(--primary-color, #9fe870); margin-top: 1px; }
       }
 
       .indicators-pro-wrap {
         margin-top: 18px; padding-top: 14px; border-top: 1px solid @rpt-border;
-        .indicators-pro-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: @rpt-text2; margin-bottom: 10px; .anticon { color: var(--primary-color, #1890ff); } }
+        .indicators-pro-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: @rpt-text2; margin-bottom: 10px; .anticon { color: var(--primary-color, #9fe870); } }
         ::v-deep .indicators-pro-desc {
           .ant-descriptions-item-label { font-size: 11px; color: @rpt-text3; font-weight: 600; font-family: @rpt-sans; }
           .ant-descriptions-item-content { font-size: 11px; font-family: @rpt-mono; }
@@ -1477,7 +1477,7 @@ export default {
   padding: 14px 16px;
   border: 1px solid @rpt-border;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.06), rgba(82, 196, 26, 0.04));
+  background: linear-gradient(135deg, rgba(159, 232, 112, 0.06), rgba(82, 196, 26, 0.04));
 
   &__text {
     margin-top: 8px;
@@ -1564,13 +1564,13 @@ export default {
   &::-webkit-scrollbar-thumb { background: #333; }
 
   .golden-path-bar {
-    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color, #1890ff) 8%, @dk-surface), @dk-surface);
-    border-left-color: var(--primary-color, #1890ff);
-    .gp-label { color: var(--primary-color, #1890ff); }
+    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color, #9fe870) 8%, @dk-surface), @dk-surface);
+    border-left-color: var(--primary-color, #9fe870);
+    .gp-label { color: var(--primary-color, #9fe870); }
     .gp-actions .ant-btn {
       background: @dk-surface2; border-color: @dk-border; color: @dk-text2;
-      &:hover { border-color: var(--primary-color, #1890ff); color: var(--primary-color, #1890ff); }
-      &.ant-btn-primary { background: var(--primary-color, #1890ff); border-color: var(--primary-color, #1890ff); color: #fff; }
+      &:hover { border-color: var(--primary-color, #9fe870); color: var(--primary-color, #9fe870); }
+      &.ant-btn-primary { background: var(--primary-color, #9fe870); border-color: var(--primary-color, #9fe870); color: #fff; }
     }
   }
 
@@ -1586,19 +1586,19 @@ export default {
   .report-section { background: @dk-surface; }
   .report-section-header {
     &:hover { background: rgba(255,255,255,0.03); }
-    .rsh-title { color: @dk-text; .anticon { color: var(--primary-color, #1890ff); } }
+    .rsh-title { color: @dk-text; .anticon { color: var(--primary-color, #9fe870); } }
   }
   .section-clickable:hover { background: rgba(255,255,255,0.03); }
   .section-toggle-arrow { color: @dk-text3; }
 
   .loading-container .loading-content-pro {
     .loading-title { color: @dk-text; }
-    .loading-icon-pro { color: var(--primary-color, #1890ff); }
-    .progress-wrapper .progress-text { color: var(--primary-color, #1890ff); }
-    .current-step { background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent); color: var(--primary-color, #1890ff); }
+    .loading-icon-pro { color: var(--primary-color, #9fe870); }
+    .progress-wrapper .progress-text { color: var(--primary-color, #9fe870); }
+    .current-step { background: color-mix(in srgb, var(--primary-color, #9fe870) 8%, transparent); color: var(--primary-color, #9fe870); }
     .steps-list .step-item {
       background: @dk-surface2; color: @dk-text3;
-      &.active { background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent); color: var(--primary-color, #1890ff); .step-dot { background: var(--primary-color, #1890ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #1890ff) 15%, transparent); } }
+      &.active { background: color-mix(in srgb, var(--primary-color, #9fe870) 8%, transparent); color: var(--primary-color, #9fe870); .step-dot { background: var(--primary-color, #9fe870); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #9fe870) 15%, transparent); } }
       &.done { color: #34d399; .step-dot { background: #34d399; } }
     }
     .loading-footer .elapsed-time { color: @dk-text3; }
@@ -1630,8 +1630,8 @@ export default {
       ::v-deep .ant-progress-text { color: @dk-text !important; }
       .confidence-value { color: @dk-text !important; }
       .consensus-strip {
-        background: color-mix(in srgb, var(--primary-color, #1890ff) 5%, transparent); color: @dk-text2;
-        .consensus-strip-title { color: var(--primary-color, #1890ff); }
+        background: color-mix(in srgb, var(--primary-color, #9fe870) 5%, transparent); color: @dk-text2;
+        .consensus-strip-title { color: var(--primary-color, #9fe870); }
         .cm-item em { color: @dk-text3; }
       }
     }
@@ -1644,8 +1644,8 @@ export default {
         .price-value { color: #f0f0f2; &.positive { color: #34d399; } &.negative { color: #f87171; } }
         .price-hint { color: #555; }
         .price-change { &.positive { color: #34d399; } &.negative { color: #f87171; } }
-        &.current .price-label { color: #60a5fa; }
-        &.entry .price-label { color: var(--primary-color, #1890ff); }
+        &.current .price-label { color: var(--wise-primary); }
+        &.entry .price-label { color: var(--primary-color, #9fe870); }
         &.stop .price-label { color: #f87171; }
         &.target .price-label { color: #34d399; }
       }
@@ -1653,7 +1653,7 @@ export default {
 
     .trend-outlook-card {
       background: @dk-surface;
-      .trend-outlook-header { color: @dk-text; .anticon { color: var(--primary-color, #1890ff); } }
+      .trend-outlook-header { color: @dk-text; .anticon { color: var(--primary-color, #9fe870); } }
       .trend-outlook-summary { background: @dk-surface2; color: @dk-text2; }
       .trend-outlook-item { background: @dk-surface2; .to-label, .to-meta { color: @dk-text3; } .to-trend { &.trend-bull { color: #34d399; } &.trend-bear { color: #f87171; } &.trend-neutral { color: #fbbf24; } } }
     }
@@ -1662,9 +1662,9 @@ export default {
       background: @dk-surface;
       .score-item {
         &:not(:last-child)::after { background: @dk-border; }
-        .score-header { color: @dk-text2; .anticon { color: var(--primary-color, #1890ff); } }
+        .score-header { color: @dk-text2; .anticon { color: var(--primary-color, #9fe870); } }
         .score-value { color: #f0f0f2; }
-        &.overall { background: color-mix(in srgb, var(--primary-color, #1890ff) 4%, transparent); }
+        &.overall { background: color-mix(in srgb, var(--primary-color, #9fe870) 4%, transparent); }
       }
     }
 
@@ -1688,8 +1688,8 @@ export default {
 
     .indicators-section {
       background: @dk-surface;
-      .section-title { color: @dk-text; .anticon { color: var(--primary-color, #1890ff); } }
-      .indicators-methodology { background: @dk-surface2; color: @dk-text3; .anticon { color: var(--primary-color, #1890ff); } }
+      .section-title { color: @dk-text; .anticon { color: var(--primary-color, #9fe870); } }
+      .indicators-methodology { background: @dk-surface2; color: @dk-text3; .anticon { color: var(--primary-color, #9fe870); } }
       .indicators-grid .indicator-item {
         background: @dk-surface2;
         &:hover { background: rgba(255,255,255,0.05); }
@@ -1699,7 +1699,7 @@ export default {
       }
       .indicators-pro-wrap {
         border-top-color: @dk-border;
-        .indicators-pro-title { color: @dk-text; .anticon { color: var(--primary-color, #1890ff); } }
+        .indicators-pro-title { color: @dk-text; .anticon { color: var(--primary-color, #9fe870); } }
         ::v-deep .indicators-pro-desc {
           .ant-descriptions-view { border-color: @dk-border; }
           .ant-descriptions-row { border-color: @dk-border; }
@@ -1718,7 +1718,7 @@ export default {
       background: @dk-surface;
       .feedback-question { color: @dk-text3; }
       .analysis-meta { color: #555; }
-      .ant-btn { background: @dk-surface2; border-color: @dk-border; color: @dk-text2; &:hover { border-color: color-mix(in srgb, var(--primary-color, #1890ff) 30%, transparent); color: var(--primary-color, #1890ff); } }
+      .ant-btn { background: @dk-surface2; border-color: @dk-border; color: @dk-text2; &:hover { border-color: color-mix(in srgb, var(--primary-color, #9fe870) 30%, transparent); color: var(--primary-color, #9fe870); } }
     }
   }
 

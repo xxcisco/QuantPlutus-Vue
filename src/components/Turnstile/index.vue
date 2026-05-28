@@ -187,7 +187,7 @@ export default {
 
     a {
       margin-left: 8px;
-      color: #1890ff;
+      color: var(--wise-primary);
       cursor: pointer;
 
       &:hover {

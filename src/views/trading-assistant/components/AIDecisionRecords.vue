@@ -272,7 +272,7 @@ export default {
   // 进度条使用主题色
   /deep/ .ant-progress {
     .ant-progress-bg {
-      background-color: var(--primary-color, #1890ff);
+      background-color: var(--primary-color, #9fe870);
     }
 
     &.ant-progress-status-success .ant-progress-bg {
@@ -320,16 +320,16 @@ export default {
       }
 
       &:hover {
-        border-color: var(--primary-color, #1890ff);
+        border-color: var(--primary-color, #9fe870);
 
         a {
-          color: var(--primary-color, #1890ff);
+          color: var(--primary-color, #9fe870);
         }
       }
 
       &.ant-pagination-item-active {
-        background: var(--primary-color, #1890ff);
-        border-color: var(--primary-color, #1890ff);
+        background: var(--primary-color, #9fe870);
+        border-color: var(--primary-color, #9fe870);
 
         a {
           color: #fff;
@@ -345,8 +345,8 @@ export default {
         color: var(--text-color, #1f1f1f);
 
         &:hover {
-          border-color: var(--primary-color, #1890ff);
-          color: var(--primary-color, #1890ff);
+          border-color: var(--primary-color, #9fe870);
+          color: var(--primary-color, #9fe870);
         }
       }
     }
@@ -437,8 +437,8 @@ export default {
       }
 
       &.ant-tag-blue {
-        background-color: var(--primary-color, #1890ff) !important;
-        border-color: var(--primary-color, #1890ff) !important;
+        background-color: var(--primary-color, #9fe870) !important;
+        border-color: var(--primary-color, #9fe870) !important;
         color: #fff !important;
       }
 
@@ -453,7 +453,7 @@ export default {
     // 进度条在暗色主题下使用主题色
     /deep/ .ant-progress {
       .ant-progress-bg {
-        background-color: var(--primary-color, #1890ff);
+        background-color: var(--primary-color, #9fe870);
       }
 
       &.ant-progress-status-success .ant-progress-bg {
@@ -495,16 +495,16 @@ export default {
         }
 
         &:hover {
-          border-color: var(--primary-color, #1890ff);
+          border-color: var(--primary-color, #9fe870);
 
           a {
-            color: var(--primary-color, #1890ff);
+            color: var(--primary-color, #9fe870);
           }
         }
 
         &.ant-pagination-item-active {
-          background: var(--primary-color, #1890ff);
-          border-color: var(--primary-color, #1890ff);
+          background: var(--primary-color, #9fe870);
+          border-color: var(--primary-color, #9fe870);
 
           a {
             color: #fff;
@@ -520,8 +520,8 @@ export default {
           color: var(--text-color, #d1d4dc);
 
           &:hover {
-            border-color: var(--primary-color, #1890ff);
-            color: var(--primary-color, #1890ff);
+            border-color: var(--primary-color, #9fe870);
+            color: var(--primary-color, #9fe870);
           }
         }
       }

@@ -110,7 +110,7 @@ export const BROKER_META = {
   alpaca: {
     id: 'alpaca',
     icon: 'thunderbolt',
-    color: '#1890ff',
+    color: '#9fe870',
     accent: '#722ed1',
     markets: ['USStock', 'Crypto'],
     badges: ['zero_commission', 'rest_api'],
