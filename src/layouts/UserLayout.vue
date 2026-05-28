@@ -6,7 +6,7 @@
       :stagger-delay="120"
       :scale-max="1.3"
       glow-size="1rem"
-      color="#9fe870f2"
+      color="#9fe870"
       :opacity="0.85"
     />
     <div class="wise-canvas">
