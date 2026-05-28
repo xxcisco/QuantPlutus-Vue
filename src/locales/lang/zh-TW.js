@@ -2339,7 +2339,7 @@ const locale = {
 'message': '-',
 'layouts.usermenu.dialog.title': '信息',
 'layouts.usermenu.dialog.content': '您確定要注銷嗎？',
-'layouts.userLayout.title': '於不確定中，尋見真理',
+'layouts.userLayout.title': '於不確定中<br>尋見真理',
 
 // Settings
 'settings.title': '系統設置',

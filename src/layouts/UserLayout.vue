@@ -1,12 +1,12 @@
 <template>
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
     <LoginGrid
-      :square-size="isMobile ? 16 : 26"
+      :square-size="isMobile ? 16 : 32"
       :gap="isMobile ? 6 : 16"
       :stagger-delay="120"
       :scale-max="1.3"
       glow-size="1rem"
-      color="#9fe870"
+      color="#9fe870f2"
       :opacity="0.85"
     />
     <div class="wise-canvas">
@@ -23,9 +23,7 @@
       <main class="wise-stage">
         <!-- Left column: hero copy (hidden on mobile, kept compact on tablet) -->
         <section class="wise-hero" aria-hidden="true">
-          <h1 class="wise-hero-display">
-            {{ $t('layouts.userLayout.title') || 'Trade with clarity.' }}
-          </h1>
+          <h1 class="wise-hero-display" v-html="$t('layouts.userLayout.title')"></h1>
           <p class="wise-hero-sub">
             AI-driven quantitative insights for global markets
           </p>
@@ -187,7 +185,7 @@ export default {
     font-family: var(--wise-font-display);
     font-size: clamp(40px, 6vw, 80px);
     font-weight: 900;
-    line-height: 1.02;
+    line-height: 1.3;
     letter-spacing: -0.025em;
     color: var(--wise-ink);
     margin: 0;

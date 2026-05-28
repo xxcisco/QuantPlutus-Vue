@@ -2533,7 +2533,7 @@ const locale = {
   'message': '-',
   'layouts.usermenu.dialog.title': '信息',
   'layouts.usermenu.dialog.content': '确定要退出登录吗？',
-  'layouts.userLayout.title': '于不确定中，寻见真理',
+  'layouts.userLayout.title': '于不确定中<br>寻见真理',
 
   // Settings
   'settings.title': '系统设置',
