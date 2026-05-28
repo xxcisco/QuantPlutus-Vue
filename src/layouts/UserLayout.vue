@@ -1,8 +1,8 @@
 <template>
   <div id="userLayout" :class="['user-layout-wrapper', isMobile && 'mobile']">
     <LoginGrid
-      :square-size="isMobile ? 16 : 32"
-      :gap="isMobile ? 6 : 16"
+      :square-size="isMobile ? 16 : 36"
+      :gap="isMobile ? 6 : 18"
       :stagger-delay="120"
       :scale-max="1.3"
       glow-size="1rem"
