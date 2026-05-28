@@ -12,7 +12,7 @@
       style and the explicit ``mode="vertical"`` on the menu as a belt-and-
       braces guarantee the dropdown stays vertical.
     -->
-    <a-menu slot="overlay" mode="vertical" class="ant-pro-drop-down menu" :selected-keys="[]">
+    <a-menu slot="overlay" mode="horizontal" class="ant-pro-drop-down menu" :selected-keys="[]">
       <a-menu-item key="profile" @click="handleProfile">
         <a-icon type="user" />
         {{ $t('menu.profile') || 'My Profile' }}

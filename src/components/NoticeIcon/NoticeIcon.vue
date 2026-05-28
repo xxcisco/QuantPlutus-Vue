@@ -475,7 +475,7 @@ export default {
   line-height: @layout-header-height;
   transition: all 0.3s;
   cursor: pointer;
-  padding: 0 12px;
+  padding: 0 6px;
   vertical-align: top;
 
   &:hover {
