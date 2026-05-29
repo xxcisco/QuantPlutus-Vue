@@ -102,12 +102,12 @@ export default {
 @media (max-width: 768px) {
   .ant-pro-global-header-index-right {
     .ant-pro-global-header-index-action {
-      padding: 0 8px;
+      padding: 0 8px !important;
     }
 
     .ant-pro-drop-down,
     .ant-pro-account-avatar {
-      padding: 0 8px;
+      padding: 0 8px !important;
     }
   }
 }

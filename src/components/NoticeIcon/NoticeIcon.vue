@@ -475,7 +475,6 @@ export default {
   line-height: @layout-header-height;
   transition: all 0.3s;
   cursor: pointer;
-  padding: 0 6px;
   vertical-align: top;
 
   &:hover {
@@ -484,13 +483,6 @@ export default {
 
   span {
     vertical-align: initial;
-  }
-}
-
-/* 手机端适配 */
-@media (max-width: 768px) {
-  .header-notice {
-    padding: 0 8px;
   }
 }
 
