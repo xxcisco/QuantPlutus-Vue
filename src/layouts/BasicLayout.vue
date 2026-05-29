@@ -323,6 +323,9 @@ export default {
       }
     })
 
+    // 与 SettingDrawer @change 相同，供头部主题切换等复用 handleSettingChange
+    this.$root.$on('setting-change', this.handleSettingChange)
+
     // Footer config is static for local OSS build
 
     // 更新菜单底部位置（延迟执行，确保 DOM 已渲染）
@@ -411,6 +414,7 @@ export default {
   beforeDestroy () {
     // 移除事件监听
     this.$root.$off('show-setting-drawer')
+    this.$root.$off('setting-change', this.handleSettingChange)
     window.removeEventListener('resize', this.updateMenuFooterPosition)
 
     // 清理 MutationObserver

@@ -3,9 +3,12 @@
     <avatar-dropdown :menu="true" :current-user="currentUser" :class="prefixCls" />
     <notice-icon :class="prefixCls" />
     <select-lang :class="prefixCls" />
-    <a-tooltip :title="$t('app.setting.tooltip')">
-      <span :class="prefixCls" @click="handleSettingClick">
-        <a-icon type="setting" style="font-size: 16px;" />
+    <a-tooltip :title="isDarkTheme ? $t('app.setting.pagestyle.light') : $t('app.setting.pagestyle.dark')">
+      <span :class="prefixCls" @click="handleThemeToggle">
+        <Icon
+          :icon="isDarkTheme ? 'mdi:white-balance-sunny' : 'mdi:moon-waning-crescent'"
+          class="theme-toggle-icon" style="font-size: 16px;"
+        />
       </span>
     </a-tooltip>
   </div>
@@ -15,14 +18,16 @@
 import AvatarDropdown from './AvatarDropdown'
 import SelectLang from '@/components/SelectLang'
 import NoticeIcon from '@/components/NoticeIcon'
-import { mapGetters } from 'vuex'
+import { Icon } from '@iconify/vue2'
+import { mapGetters, mapState } from 'vuex'
 
 export default {
   name: 'RightContent',
   components: {
     AvatarDropdown,
     SelectLang,
-    NoticeIcon
+    NoticeIcon,
+    Icon
   },
   props: {
     prefixCls: {
@@ -48,13 +53,20 @@ export default {
     }
   },
   methods: {
-    handleSettingClick () {
-      // 触发设置抽屉显示事件
-      this.$root.$emit('show-setting-drawer')
+    handleThemeToggle () {
+      const nextTheme = this.isDarkTheme ? 'light' : 'dark'
+      this.$root.$emit('setting-change', { type: 'theme', value: nextTheme })
     }
   },
   computed: {
     ...mapGetters(['userInfo', 'nickname', 'avatar']),
+    ...mapState({
+      navTheme: state => state.app.theme
+    }),
+    isDarkTheme () {
+      const theme = this.navTheme
+      return theme === 'dark' || theme === 'realdark'
+    },
     currentUser () {
       return {
         userId: this.userInfo?.id,
@@ -90,6 +102,12 @@ export default {
     cursor: pointer;
     vertical-align: top;
     border-radius: var(--wise-r-sm);
+
+    .theme-toggle-icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+    }
 
     &:hover {
       color: var(--wise-primary);
