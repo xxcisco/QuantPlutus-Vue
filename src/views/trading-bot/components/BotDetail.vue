@@ -78,6 +78,61 @@
       </div>
     </a-card>
 
+    <a-card
+      v-if="isGridLikeBot"
+      :bordered="false"
+      class="hedge-summary-card"
+      style="margin-top: 12px;"
+    >
+      <div class="hedge-summary">
+        <div class="hedge-summary__title">
+          <a-icon type="thunderbolt" />
+          <span>{{ $t('trading-bot.detail.hedgeSummary') }}</span>
+          <a-tooltip :title="$t('trading-bot.detail.hedgeSummaryHint')">
+            <a-icon type="question-circle" class="hedge-summary__tip" />
+          </a-tooltip>
+          <a-button size="small" type="link" @click="refreshHedgeSummary" :loading="hedgeLoading">
+            <a-icon type="reload" />
+          </a-button>
+        </div>
+        <div class="hedge-summary__grid">
+          <div class="hedge-cell hedge-cell--long">
+            <div class="hedge-cell__label">{{ $t('trading-bot.detail.longLeg') }}</div>
+            <div class="hedge-cell__size">{{ formatLegSize(longLeg) }}</div>
+            <div class="hedge-cell__sub">
+              {{ $t('trading-assistant.table.entryPrice') }}: {{ formatPrice(longLeg.entry_price) }}
+              <span class="hedge-cell__pnl" :class="legPnlClass(longLeg)">
+                {{ formatPnl(legPnl(longLeg)) }}
+              </span>
+            </div>
+          </div>
+          <div class="hedge-cell hedge-cell--short">
+            <div class="hedge-cell__label">{{ $t('trading-bot.detail.shortLeg') }}</div>
+            <div class="hedge-cell__size">{{ formatLegSize(shortLeg) }}</div>
+            <div class="hedge-cell__sub">
+              {{ $t('trading-assistant.table.entryPrice') }}: {{ formatPrice(shortLeg.entry_price) }}
+              <span class="hedge-cell__pnl" :class="legPnlClass(shortLeg)">
+                {{ formatPnl(legPnl(shortLeg)) }}
+              </span>
+            </div>
+          </div>
+          <div class="hedge-cell hedge-cell--grid">
+            <div class="hedge-cell__label">{{ $t('trading-bot.detail.totalGridProfit') }}</div>
+            <div class="hedge-cell__size">
+              <span :class="totalGridProfit > 0 ? 'profit' : totalGridProfit < 0 ? 'loss' : ''">
+                {{ formatPnl(totalGridProfit) }}
+              </span>
+            </div>
+            <div class="hedge-cell__sub">
+              {{ $t('trading-bot.detail.matchedPairs') }}: {{ matchedPairCount }}
+              <span class="hedge-cell__sub-divider">·</span>
+              {{ $t('trading-bot.detail.tickInterval') }}: {{ tickIntervalDisplay }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-card>
+
     <a-card :bordered="false" class="detail-tabs-card" style="margin-top: 12px;">
       <a-tabs v-model="activeTab" :animated="false">
         <!-- 参数 Tab -->
@@ -299,6 +354,7 @@
             v-if="activeTab === 'trades'"
             :strategyId="bot.id"
             :isDark="isDark"
+            :botType="bot && bot.bot_type"
           />
         </a-tab-pane>
         <a-tab-pane key="performance" :tab="$t('trading-bot.tab.performance')">
@@ -306,6 +362,7 @@
             v-if="activeTab === 'performance'"
             :strategyId="bot.id"
             :isDark="isDark"
+            :botType="bot && bot.bot_type"
           />
         </a-tab-pane>
         <a-tab-pane key="logs" :tab="$t('trading-bot.tab.logs')">
@@ -326,6 +383,7 @@ import PositionRecords from '@/views/trading-assistant/components/PositionRecord
 import PerformanceAnalysis from '@/views/trading-assistant/components/PerformanceAnalysis.vue'
 import StrategyLogs from '@/views/trading-assistant/components/StrategyLogs.vue'
 import request from '@/utils/request'
+import { getStrategyPositions, getStrategyTrades } from '@/api/strategy'
 
 const TYPE_META = {
   grid: { icon: 'bar-chart', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
@@ -381,7 +439,12 @@ export default {
     return {
       activeTab: 'params',
       klineData: [],
-      klineLoading: false
+      klineLoading: false,
+      // Hedge summary for grid/DCA bots (P0-1 / P1-1 surfacing).
+      hedgePositions: [],
+      hedgeTrades: [],
+      hedgeLoading: false,
+      hedgeTimer: null
     }
   },
   computed: {
@@ -440,6 +503,52 @@ export default {
       return fallback
     },
     isGridBot () { return (this.bot?.bot_type || this.tc.bot_type) === 'grid' },
+    isGridLikeBot () {
+      const bt = this.bot?.bot_type || this.tc.bot_type
+      return bt === 'grid' || bt === 'dca'
+    },
+    longLeg () {
+      const sym = String((this.tc.symbol || '').split(':')[0] || '').toUpperCase()
+      return this.hedgePositions.find(p => {
+        const s = String(p.side || '').toLowerCase()
+        const ok = String((p.symbol || '').split(':')[0] || '').toUpperCase() === sym
+        return s === 'long' && ok
+      }) || { side: 'long', size: 0, entry_price: 0, current_price: 0 }
+    },
+    shortLeg () {
+      const sym = String((this.tc.symbol || '').split(':')[0] || '').toUpperCase()
+      return this.hedgePositions.find(p => {
+        const s = String(p.side || '').toLowerCase()
+        const ok = String((p.symbol || '').split(':')[0] || '').toUpperCase() === sym
+        return s === 'short' && ok
+      }) || { side: 'short', size: 0, entry_price: 0, current_price: 0 }
+    },
+    // FIFO matched-grid profit comes pre-computed from the backend
+    // (P1-1 — grid_matched_profit on qd_strategy_trades). We just sum the
+    // realised legs and count rows that have a non-zero matched_entry_price.
+    totalGridProfit () {
+      let sum = 0
+      for (const t of this.hedgeTrades) {
+        const v = parseFloat(t.grid_matched_profit || 0)
+        if (!isNaN(v)) sum += v
+      }
+      return sum
+    },
+    matchedPairCount () {
+      let n = 0
+      for (const t of this.hedgeTrades) {
+        const matched = parseFloat(t.matched_entry_price || 0)
+        if (matched > 0) n += 1
+      }
+      return n
+    },
+    tickIntervalDisplay () {
+      const tc = this.tc || {}
+      const override = tc.tick_interval_sec
+      if (override != null && override !== '') return `${override}s`
+      // Backend default: 1s for grid/dca, 10s otherwise (see trading_executor.py).
+      return this.isGridLikeBot ? '1s' : '10s'
+    },
     gp () {
       const bp = this.botParams
       return {
@@ -553,7 +662,89 @@ export default {
       return { binance: 'Binance', bybit: 'Bybit', gate: 'Gate.io', okx: 'OKX', htx: 'HTX' }[id] || id
     }
   },
+  watch: {
+    'bot.id': {
+      immediate: true,
+      handler (id) {
+        this.stopHedgePolling()
+        if (id && this.isGridLikeBot) {
+          this.refreshHedgeSummary()
+          this.startHedgePolling()
+        }
+      }
+    },
+    isGridLikeBot: {
+      handler (val) {
+        this.stopHedgePolling()
+        if (val && this.bot?.id) {
+          this.refreshHedgeSummary()
+          this.startHedgePolling()
+        }
+      }
+    }
+  },
+  beforeDestroy () {
+    this.stopHedgePolling()
+  },
   methods: {
+    startHedgePolling () {
+      this.stopHedgePolling()
+      // 15s cadence is plenty — the summary card is informational, not
+      // execution-critical, and the row data is refreshed cheaply via
+      // existing list endpoints.
+      this.hedgeTimer = setInterval(() => {
+        this.refreshHedgeSummary(true)
+      }, 15000)
+    },
+    stopHedgePolling () {
+      if (this.hedgeTimer) {
+        clearInterval(this.hedgeTimer)
+        this.hedgeTimer = null
+      }
+    },
+    async refreshHedgeSummary (silent = false) {
+      if (!this.bot?.id) return
+      if (!silent) this.hedgeLoading = true
+      try {
+        const [posRes, trdRes] = await Promise.all([
+          getStrategyPositions(this.bot.id).catch(() => null),
+          getStrategyTrades(this.bot.id, this.$i18n && this.$i18n.locale).catch(() => null)
+        ])
+        if (posRes && posRes.code === 1) {
+          this.hedgePositions = (posRes.data && (posRes.data.positions || posRes.data.items)) || []
+        }
+        if (trdRes && trdRes.code === 1) {
+          this.hedgeTrades = (trdRes.data && (trdRes.data.trades || trdRes.data.items)) || []
+        }
+      } finally {
+        this.hedgeLoading = false
+      }
+    },
+    formatLegSize (leg) {
+      const sz = parseFloat(leg?.size || 0)
+      if (!sz || sz <= 0) return '—'
+      return sz.toFixed(6)
+    },
+    legPnl (leg) {
+      const sz = parseFloat(leg?.size || 0)
+      const ep = parseFloat(leg?.entry_price || 0)
+      const cp = parseFloat(leg?.current_price || 0)
+      if (!(sz > 0 && ep > 0 && cp > 0)) return 0
+      const sign = String(leg.side).toLowerCase() === 'long' ? 1 : -1
+      return sign * (cp - ep) * sz
+    },
+    legPnlClass (leg) {
+      const v = this.legPnl(leg)
+      if (v > 0) return 'profit'
+      if (v < 0) return 'loss'
+      return ''
+    },
+    formatPnl (v) {
+      const n = parseFloat(v || 0)
+      if (!isFinite(n) || Math.abs(n) < 1e-9) return '$0.00'
+      const sign = n > 0 ? '+' : '-'
+      return `${sign}$${Math.abs(n).toFixed(2)}`
+    },
     formatDisplayItem (item) {
       const valueType = item?.value_type || 'text'
       const value = item?.value
@@ -882,9 +1073,51 @@ export default {
   &--mid &__price { color: #1890ff; font-weight: 700; }
 }
 
+/* ===================== Hedge summary (grid / DCA) ===================== */
+.hedge-summary-card {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(102,126,234,0.06) 0%, rgba(118,75,162,0.06) 100%);
+}
+.hedge-summary {
+  &__title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: #595959; margin-bottom: 12px;
+    .anticon { color: #667eea; }
+  }
+  &__tip { color: #bfbfbf; cursor: help; }
+  &__grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+}
+.hedge-cell {
+  padding: 12px 14px; border-radius: 10px; background: #fff; border: 1px solid #f0f0f0;
+  &__label { font-size: 12px; color: #8c8c8c; margin-bottom: 6px; }
+  &__size { font-size: 22px; font-weight: 700; color: #262626; font-family: 'SF Mono', monospace; }
+  &__sub { font-size: 12px; color: #8c8c8c; margin-top: 4px;
+    .hedge-cell__pnl { margin-left: 8px; font-weight: 600;
+      &.profit { color: #52c41a; }
+      &.loss { color: #f5222d; }
+    }
+  }
+  &__sub-divider { margin: 0 4px; color: #d9d9d9; }
+  &--long { border-left: 3px solid #52c41a; }
+  &--short { border-left: 3px solid #f5222d; }
+  &--grid { border-left: 3px solid #1890ff;
+    .hedge-cell__size .profit { color: #52c41a; }
+    .hedge-cell__size .loss { color: #f5222d; }
+  }
+}
+
 /* ===================== 暗黑模式 ===================== */
 .theme-dark {
-  .detail-header-card, .detail-tabs-card { background: #1f1f1f; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  .detail-header-card, .detail-tabs-card, .hedge-summary-card { background: #1f1f1f; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  .hedge-summary-card { background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%); }
+  .hedge-summary__title { color: #d9d9d9; }
+  .hedge-cell { background: #141414; border-color: #303030;
+    &__label { color: #8c8c8c; }
+    &__size { color: #e8e8e8; }
+    &__sub { color: #595959; }
+  }
   .header-info h3 { color: #e8e8e8; }
   .params-section__title { color: #d9d9d9; border-bottom-color: #303030; }
   .param-item { background: #141414; border-color: #303030;

@@ -15,6 +15,7 @@ import {
 import {
   i18nRender
 } from '@/locales'
+import { promptChangeInitialPassword } from '@/utils/initialPasswordReminder'
 
 NProgress.configure({
   showSpinner: false
@@ -49,6 +50,7 @@ router.beforeEach((to, from, next) => {
           .then(res => {
             // 拉取用户信息成功
             // const roles = res && res.role
+            promptChangeInitialPassword()
             // 生成路由
             store.dispatch('GenerateRoutes', { token }).then(() => {
               // 动态添加可访问路由表

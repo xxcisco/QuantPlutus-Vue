@@ -170,6 +170,13 @@
                                   style="margin-left: 4px;">
                                   {{ scriptTemplateLabel(scriptTemplateKeyOf(item)) }}
                                 </a-tag>
+                                <a-tag
+                                  v-if="isCrossSectionalStrategy(item)"
+                                  size="small"
+                                  color="orange"
+                                  style="margin-left: 4px;">
+                                  {{ $t('trading-assistant.tag.crossSectional') }}
+                                </a-tag>
                               </template>
                               <template v-else>
                                 <span class="info-item strategy-name-text">
@@ -292,6 +299,13 @@
                             color="blue"
                             style="margin-left: 4px;">
                             {{ scriptTemplateLabel(scriptTemplateKeyOf(item)) }}
+                          </a-tag>
+                          <a-tag
+                            v-if="isCrossSectionalStrategy(item)"
+                            size="small"
+                            color="orange"
+                            style="margin-left: 4px;">
+                            {{ $t('trading-assistant.tag.crossSectional') }}
                           </a-tag>
                         </div>
                       </div>
@@ -423,7 +437,11 @@
 
                     <!-- 策略详情标签 -->
                     <div class="strategy-tags">
-                      <div class="tag-item" v-if="selectedStrategy.trading_config">
+                      <div class="tag-item" v-if="isCrossSectionalStrategy(selectedStrategy)">
+                        <a-icon type="appstore" />
+                        <span>{{ $t('trading-assistant.tag.crossSectional') }} · {{ (selectedStrategy.trading_config.symbol_list || []).length }} {{ $t('trading-assistant.symbolCount') }}</span>
+                      </div>
+                      <div class="tag-item" v-else-if="selectedStrategy.trading_config">
                         <a-icon type="stock" />
                         <span>{{ selectedStrategy.trading_config.symbol }}</span>
                       </div>
@@ -687,7 +705,108 @@
                       </div>
                     </div>
 
+                    <a-form-item :label="$t('trading-assistant.form.strategyType')">
+                      <a-radio-group
+                        v-decorator="['cs_strategy_type', { initialValue: 'single' }]"
+                        :disabled="isEditMode"
+                        @change="handleStrategyTypeChange">
+                        <a-radio-button value="single">
+                          {{ $t('trading-assistant.form.strategyTypeSingle') }}
+                        </a-radio-button>
+                        <a-radio-button value="cross_sectional">
+                          {{ $t('trading-assistant.form.strategyTypeCrossSectional') }}
+                        </a-radio-button>
+                      </a-radio-group>
+                      <div class="form-item-hint">{{ $t('trading-assistant.form.strategyTypeHint') }}</div>
+                    </a-form-item>
+
+                    <template v-if="csStrategyTypeUi === 'cross_sectional'">
+                      <a-form-item :label="$t('trading-assistant.form.symbolList')">
+                        <a-select
+                          v-model="crossSectionalSymbols"
+                          mode="multiple"
+                          :placeholder="$t('trading-assistant.placeholders.selectSymbols')"
+                          show-search
+                          :filter-option="filterWatchlistOptionWithAdd"
+                          :loading="loadingWatchlist"
+                          @change="handleCrossSectionalSymbolChange"
+                          :getPopupContainer="(triggerNode) => triggerNode.parentNode"
+                          :maxTagCount="4">
+                          <a-select-option
+                            v-for="item in watchlist"
+                            :key="`cs-${item.market}:${item.symbol}`"
+                            :value="`${item.market}:${item.symbol}`">
+                            <div class="symbol-option">
+                              <a-tag :color="getMarketColor(item.market)" style="margin-right: 8px; margin-bottom: 0;">
+                                {{ item.market }}
+                              </a-tag>
+                              <span class="symbol-name">{{ item.symbol }}</span>
+                              <span v-if="item.name" class="symbol-name-extra">{{ item.name }}</span>
+                            </div>
+                          </a-select-option>
+                          <a-select-option key="__add_symbol_option__" value="__add_symbol_option__" class="add-symbol-option">
+                            <div style="width: 100%; text-align: center; padding: 4px 0; color: #1890ff; cursor: pointer;">
+                              <a-icon type="plus" style="margin-right: 4px;" />
+                              <span>{{ $t('trading-assistant.form.addSymbol') }}</span>
+                            </div>
+                          </a-select-option>
+                        </a-select>
+                        <div class="form-item-hint">{{ $t('trading-assistant.form.symbolListHint') }}</div>
+                      </a-form-item>
+                      <a-row :gutter="16">
+                        <a-col :xs="24" :sm="8">
+                          <a-form-item :label="$t('trading-assistant.form.portfolioSize')">
+                            <a-input-number
+                              v-decorator="['portfolio_size', { initialValue: 5, rules: [{ required: true, message: $t('trading-assistant.validation.portfolioSizeRequired') }] }]"
+                              :min="1"
+                              :max="50"
+                              style="width: 100%;" />
+                            <div class="form-item-hint">{{ $t('trading-assistant.form.portfolioSizeHint') }}</div>
+                          </a-form-item>
+                        </a-col>
+                        <a-col :xs="24" :sm="8">
+                          <a-form-item :label="$t('trading-assistant.form.longRatio')">
+                            <a-input-number
+                              v-decorator="['long_ratio', { initialValue: 1 }]"
+                              :min="0"
+                              :max="1"
+                              :step="0.1"
+                              style="width: 100%;" />
+                            <div class="form-item-hint">{{ $t('trading-assistant.form.longRatioHint') }}</div>
+                          </a-form-item>
+                        </a-col>
+                        <a-col :xs="24" :sm="8">
+                          <a-form-item :label="$t('trading-assistant.form.rebalanceFrequency')">
+                            <a-select
+                              v-decorator="['rebalance_frequency', { initialValue: 'daily' }]"
+                              style="width: 100%;">
+                              <a-select-option value="daily">{{ $t('trading-assistant.form.rebalanceDaily') }}</a-select-option>
+                              <a-select-option value="weekly">{{ $t('trading-assistant.form.rebalanceWeekly') }}</a-select-option>
+                              <a-select-option value="monthly">{{ $t('trading-assistant.form.rebalanceMonthly') }}</a-select-option>
+                            </a-select>
+                            <div class="form-item-hint">{{ $t('trading-assistant.form.rebalanceFrequencyHint') }}</div>
+                          </a-form-item>
+                        </a-col>
+                      </a-row>
+                      <a-alert
+                        v-if="crossSectionalIndicatorCodeOverride"
+                        type="success"
+                        show-icon
+                        :message="$t('trading-assistant.form.crossSectionalTemplateApplied')"
+                        style="margin-bottom: 8px;" />
+                      <a-button type="link" icon="snippets" style="padding-left: 0;" @click="insertCrossSectionalIndicatorTemplate">
+                        {{ $t('trading-assistant.form.insertCrossSectionalTemplate') }}
+                      </a-button>
+                      <a-alert
+                        v-if="crossSectionalIndicatorWarn"
+                        type="warning"
+                        show-icon
+                        :message="$t('trading-assistant.form.crossSectionalIndicatorWarn')"
+                        style="margin-bottom: 12px;" />
+                    </template>
+
                     <a-form-item
+                      v-if="csStrategyTypeUi !== 'cross_sectional'"
                       :label="isEditMode ? $t('trading-assistant.form.symbol') : $t('trading-assistant.form.symbols')">
                       <!-- 编辑模式：单选 -->
                       <a-select
@@ -861,7 +980,7 @@
                         <a-col :xs="24" :sm="24" :md="12" :lg="12">
                           <a-form-item :label="$t('trading-assistant.form.strictMode')">
                             <a-switch
-                              v-decorator="['strict_mode', { valuePropName: 'checked', initialValue: false }]" />
+                              v-decorator="['strict_mode', { valuePropName: 'checked', initialValue: true }]" />
                             <div class="form-item-hint" style="margin-top: 4px;">
                               {{ $t('trading-assistant.form.strictModeHint') }}
                             </div>
@@ -1358,6 +1477,7 @@ import PerformanceAnalysis from './components/PerformanceAnalysis.vue'
 import StrategyLogs from './components/StrategyLogs.vue'
 import DashboardOverview from '@/views/dashboard/index.vue'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
+import { CROSS_SECTIONAL_INDICATOR_TEMPLATE } from '@/constants/crossSectionalIndicatorTemplate'
 
 // 常见加密货币交易对
 const CRYPTO_SYMBOLS = [
@@ -1448,6 +1568,13 @@ export default {
       const hasTp = Number(r.take_profit_pct) > 0
       const hasTrail = !!r.trailing_enabled && Number(r.trailing_stop_pct) > 0
       return !hasSl && !hasTp && !hasTrail
+    },
+    crossSectionalIndicatorWarn () {
+      if (this.strategyMode === 'script' || this.csStrategyTypeUi !== 'cross_sectional') return false
+      if (this.crossSectionalIndicatorCodeOverride) return false
+      const ind = this.selectedIndicator
+      if (!ind || !ind.code) return true
+      return !String(ind.code).includes('scores')
     },
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
@@ -1897,6 +2024,8 @@ export default {
       selectedSymbols: [],
       // 截面策略标的列表
       crossSectionalSymbols: [],
+      csStrategyTypeUi: 'single',
+      crossSectionalIndicatorCodeOverride: null,
       // 策略组折叠状态
       collapsedGroups: {},
       // 分组模式: 'strategy' 或 'symbol'
@@ -2207,6 +2336,11 @@ export default {
           if (this.isEditMode) {
             this.form.setFieldsValue({ symbol: newValue })
             this.handleWatchlistSymbolChange(newValue)
+          } else if (this.csStrategyTypeUi === 'cross_sectional') {
+            if (!this.crossSectionalSymbols.includes(newValue)) {
+              this.crossSectionalSymbols = [...this.crossSectionalSymbols, newValue]
+            }
+            this.handleCrossSectionalSymbolChange(this.crossSectionalSymbols)
           } else {
             // 多选模式：添加到已选列表
             if (!this.selectedSymbols.includes(newValue)) {
@@ -2253,11 +2387,22 @@ export default {
       this.handleMultiSymbolChange(vals)
     },
     handleStrategyTypeChange (e) {
-      const strategyType = e.target.value
-      // 当切换到单标的策略时，清空截面策略的标的列表
+      const strategyType = e && e.target ? e.target.value : e
+      this.csStrategyTypeUi = strategyType || 'single'
       if (strategyType === 'single') {
         this.crossSectionalSymbols = []
+        this.crossSectionalIndicatorCodeOverride = null
+      } else if (strategyType === 'cross_sectional') {
+        this.selectedSymbols = []
       }
+    },
+    insertCrossSectionalIndicatorTemplate () {
+      this.crossSectionalIndicatorCodeOverride = CROSS_SECTIONAL_INDICATOR_TEMPLATE
+      this.$message.success(this.$t('trading-assistant.form.crossSectionalTemplateApplied'))
+    },
+    isCrossSectionalStrategy (strategy) {
+      const tc = (strategy && strategy.trading_config) || {}
+      return (tc.cs_strategy_type || '') === 'cross_sectional'
     },
     handleCrossSectionalSymbolChange (vals) {
       // 检查是否点击了"添加"选项
@@ -2726,6 +2871,9 @@ export default {
       this.aiFilterEnabledUi = false
       this.selectedMarketCategory = 'Crypto'
       this.selectedSymbols = []
+      this.crossSectionalSymbols = []
+      this.csStrategyTypeUi = 'single'
+      this.crossSectionalIndicatorCodeOverride = null
       const isScriptCreate = this.strategyMode === 'script'
       const defaultStrategyName = isScriptCreate
         ? this.buildScriptStrategyDefaultName(this.pendingScriptTemplateKey || null)
@@ -2746,8 +2894,12 @@ export default {
         leverage: 5,
         trade_direction: 'long',
         timeframe: '15m',
-        cs_strategy_type: 'single'
+        cs_strategy_type: 'single',
+        portfolio_size: 5,
+        long_ratio: 1,
+        rebalance_frequency: 'daily'
       })
+      this.csStrategyTypeUi = 'single'
       this.liveDisclaimerAckUi = false
       this.showFormModal = true
 
@@ -2772,6 +2924,9 @@ export default {
 
       this.isEditMode = true
       this.editingStrategy = strategy
+      this.csStrategyTypeUi = 'single'
+      this.crossSectionalSymbols = []
+      this.crossSectionalIndicatorCodeOverride = null
       this.currentStep = 0
       this.currentExchangeId = ''
       this.selectedIndicator = null
@@ -2957,8 +3112,11 @@ export default {
       // 加载交易配置（风控/仓位由指标 # @strategy 决定，此处不再写入已删除的表单项）
       if (strategy.trading_config) {
         const tc = strategy.trading_config || {}
+        const csType = tc.cs_strategy_type || 'single'
+        this.csStrategyTypeUi = csType
+        this.crossSectionalSymbols = Array.isArray(tc.symbol_list) ? [...tc.symbol_list] : []
+        this.crossSectionalIndicatorCodeOverride = null
 
-        // 加载截面策略配置
         // Backward compatible: show symbol as "Market:SYMBOL" for watchlist dropdown
         const rawSymbol = tc.symbol
         const symbolValue = (typeof rawSymbol === 'string' && rawSymbol.includes(':'))
@@ -2973,8 +3131,18 @@ export default {
           timeframe: tc.timeframe || '1H',
           market_type: (tc.market_type === 'futures' ? 'swap' : (tc.market_type || 'swap')),
           enable_ai_filter: aiFilterEnabled,
-          strict_mode: !!tc.strict_mode
+          strict_mode: tc.strict_mode !== false,
+          cs_strategy_type: csType,
+          portfolio_size: tc.portfolio_size != null ? tc.portfolio_size : 5,
+          long_ratio: tc.long_ratio != null ? tc.long_ratio : 1,
+          rebalance_frequency: tc.rebalance_frequency || 'daily'
         })
+        if (csType === 'cross_sectional' && this.crossSectionalSymbols.length > 0) {
+          const first = this.crossSectionalSymbols[0]
+          if (typeof first === 'string' && first.includes(':')) {
+            this.selectedMarketCategory = first.split(':', 1)[0] || this.selectedMarketCategory
+          }
+        }
       }
     },
     handleSelectStrategy (strategy) {
@@ -3381,7 +3549,15 @@ export default {
       return config
     },
     /**
-     * 将 @strategy 转为 trading_config 扁平字段（比例可与后端 _to_ratio 兼容：0~1 或百分数）
+     * 将 @strategy 注释字段转为 trading_config 扁平字段。
+     *
+     * 契约（与后端 trading_executor._to_ratio / snapshot resolver 完全
+     * 一致）：trading_config 里所有 *_pct 字段都是 **percent**，例：
+     *     # @strategy stopLossPct 0.5       -> 0.5%（亚 1% SL，做市/剥头皮场景）
+     *     # @strategy stopLossPct 3         -> 3%
+     *     # @strategy stopLossPct 0.01      -> 0.01%
+     * 历史上系统曾接受 `0.03` 表示 3% 的写法，现在已收口为纯 percent
+     * —— 避免 0.01 / 0.5 这种亚 1% 输入被误判为 1% / 50%。
      */
     buildRiskPositionFromIndicatorCode (code) {
       const raw = this.parseStrategyAnnotationRaw(code || '')
@@ -3390,22 +3566,22 @@ export default {
         return isNaN(f) ? null : f
       }
       const toBool = (v) => ['true', '1', 'yes', 'on'].includes(String(v).toLowerCase())
-
-      const sl = toFloat(raw.stopLossPct) ?? 0
-      const tp = toFloat(raw.takeProfitPct) ?? 0
-      const entryRaw = toFloat(raw.entryPct)
-      let entryPctOut
-      if (entryRaw == null || entryRaw === 0) {
-        entryPctOut = 100
-      } else if (entryRaw > 1 && entryRaw <= 100) {
-        entryPctOut = entryRaw
-      } else {
-        entryPctOut = entryRaw <= 1 ? entryRaw : 1
+      const clampPct = (v, max = 100) => {
+        const n = Number(v)
+        if (!Number.isFinite(n) || n <= 0) return 0
+        return Math.min(n, max)
       }
 
+      const sl = clampPct(toFloat(raw.stopLossPct))
+      const tp = clampPct(toFloat(raw.takeProfitPct), 1000)
       const trailingEnabled = raw.trailingEnabled != null ? toBool(raw.trailingEnabled) : false
-      const trailingStopPct = toFloat(raw.trailingStopPct) ?? 0
-      const trailingActivationPct = toFloat(raw.trailingActivationPct) ?? 0
+      const trailingStopPct = clampPct(toFloat(raw.trailingStopPct))
+      const trailingActivationPct = clampPct(toFloat(raw.trailingActivationPct), 1000)
+
+      const entryRaw = toFloat(raw.entryPct)
+      const entryPctOut = (entryRaw == null || entryRaw <= 0)
+        ? 100
+        : clampPct(entryRaw)
 
       return {
         stop_loss_pct: sl,
@@ -3737,13 +3913,23 @@ export default {
         const fieldsToValidate = ['indicator_id', 'strategy_name']
         fieldsToValidate.push('initial_capital', 'market_type', 'leverage', 'trade_direction', 'timeframe')
 
-        if (this.isEditMode) {
+        const csTypePreview = this.csStrategyTypeUi || 'single'
+        if (this.isEditMode && csTypePreview !== 'cross_sectional') {
           fieldsToValidate.push('symbol')
+        }
+        if (csTypePreview === 'cross_sectional') {
+          fieldsToValidate.push('portfolio_size')
         }
         this.form.validateFields(fieldsToValidate, (err, values) => {
           if (err) return
 
-          if (!this.isEditMode) {
+          const csType = (values && values.cs_strategy_type) || this.csStrategyTypeUi || 'single'
+          if (csType === 'cross_sectional') {
+            if (!this.crossSectionalSymbols || this.crossSectionalSymbols.length < 2) {
+              this.$message.warning(this.$t('trading-assistant.validation.symbolListMin'))
+              return
+            }
+          } else if (!this.isEditMode) {
             if (!this.selectedSymbols || this.selectedSymbols.length === 0) {
               this.$message.warning(this.$t('trading-assistant.validation.symbolsRequired'))
               return
@@ -3980,11 +4166,64 @@ export default {
               tradeDirection = 'long'
             }
 
-            const riskFromCode = this.buildRiskPositionFromIndicatorCode(indicator.code || '')
+            const csType = values.cs_strategy_type || this.csStrategyTypeUi || 'single'
+            const isCrossSectional = csType === 'cross_sectional'
+            const indicatorCode = this.crossSectionalIndicatorCodeOverride || indicator.code || ''
+
+            if (isCrossSectional) {
+              if (!this.crossSectionalSymbols || this.crossSectionalSymbols.length < 2) {
+                this.$message.warning(this.$t('trading-assistant.validation.symbolListMin'))
+                this.saving = false
+                return
+              }
+              if (!indicatorCode.includes('scores')) {
+                this.$message.warning(this.$t('trading-assistant.form.crossSectionalIndicatorWarn'))
+                this.saving = false
+                return
+              }
+            }
+
+            const riskFromCode = this.buildRiskPositionFromIndicatorCode(indicatorCode)
             const prevTc = this.editingStrategy && this.editingStrategy.trading_config
               ? this.editingStrategy.trading_config
               : {}
             const scaleReduceFlat = this.extractScaleReduceFlatFromTradingConfig(prevTc)
+
+            let longRatio = values.long_ratio != null ? Number(values.long_ratio) : 1
+            if (marketType === 'spot') {
+              longRatio = 1
+            }
+
+            const tradingConfigBase = {
+              initial_capital: values.initial_capital,
+              leverage: leverage,
+              trade_direction: tradeDirection,
+              timeframe: values.timeframe,
+              market_type: marketType,
+              margin_mode: 'cross',
+              signal_mode: 'confirmed',
+              strict_mode: values.strict_mode !== false,
+              take_profit_pct: riskFromCode.take_profit_pct,
+              stop_loss_pct: riskFromCode.stop_loss_pct,
+              trailing_enabled: riskFromCode.trailing_enabled,
+              trailing_stop_pct: riskFromCode.trailing_stop_pct,
+              trailing_activation_pct: riskFromCode.trailing_activation_pct,
+              entry_pct: riskFromCode.entry_pct,
+              ...scaleReduceFlat,
+              commission: values.commission || 0,
+              slippage: values.slippage || 0,
+              enable_ai_filter: enableAiFilter,
+              indicator_params: this.indicatorParamValues,
+              cs_strategy_type: csType,
+              strategy_type: isCrossSectional ? 'cross_sectional' : 'single'
+            }
+
+            if (isCrossSectional) {
+              tradingConfigBase.symbol_list = [...this.crossSectionalSymbols]
+              tradingConfigBase.portfolio_size = values.portfolio_size
+              tradingConfigBase.long_ratio = longRatio
+              tradingConfigBase.rebalance_frequency = values.rebalance_frequency || 'daily'
+            }
 
             // 构建基础 payload
             const basePayload = {
@@ -3995,53 +4234,45 @@ export default {
               indicator_config: {
                 indicator_id: indicator.id,
                 indicator_name: indicator.name,
-                indicator_code: indicator.code || ''
+                indicator_code: indicatorCode
               },
               exchange_config: isLive ? this.buildLiveExchangeConfig(values) : undefined,
-              trading_config: {
-                initial_capital: values.initial_capital,
-                leverage: leverage,
-                trade_direction: tradeDirection,
-                timeframe: values.timeframe,
-                market_type: marketType,
-                // Order execution settings moved to backend env config (ORDER_MODE, MAKER_WAIT_SEC, MAKER_OFFSET_BPS)
-                margin_mode: 'cross',
-                signal_mode: 'confirmed',
-                // Strict mode forces backtest-equivalent semantics on the live
-                // executor: drop in-progress bar (no last-bar repaint) AND use
-                // confirmed exit signals. Eliminates same-bar repaint drift at
-                // the cost of one bar of execution delay.
-                strict_mode: !!values.strict_mode,
-                // 风控与仓位：来自指标源码 # @strategy（与指标 IDE / 后端 StrategyConfigParser 一致）
-                take_profit_pct: riskFromCode.take_profit_pct,
-                stop_loss_pct: riskFromCode.stop_loss_pct,
-                trailing_enabled: riskFromCode.trailing_enabled,
-                trailing_stop_pct: riskFromCode.trailing_stop_pct,
-                trailing_activation_pct: riskFromCode.trailing_activation_pct,
-                entry_pct: riskFromCode.entry_pct,
-                // 加减仓：新建策略默认为关；编辑时保留库中已有配置（界面已移除）
-                ...scaleReduceFlat,
-                commission: values.commission || 0,
-                slippage: values.slippage || 0,
-                // AI智能决策过滤
-                enable_ai_filter: enableAiFilter,
-                // 指标参数（外部传递）
-                indicator_params: this.indicatorParamValues,
-                strategy_type: 'single'
-              }
+              trading_config: tradingConfigBase
+            }
+
+            if (isCrossSectional) {
+              basePayload.cs_strategy_type = 'cross_sectional'
+              basePayload.symbol_list = [...this.crossSectionalSymbols]
+              basePayload.portfolio_size = values.portfolio_size
+              basePayload.long_ratio = longRatio
+              basePayload.rebalance_frequency = values.rebalance_frequency || 'daily'
             }
 
             let res
             if (this.editingStrategy) {
-              // 编辑模式：更新单个策略
-              let parsedSymbol = values.symbol
-              if (typeof parsedSymbol === 'string' && parsedSymbol.includes(':')) {
-                const idx = parsedSymbol.indexOf(':')
-                basePayload.market_category = parsedSymbol.slice(0, idx) || basePayload.market_category
-                parsedSymbol = parsedSymbol.slice(idx + 1)
+              if (isCrossSectional) {
+                const first = this.crossSectionalSymbols[0] || ''
+                if (typeof first === 'string' && first.includes(':')) {
+                  const idx = first.indexOf(':')
+                  basePayload.market_category = first.slice(0, idx) || basePayload.market_category
+                  basePayload.trading_config.symbol = first.slice(idx + 1)
+                } else {
+                  basePayload.trading_config.symbol = first
+                }
+              } else {
+                let parsedSymbol = values.symbol
+                if (typeof parsedSymbol === 'string' && parsedSymbol.includes(':')) {
+                  const idx = parsedSymbol.indexOf(':')
+                  basePayload.market_category = parsedSymbol.slice(0, idx) || basePayload.market_category
+                  parsedSymbol = parsedSymbol.slice(idx + 1)
+                }
+                basePayload.trading_config.symbol = parsedSymbol
               }
-              basePayload.trading_config.symbol = parsedSymbol
               res = await updateStrategy(this.editingStrategy.id, basePayload)
+            } else if (isCrossSectional) {
+              basePayload.user_id = 1
+              basePayload.strategy_type = 'IndicatorStrategy'
+              res = await createStrategy(basePayload)
             } else {
               basePayload.user_id = 1
               basePayload.strategy_type = 'IndicatorStrategy'
@@ -4052,6 +4283,8 @@ export default {
             if (res.code === 1) {
               if (this.isEditMode) {
                 this.$message.success(this.$t('trading-assistant.messages.updateSuccess'))
+              } else if (isCrossSectional) {
+                this.$message.success(this.$t('trading-assistant.messages.crossSectionalCreateSuccess'))
               } else {
                 const totalCreated = res.data?.total_created || this.selectedSymbols.length
                 this.$message.success(this.$t('trading-assistant.messages.batchCreateSuccess', { count: totalCreated }))

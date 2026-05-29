@@ -195,6 +195,18 @@ export function deleteChartTemplate (templateId) {
 }
 
 /**
+ * Get current user's login history (password / email code / OAuth)
+ * @param {Object} params - { page, page_size }
+ */
+export function getLoginLogs (params) {
+  return request({
+    url: '/api/users/login-logs',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * Get current user's credits log
  * @param {Object} params - { page, page_size }
  */

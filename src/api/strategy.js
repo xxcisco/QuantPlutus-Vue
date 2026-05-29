@@ -198,11 +198,13 @@ export function testExchangeConnection (exchangeConfig) {
  * 获取策略交易记录
  * @param {number} id - 策略ID
  */
-export function getStrategyTrades (id) {
+export function getStrategyTrades (id, lang) {
+  const params = { id }
+  if (lang) params.lang = lang
   return request({
     url: api.trades,
     method: 'get',
-    params: { id }
+    params
   })
 }
 

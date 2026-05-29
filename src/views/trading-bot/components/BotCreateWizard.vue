@@ -219,29 +219,71 @@
           :wrapper-col="{ span: 14 }"
         >
           <template v-if="botType !== 'martingale'">
-            <a-form-model-item :label="$t('trading-bot.risk.stopLossPct')">
+            <a-alert
+              v-if="isGridLikeBot"
+              type="info"
+              show-icon
+              style="margin-bottom: 16px;"
+              :message="gridRiskTitle"
+              :description="gridRiskDesc"
+            />
+            <a-form-model-item :label="gridLikeStopLossLabel">
               <a-input-number
                 v-model="riskForm.stopLossPct"
                 :min="0"
                 :max="100"
-                :step="1"
+                :step="0.01"
+                :precision="4"
                 style="width: 100%"
                 :formatter="v => `${v}%`"
                 :parser="v => v.replace('%', '')"
               />
               <div class="form-hint">{{ stopLossHint }}</div>
             </a-form-model-item>
-            <a-form-model-item :label="$t('trading-bot.risk.takeProfitPct')">
+            <a-form-model-item :label="gridLikeTakeProfitLabel">
               <a-input-number
                 v-model="riskForm.takeProfitPct"
                 :min="0"
                 :max="1000"
-                :step="1"
+                :step="0.01"
+                :precision="4"
                 style="width: 100%"
                 :formatter="v => `${v}%`"
                 :parser="v => v.replace('%', '')"
               />
               <div class="form-hint">{{ takeProfitHint }}</div>
+            </a-form-model-item>
+            <a-form-model-item
+              v-if="isGridLikeBot"
+              :label="$t('trading-bot.risk.gridOobBufferPct')"
+            >
+              <a-input-number
+                v-model="riskForm.gridOobBufferPct"
+                :min="0"
+                :max="50"
+                :step="0.5"
+                :precision="2"
+                style="width: 100%"
+                :formatter="v => `${v}%`"
+                :parser="v => v.replace('%', '')"
+              />
+              <div class="form-hint">{{ gridOobBufferHint }}</div>
+            </a-form-model-item>
+            <a-form-model-item
+              v-if="isGridLikeBot"
+              :label="$t('trading-bot.risk.tickIntervalSec')"
+            >
+              <a-input-number
+                v-model="riskForm.tickIntervalSec"
+                :min="1"
+                :max="60"
+                :step="1"
+                :precision="0"
+                style="width: 100%"
+                :formatter="v => `${v}s`"
+                :parser="v => String(v).replace('s', '')"
+              />
+              <div class="form-hint">{{ tickIntervalHint }}</div>
             </a-form-model-item>
             <a-form-model-item :label="$t('trading-bot.risk.maxPosition')">
               <a-input-number
@@ -323,11 +365,17 @@
 
           <h4 style="margin-top: 20px;">{{ $t('trading-bot.wizard.riskParams') }}</h4>
           <a-descriptions :column="1" bordered size="small">
-            <a-descriptions-item v-if="botType !== 'martingale'" :label="$t('trading-bot.risk.stopLossPct')">
+            <a-descriptions-item v-if="botType !== 'martingale'" :label="gridLikeStopLossLabel">
               {{ riskForm.stopLossPct }}%
             </a-descriptions-item>
-            <a-descriptions-item v-if="botType !== 'martingale'" :label="$t('trading-bot.risk.takeProfitPct')">
+            <a-descriptions-item v-if="botType !== 'martingale'" :label="gridLikeTakeProfitLabel">
               {{ riskForm.takeProfitPct }}%
+            </a-descriptions-item>
+            <a-descriptions-item v-if="isGridLikeBot" :label="$t('trading-bot.risk.gridOobBufferPct')">
+              {{ riskForm.gridOobBufferPct }}%
+            </a-descriptions-item>
+            <a-descriptions-item v-if="isGridLikeBot" :label="$t('trading-bot.risk.tickIntervalSec')">
+              {{ riskForm.tickIntervalSec }}s
             </a-descriptions-item>
             <a-descriptions-item v-if="botType !== 'martingale'" :label="$t('trading-bot.risk.maxPosition')">
               ${{ riskForm.maxPosition }}
@@ -515,7 +563,10 @@ export default {
         stopLossPct: 10,
         takeProfitPct: 20,
         maxPosition: 5000,
-        maxDailyLoss: 500
+        maxDailyLoss: 500,
+        // grid-bot-only (P0-2 / P1-2):
+        gridOobBufferPct: 5,
+        tickIntervalSec: 1
       },
       // 自选标的列表（从 qd_watchlist 拉取，按 market 过滤后只展示 Crypto）
       watchlist: [],
@@ -707,6 +758,11 @@ export default {
     isGridOrMartingaleBot () {
       return this.botType === 'grid' || this.botType === 'martingale'
     },
+    // grid + dca share the equity-drawdown SL/TP semantics (P0-2), so the
+    // risk form uses the same hints / extra fields for both.
+    isGridLikeBot () {
+      return this.botType === 'grid' || this.botType === 'dca'
+    },
     isZhLocale () {
       return String(this.$i18n?.locale || '').toLowerCase().startsWith('zh')
     },
@@ -720,23 +776,66 @@ export default {
         ? '这里表示这一轮马丁允许投入的总预算，首单金额会自动反推。'
         : 'This is the total budget for one martingale cycle. First order size is derived automatically.'
     },
+    // Label override — for grid/DCA bots the SL/TP fields are interpreted as
+    // *account equity* drawdown / take-profit, not "price vs entry" %, so we
+    // relabel them to avoid confusion.
+    gridLikeStopLossLabel () {
+      if (!this.isGridLikeBot) return this.$t('trading-bot.risk.stopLossPct')
+      return this.$t('trading-bot.risk.equityStopLossPct')
+    },
+    gridLikeTakeProfitLabel () {
+      if (!this.isGridLikeBot) return this.$t('trading-bot.risk.takeProfitPct')
+      return this.$t('trading-bot.risk.equityTakeProfitPct')
+    },
     stopLossHint () {
-      const hints = {
-        grid: { zh: '价格偏离入场价超过此比例时，服务端强制平仓止损。设0为不启用。', en: 'Server closes position when price deviates beyond this % from entry. Set 0 to disable.' },
-        trend: { zh: '当均线信号来得太慢时，此止损作为安全网强制平仓。', en: 'Safety net: force close when loss exceeds this %, even if MA has not crossed back.' },
-        dca: { zh: '当持仓亏损超过此比例时平仓止损，保护已定投的本金。', en: 'Close position when unrealized loss exceeds this %, protecting DCA capital.' }
+      if (this.isGridLikeBot) {
+        return this.isZhLocale
+          ? '按账户净值相对初始资金的回撤比例触发；服务端命中后平掉所有多空腿。0 为不启用。与杠杆无关。'
+          : 'Triggers on account equity drawdown vs initial capital. When hit the server closes both long and short legs. 0 disables. Leverage-independent.'
       }
-      const h = hints[this.botType] || hints.grid
-      return this.isZhLocale ? h.zh : h.en
+      const tail = this.isZhLocale
+        ? '按标的实际涨跌幅触发，与杠杆无关（杠杆只影响 PnL 与强平价）。0 为不启用。'
+        : 'Triggers on the underlying price move — independent of leverage. 0 disables.'
+      const hints = {
+        trend: { zh: '当均线信号来得太慢时，此止损作为安全网强制平仓。', en: 'Safety net: force close when loss exceeds this %, even if MA has not crossed back.' }
+      }
+      const h = hints[this.botType] || { zh: '当持仓亏损达到此比例时强制平仓。', en: 'Force close when loss reaches this %.' }
+      const body = this.isZhLocale ? h.zh : h.en
+      return `${body} ${tail}`
     },
     takeProfitHint () {
-      const hints = {
-        grid: { zh: '当持仓浮盈达到此比例时，服务端平仓止盈。网格策略会清空所有挂单状态。', en: 'Server closes position when floating profit reaches this %. Grid pending orders are cleared.' },
-        trend: { zh: '当持仓浮盈达到此比例时强制止盈，即使均线仍在同侧。', en: 'Force close when profit reaches this %, even if MA trend continues.' },
-        dca: { zh: '当持仓浮盈达到此比例时自动卖出止盈。设0为不启用。', en: 'Auto sell when profit reaches this %. Set 0 to disable.' }
+      if (this.isGridLikeBot) {
+        return this.isZhLocale
+          ? '按账户净值相对初始资金的浮盈比例触发；命中后清空所有腿、终止网格。0 为不启用。与杠杆无关。'
+          : 'Triggers on account equity gain vs initial capital. When hit the server closes both legs and the grid stops. 0 disables. Leverage-independent.'
       }
-      const h = hints[this.botType] || hints.grid
-      return this.isZhLocale ? h.zh : h.en
+      const tail = this.isZhLocale
+        ? '按标的实际涨跌幅触发，与杠杆无关。0 为不启用。'
+        : 'Triggers on the underlying price move — independent of leverage. 0 disables.'
+      const hints = {
+        trend: { zh: '当持仓浮盈达到此比例时强制止盈，即使均线仍在同侧。', en: 'Force close when profit reaches this %, even if MA trend continues.' }
+      }
+      const h = hints[this.botType] || { zh: '当持仓浮盈达到此比例时自动平仓。', en: 'Auto close when profit reaches this %.' }
+      const body = this.isZhLocale ? h.zh : h.en
+      return `${body} ${tail}`
+    },
+    gridRiskTitle () {
+      return this.isZhLocale ? '网格风控说明' : 'Grid Risk Model'
+    },
+    gridRiskDesc () {
+      return this.isZhLocale
+        ? '网格机器人的止盈 / 止损按“账户净值 vs 初始资金”的回撤百分比触发，而不是按单笔入场价。另外网格区间外预留缓冲（grid_oob_buffer_pct），价格突破后会立即平掉所有腿，避免单边趋势继续吃亏。'
+        : 'Grid bots use *account equity drawdown* (vs initial capital) for stop-loss / take-profit, not per-trade entry price. The "out-of-grid buffer" closes both legs when price spikes beyond the configured grid range, preventing runaway losses on a strong trend.'
+    },
+    gridOobBufferHint () {
+      return this.isZhLocale
+        ? '价格突破 upperPrice × (1 + 缓冲)  或跌破 lowerPrice × (1 - 缓冲) 时，服务端平掉所有腿。默认 5%。设 0 关闭。'
+        : 'When price exceeds upperPrice × (1 + buffer) or falls below lowerPrice × (1 - buffer), the server closes both legs. Defaults to 5%. Set 0 to disable.'
+    },
+    tickIntervalHint () {
+      return this.isZhLocale
+        ? '策略主循环轮询间隔。网格机器人默认 1 秒（价格驱动），趋势 / 普通策略默认 10 秒。越小越快但越耗算力。'
+        : 'Strategy loop polling interval. Grid bots default to 1s (price-driven); trend / generic strategies default to 10s. Smaller = faster reaction but more CPU.'
     },
     martingaleRiskTitle () {
       return this.isZhLocale ? '高级风控' : 'Advanced Risk Control'
@@ -1019,6 +1118,13 @@ export default {
         : (tc.take_profit_pct ?? 20)
       this.riskForm.maxPosition = this.botType === 'martingale' ? 0 : (tc.max_position ?? 5000)
       this.riskForm.maxDailyLoss = tc.max_daily_loss ?? 500
+      // P0-2 / P1-2 grid-only fields
+      if (tc.grid_oob_buffer_pct != null) {
+        this.riskForm.gridOobBufferPct = tc.grid_oob_buffer_pct
+      }
+      if (tc.tick_interval_sec != null) {
+        this.riskForm.tickIntervalSec = tc.tick_interval_sec
+      }
     },
     applyAiPreset () {
       if (!this.aiPreset) return
@@ -1349,6 +1455,15 @@ export default {
           max_daily_loss: this.riskForm.maxDailyLoss,
           bot_type: this.botType,
           bot_params: strategyParams,
+          // Grid-only knobs — backend ignores them for trend/martingale, and
+          // sending them as undefined would override the server-side default
+          // of 1s for grid bots, so only attach them on grid/dca.
+          ...((this.botType === 'grid' || this.botType === 'dca')
+            ? {
+                grid_oob_buffer_pct: this.riskForm.gridOobBufferPct,
+                tick_interval_sec: this.riskForm.tickIntervalSec
+              }
+            : {}),
           // 马丁/趋势机器人依赖即时成交触发加仓/平仓,强制市价;
           // 网格/DCA 保留用户选择(默认 maker 更省手续费)
           order_mode: (this.botType === 'martingale' || this.botType === 'trend')

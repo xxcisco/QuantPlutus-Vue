@@ -187,7 +187,12 @@ const user = {
       return new Promise((resolve, reject) => {
         // 用户信息已经在登录时保存到 store 中，直接返回
         // 增加 check: 必须包含 is_demo 字段，否则视为过期缓存，强制刷新
-        if (state.info && Object.keys(state.info).length > 0 && typeof state.info.is_demo !== 'undefined') {
+        if (
+          state.info &&
+          Object.keys(state.info).length > 0 &&
+          typeof state.info.is_demo !== 'undefined' &&
+          typeof state.info.must_change_initial_password !== 'undefined'
+        ) {
           // 补全 Roles
           const info = state.info
           if (info.role) {

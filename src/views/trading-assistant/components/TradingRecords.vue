@@ -13,12 +13,12 @@
       rowKey="id"
       :scroll="{ x: 800 }"
     >
-      <template slot="type" slot-scope="text">
+      <template slot="type" slot-scope="text, record">
         <div class="trade-type-cell">
           <a-tag :color="getTradeTypeColor(text)" class="trade-type-tag">
             {{ getTradeTypeText(text) }}
           </a-tag>
-          <div class="trade-type-desc">{{ getTradeActionDescription(text) }}</div>
+          <div class="trade-type-desc">{{ getTradeActionDescription(record) }}</div>
         </div>
       </template>
       <template slot="price" slot-scope="text">
@@ -33,6 +33,11 @@
       <template slot="profit" slot-scope="text, record">
         <span :class="['ta-pnl', profitToneClass(record)]">
           {{ formatProfit(record) }}
+        </span>
+      </template>
+      <template slot="grid_matched_profit" slot-scope="text, record">
+        <span :class="['ta-pnl', gridProfitToneClass(record)]">
+          {{ formatGridProfit(record) }}
         </span>
       </template>
       <template slot="commission" slot-scope="text">
@@ -63,11 +68,20 @@ export default {
     isDark: {
       type: Boolean,
       default: false
+    },
+    botType: {
+      // 'grid' / 'dca' / '' — drives the "grid profit" column visibility.
+      type: String,
+      default: ''
     }
   },
   computed: {
+    isGridBot () {
+      const bt = String(this.botType || '').toLowerCase()
+      return bt === 'grid' || bt === 'dca'
+    },
     columns () {
-      return [
+      const cols = [
         {
           title: this.$t('trading-assistant.table.time'),
           dataIndex: 'created_at',
@@ -109,15 +123,25 @@ export default {
           key: 'profit',
           width: 120,
           scopedSlots: { customRender: 'profit' }
-        },
-        {
-          title: this.$t('trading-assistant.table.commission'),
-          dataIndex: 'commission',
-          key: 'commission',
-          width: 100,
-          scopedSlots: { customRender: 'commission' }
         }
       ]
+      if (this.isGridBot) {
+        cols.push({
+          title: this.$t('trading-assistant.table.gridMatchedProfit'),
+          dataIndex: 'grid_matched_profit',
+          key: 'grid_matched_profit',
+          width: 130,
+          scopedSlots: { customRender: 'grid_matched_profit' }
+        })
+      }
+      cols.push({
+        title: this.$t('trading-assistant.table.commission'),
+        dataIndex: 'commission',
+        key: 'commission',
+        width: 100,
+        scopedSlots: { customRender: 'commission' }
+      })
+      return cols
     }
   },
   data () {
@@ -140,7 +164,7 @@ export default {
       if (!this.strategyId) return
 
       try {
-        const res = await getStrategyTrades(this.strategyId)
+        const res = await getStrategyTrades(this.strategyId, this.$i18n && this.$i18n.locale)
         if (res.code === 1) {
           const list = res.data.trades || res.data.items || []
           this.records = list.map(trade => {
@@ -214,6 +238,11 @@ export default {
       }
       return null
     },
+    closeReasonI18nKey (reason) {
+      const code = String(reason || '').trim()
+      if (!code) return null
+      return `trading-assistant.tradeReason.${code}`
+    },
     tradeDetailI18nKey (type) {
       const ty = String(type || '').toLowerCase().replace(/-/g, '_')
       const map = {
@@ -237,7 +266,32 @@ export default {
       }
       return map[ty] || null
     },
-    getTradeActionDescription (type) {
+    getTradeActionDescription (recordOrType) {
+      const record = recordOrType && typeof recordOrType === 'object' ? recordOrType : null
+      const type = record ? record.type : recordOrType
+
+      if (record) {
+        const loc = String((this.$i18n && this.$i18n.locale) || 'zh-CN').toLowerCase()
+        const preferEn = loc.startsWith('en')
+        const note = preferEn
+          ? (record.action_note_en || record.action_note)
+          : (record.action_note || record.action_note_en)
+        if (note) return note
+
+        const reasonKey = this.closeReasonI18nKey(record.close_reason)
+        if (reasonKey) {
+          const rt = this.$t(reasonKey)
+          if (rt !== reasonKey) return rt
+        }
+
+        // Backtest-style typed exits (close_long_stop / _profit / _trailing)
+        const typedKey = this.tradeDetailI18nKey(type)
+        if (typedKey && /_(stop|profit|trailing)$/.test(String(type || '').toLowerCase())) {
+          const tt = this.$t(typedKey)
+          if (tt !== typedKey) return tt
+        }
+      }
+
       const key = this.tradeDetailI18nKey(type)
       if (!key) return '—'
       const t = this.$t(key)
@@ -341,6 +395,31 @@ export default {
       }
 
       return this.formatMoney(numValue)
+    },
+    // 网格利润：仅在该笔交易实际完成了一次「网格配对」时显示数值，
+    // 否则（开仓单 / 加仓单 / 没有 matched_entry_price）显示 '—'。
+    pickGridProfit (record) {
+      if (!record || typeof record !== 'object') return null
+      const raw = record.grid_matched_profit
+      if (raw === null || raw === undefined || raw === '') return null
+      const v = parseFloat(raw)
+      if (isNaN(v)) return null
+      const matched = parseFloat(record.matched_entry_price || 0)
+      if (!matched || matched <= 0) return null
+      return v
+    },
+    formatGridProfit (record) {
+      const v = this.pickGridProfit(record)
+      if (v === null) return '—'
+      if (Math.abs(v) < 1e-6) return '$0.00'
+      return this.formatMoney(v)
+    },
+    gridProfitToneClass (record) {
+      const v = this.pickGridProfit(record)
+      if (v === null) return 'ta-pnl-neutral'
+      if (v > 0) return 'ta-pnl-pos'
+      if (v < 0) return 'ta-pnl-neg'
+      return 'ta-pnl-zero'
     },
     // 格式化手续费（0 显示 $0.00，与交易所一致）
     formatCommission (value) {

@@ -16,7 +16,7 @@ export const PYTHON_API_BASE_URL = process.env.VUE_APP_PYTHON_API_BASE_URL || 'h
 
 export default {
   /** Web UI release label (footer, docs cross-reference). */
-  appVersion: '3.0.15',
+  appVersion: '3.0.17',
   navTheme: 'light', // theme for nav menu
   primaryColor: '#9fe870', // Wise lime-green — brand CTA accent
   layout: 'sidemenu', // nav menu position: `sidemenu` or `topmenu`
