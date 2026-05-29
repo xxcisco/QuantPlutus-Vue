@@ -2,17 +2,17 @@
   <a-dropdown v-if="currentUser && currentUser.name" placement="bottomRight">
     <span class="ant-pro-account-avatar">
       <a-avatar size="small" :src="currentUser.avatar" class="antd-pro-global-header-index-avatar" />
-      <span>{{ currentUser.name }}</span>
     </span>
-    <!--
-      ant-design-vue 1.x (Vue 2) only recognises the legacy ``slot="overlay"``
-      attribute here; using the Vue 2.6 ``<template #overlay>`` shorthand
-      silently degrades to a default slot, which renders the menu items
-      inline next to the avatar inside the flex header. Keep this attribute
-      style and the explicit ``mode="vertical"`` on the menu as a belt-and-
-      braces guarantee the dropdown stays vertical.
-    -->
-    <a-menu slot="overlay" mode="horizontal" class="ant-pro-drop-down menu" :selected-keys="[]">
+    <a-menu slot="overlay" mode="horizontal" class="menu" :selected-keys="[]">
+      <a-menu-item key="info" @click="handleProfile">
+        <div class="menu-info-box">
+          <a-avatar size="large" :src="currentUser.avatar" class="antd-pro-global-header-index-avatar" />
+          <div class="menu-info-text">
+            <div class="menu-info-text-name">{{ currentUser.name }}</div>
+            <div class="menu-info-text-id">ID: {{ currentUser.userId }}</div>
+          </div>
+        </div>
+      </a-menu-item>
       <a-menu-item key="profile" @click="handleProfile">
         <a-icon type="user" />
         {{ $t('menu.profile') || 'My Profile' }}
@@ -49,16 +49,16 @@ export default {
     }
   },
   methods: {
-    handleProfile () {
+    handleProfile() {
       this.$router.push({ name: 'Profile' })
     },
-    handleExchanges () {
+    handleExchanges() {
       // Deep-link straight to the Exchange Config tab inside Profile so
       // users don't have to hunt for it in the tab strip. Profile reads
       // ``$route.query.tab`` on mount and on subsequent navigations.
-      this.$router.push({ name: 'Profile', query: { tab: 'exchange' } }).catch(() => {})
+      this.$router.push({ name: 'Profile', query: { tab: 'exchange' } }).catch(() => { })
     },
-    handleLogout (e) {
+    handleLogout(e) {
       Modal.confirm({
         title: this.$t('layouts.usermenu.dialog.title'),
         content: this.$t('layouts.usermenu.dialog.content'),
@@ -70,7 +70,7 @@ export default {
             this.$router.push({ name: 'login' })
           })
         },
-        onCancel () {}
+        onCancel() { }
       })
     }
   }
@@ -82,10 +82,35 @@ export default {
   .action {
     margin-right: 8px;
   }
+
   .ant-dropdown-menu-item {
     min-width: 160px;
   }
 }
+
+.menu-info-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .menu-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 12px;
+
+    .menu-info-text-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .menu-info-text-id {
+      font-size: 12px;
+      color: var(--wise-body-soft);
+    }
+  }
+}
+
 
 /* 暗黑主题 - 下拉菜单样式 */
 body.dark .ant-dropdown-menu,

@@ -54,9 +54,10 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['nickname', 'avatar']),
+    ...mapGetters(['userInfo', 'nickname', 'avatar']),
     currentUser () {
       return {
+        userId: this.userInfo?.id,
         name: this.nickname,
         avatar: this.avatar
       }
