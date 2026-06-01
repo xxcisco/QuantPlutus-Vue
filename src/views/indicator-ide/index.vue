@@ -362,6 +362,7 @@
                         :userId="userId"
                         :realtime-enabled="klineRealtimeEnabled"
                         @indicator-toggle="handleIndicatorToggle"
+                        @indicators-updated="onChartIndicatorsUpdated"
                       />
                     </div>
                   </div>
@@ -653,22 +654,33 @@
                           </div>
 
                           <div class="param-section param-section--top">
-                            <div class="param-label">{{ $t('indicatorIde.direction') }}</div>
-                            <a-radio-group v-model="tradeDirection" class="direction-radio-group">
-                              <a-radio-button value="long">
-                                <a-icon type="arrow-up" /> {{ $t('indicatorIde.long') }}
-                              </a-radio-button>
-                              <a-radio-button value="short">
-                                <a-icon type="arrow-down" /> {{ $t('indicatorIde.short') }}
-                              </a-radio-button>
-                              <a-radio-button value="both">
-                                <a-icon type="swap" /> {{ $t('indicatorIde.both') }}
-                              </a-radio-button>
-                            </a-radio-group>
-                            <div style="margin-top: 8px;">
-                              <a-tooltip :title="$t('indicatorIde.mtfHint')">
-                                <a-checkbox v-model="enableMtf">{{ $t('indicatorIde.highPrecisionMtf') }}</a-checkbox>
-                              </a-tooltip>
+                            <div class="strict-mode-card" :class="{ 'strict-mode-card--on': strictMode }">
+                              <div class="strict-mode-card__head">
+                                <div class="strict-mode-card__title">
+                                  <span>{{ $t('indicatorIde.strictModeLabel') }}</span>
+                                  <a-tag size="small" :color="strictMode ? 'blue' : 'orange'">
+                                    {{ strictMode ? $t('indicatorIde.strictModeOnShort') : $t('indicatorIde.strictModeOffShort') }}
+                                  </a-tag>
+                                </div>
+                                <a-switch v-model="strictMode" size="small" />
+                              </div>
+                              <p class="strict-mode-card__hint">
+                                {{ strictMode ? $t('indicatorIde.strictModeOnHint') : $t('indicatorIde.strictModeOffHint') }}
+                              </p>
+                            </div>
+                            <div class="strict-mode-direction">
+                              <div class="param-label">{{ $t('indicatorIde.direction') }}</div>
+                              <a-radio-group v-model="tradeDirection" class="direction-radio-group">
+                                <a-radio-button value="long">
+                                  <a-icon type="arrow-up" /> {{ $t('indicatorIde.long') }}
+                                </a-radio-button>
+                                <a-radio-button value="short">
+                                  <a-icon type="arrow-down" /> {{ $t('indicatorIde.short') }}
+                                </a-radio-button>
+                                <a-radio-button value="both">
+                                  <a-icon type="swap" /> {{ $t('indicatorIde.both') }}
+                                </a-radio-button>
+                              </a-radio-group>
                             </div>
                           </div>
                         </div>
@@ -743,6 +755,26 @@
 
                       <!-- Results -->
                       <div v-else class="result-data">
+                        <backtest-assumptions-panel
+                          :execution-assumptions="result.executionAssumptions"
+                          :precision-info="result.precision_info"
+                          :strict-mode="strictMode"
+                          :commission="Number(commission || 0) / 100"
+                          :slippage="Number(slippage || 0) / 100"
+                        />
+
+                        <div v-if="showBacktestMarkerLegend" class="backtest-marker-legend">
+                          <span class="backtest-marker-legend__item">
+                            <i class="backtest-marker-legend__icon backtest-marker-legend__icon--fill" />
+                            {{ $t('indicatorIde.backtestMarkerFill') }}
+                          </span>
+                          <span class="backtest-marker-legend__item">
+                            <i class="backtest-marker-legend__icon backtest-marker-legend__icon--signal" />
+                            {{ $t('indicatorIde.backtestMarkerSignal') }}
+                          </span>
+                          <span class="backtest-marker-legend__hint">{{ $t('indicatorIde.backtestMarkerHint') }}</span>
+                        </div>
+
                         <!-- Metric cards -->
                         <div class="metrics-grid">
                           <div v-for="m in metricCards" :key="m.label" :class="['metric-card', m.cls]">
@@ -1504,6 +1536,7 @@ import { getUserInfo } from '@/api/login'
 import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
 import KlineChart from '@/views/indicator-analysis/components/KlineChart.vue'
 import BacktestHistoryDrawer from '@/views/indicator-analysis/components/BacktestHistoryDrawer.vue'
+import BacktestAssumptionsPanel from '@/components/BacktestAssumptionsPanel.vue'
 import QuickTradePanel from '@/components/QuickTradePanel/QuickTradePanel'
 import { Modal } from 'ant-design-vue'
 import message from 'ant-design-vue/es/message'
@@ -1549,7 +1582,7 @@ function ideUiCacheStorageKey (userId) {
 export default {
   name: 'IndicatorIDE',
   mixins: [baseMixin],
-  components: { KlineChart, BacktestHistoryDrawer, QuickTradePanel },
+  components: { KlineChart, BacktestHistoryDrawer, BacktestAssumptionsPanel, QuickTradePanel },
   data () {
     return {
       userId: null,
@@ -1592,10 +1625,10 @@ export default {
 
       initialCapital: 10000,
       leverage: 1,
-      commission: 0.02,
-      slippage: 0.02,
+      commission: 0.05,
+      slippage: 0.05,
       tradeDirection: 'long',
-      enableMtf: false,
+      strictMode: true,
       // Tracks whether the last finished backtest ran on the full user
       // window ('full') or was pinned to the tuner's training window
       // ('train'). The result banner shows this so users always know
@@ -1705,7 +1738,12 @@ export default {
       elapsedTimer: null,
       experimentScatterInstance: null,
       experimentRadarInstance: null,
-      experimentChartsResizeHandler: null
+      experimentChartsResizeHandler: null,
+
+      /** 最近一次成功回测时的图表上下文（market|symbol|timeframe|indicatorId） */
+      _backtestRunContextKey: null,
+      /** 用于去重上下文变更时的清理调用 */
+      _backtestMarkerWatchKey: null
     }
   },
   computed: {
@@ -2232,6 +2270,9 @@ export default {
     },
     showPurchasedMarketHint () {
       return this.selectedIndicatorIsPurchased && !this.purchasedMarketHintDismissed
+    },
+    showBacktestMarkerLegend () {
+      return this.shouldShowBacktestMarkersOnChart()
     }
   },
   async created () {
@@ -2422,6 +2463,17 @@ export default {
           this.chartVisibleIndicatorIds = [Number(this.selectedIndicatorId)]
           this.syncSelectedIndicatorToChart()
         }
+        if (s.commission != null && !isNaN(Number(s.commission))) {
+          this.commission = Number(s.commission)
+        }
+        if (s.slippage != null && !isNaN(Number(s.slippage))) {
+          this.slippage = Number(s.slippage)
+        }
+        if (typeof s.strictMode === 'boolean') {
+          this.strictMode = s.strictMode
+        } else if (typeof s.enableMtf === 'boolean') {
+          this.strictMode = !s.enableMtf
+        }
         this.reconcileIdeMarketFromWatchlist()
       } catch (_) { /* ignore corrupt cache */ }
     },
@@ -2444,7 +2496,10 @@ export default {
           selectedIndicatorId: this.selectedIndicatorId,
           chartVisibleIndicatorIds: this.chartVisibleIndicatorIds,
           selectedWatchlistKey: this.selectedWatchlistKey,
-          activeIndicators: this.serializeChartIndicators()
+          activeIndicators: this.serializeChartIndicators(),
+          strictMode: this.strictMode,
+          commission: this.commission,
+          slippage: this.slippage
         }
         storage.set(ideUiCacheStorageKey(this.userId), JSON.stringify(payload))
       } catch (_) { /* ignore quota */ }
@@ -2538,6 +2593,9 @@ export default {
           if (this.selectedIndicatorId) {
             this.syncSelectedIndicatorToChart()
           }
+          if (this.shouldShowBacktestMarkersOnChart()) {
+            this.renderBacktestSignals()
+          }
         }, 300)
       })
     },
@@ -2583,6 +2641,8 @@ export default {
       this.cmInstance.refresh()
     },
     onIndicatorChange (id) {
+      const nextId = (id != null && id !== '') ? Number(id) : null
+      this.invalidateBacktestMarkersOnContextChange()
       const ind = this.indicators.find(i => Number(i.id) === Number(id))
       if (ind) {
         this.currentCode = ind.code || ''
@@ -2874,20 +2934,57 @@ export default {
     clearBacktestSignalOverlays (opts = {}) {
       const silent = !!(opts && opts.silent)
       const chart = this.$refs.klineChart
-      if (!chart || !chart.chartRef) {
+      if (!chart) {
         if (!silent) this.$message.info(this.$t('indicatorIde.clearSignalsNoChart'))
         return
       }
-      const chartInstance = chart.chartRef
-      if (chart.addedSignalOverlayIds && chart.addedSignalOverlayIds.length) {
-        chart.addedSignalOverlayIds.forEach(id => {
-          try {
-            if (typeof chartInstance.removeOverlay === 'function') chartInstance.removeOverlay(id)
-          } catch (_) {}
-        })
-        chart.addedSignalOverlayIds = []
+      if (typeof chart.clearBacktestOverlays === 'function') {
+        chart.clearBacktestOverlays()
       }
       if (!silent) this.$message.success(this.$t('indicatorIde.clearSignalsDone'))
+    },
+
+    buildBacktestMarkerContextKey () {
+      return [
+        String(this.market || ''),
+        String(this.symbol || ''),
+        String(this.timeframe || ''),
+        String(this.selectedIndicatorId || '')
+      ].join('|')
+    },
+
+    shouldShowBacktestMarkersOnChart () {
+      if (!this.hasResult || !this.result || !Array.isArray(this.result.trades) || !this.result.trades.length) {
+        return false
+      }
+      if (!this._backtestRunContextKey) return false
+      return this.buildBacktestMarkerContextKey() === this._backtestRunContextKey
+    },
+
+    stampBacktestMarkerContext () {
+      this._backtestRunContextKey = this.buildBacktestMarkerContextKey()
+      this._backtestMarkerWatchKey = this._backtestRunContextKey
+    },
+
+    invalidateBacktestMarkersOnContextChange () {
+      const key = this.buildBacktestMarkerContextKey()
+      if (key === this._backtestMarkerWatchKey) return
+      this._backtestMarkerWatchKey = key
+      this._backtestRunContextKey = null
+      this.clearBacktestSignalOverlays({ silent: true })
+    },
+
+    getKlineChartInstance () {
+      const chart = this.$refs.klineChart
+      if (!chart) return null
+      if (typeof chart.getChartInstance === 'function') return chart.getChartInstance()
+      return chart.chartRef || null
+    },
+
+    onChartIndicatorsUpdated () {
+      if (this.shouldShowBacktestMarkersOnChart()) {
+        this.renderBacktestSignals()
+      }
     },
 
     async saveIndicator () {
@@ -3241,7 +3338,7 @@ export default {
         leverage: this.leverage,
         tradeDirection: this.tradeDirection,
         strategyConfig: this.buildBacktestStrategyConfig(),
-        enableMtf: this.enableMtf,
+        strictMode: this.strictMode,
         runType: 'indicator'
       }
     },
@@ -3842,7 +3939,7 @@ export default {
         slippage: Number(this.slippage || 0) / 100,
         leverage,
         tradeDirection: this.tradeDirection,
-        enableMtf: !!this.enableMtf,
+        strictMode: !!this.strictMode,
         strategyConfig,
         experiment: candidate
           ? {
@@ -4037,7 +4134,7 @@ export default {
             leverage: this.leverage,
             tradeDirection: this.tradeDirection,
             strategyConfig: this.buildBacktestStrategyConfig(),
-            enableMtf: this.enableMtf,
+            strictMode: this.strictMode,
             persist: true
           },
           timeout: 600000
@@ -4046,12 +4143,13 @@ export default {
           if (response.data.runId) this.backtestRunId = response.data.runId
           this.result = response.data.result || response.data
           this.hasResult = true
+          this.stampBacktestMarkerContext()
           this.resultTab = 'backtest'
           this.$nextTick(() => {
             setTimeout(() => {
               this.renderEquityChart()
               this.renderBacktestSignals()
-            }, 150)
+            }, 400)
           })
           this.$message.success(this.$t('indicatorIde.backtestComplete'))
         } else {
@@ -4066,21 +4164,37 @@ export default {
     },
 
     // ===== Render backtest buy/sell signals on K-line chart =====
-    renderBacktestSignals () {
+    renderBacktestSignals (retry = 0) {
+      if (!this.shouldShowBacktestMarkersOnChart()) {
+        this.clearBacktestSignalOverlays({ silent: true })
+        return
+      }
       const trades = (this.result && this.result.trades) || []
       if (!trades.length) return
       const chart = this.$refs.klineChart
-      if (!chart || !chart.chartRef) return
-      const chartInstance = chart.chartRef
+      if (!chart) {
+        if (retry < 8) setTimeout(() => this.renderBacktestSignals(retry + 1), 250)
+        return
+      }
+      const chartInstance = this.getKlineChartInstance()
+      if (!chartInstance) {
+        if (retry < 8) setTimeout(() => this.renderBacktestSignals(retry + 1), 250)
+        return
+      }
 
       this.clearBacktestSignalOverlays({ silent: true })
 
-      // Build sorted kline timestamp array for snap matching
       const klineData = (typeof chartInstance.getDataList === 'function') ? chartInstance.getDataList() : []
+      if (!klineData.length && retry < 8) {
+        setTimeout(() => this.renderBacktestSignals(retry + 1), 250)
+        return
+      }
       const klineTimestamps = klineData.map(k => k.timestamp)
+      const barByTs = new Map()
+      klineData.forEach(bar => {
+        if (bar && bar.timestamp != null) barByTs.set(bar.timestamp, bar)
+      })
 
-      // Parse a backend time string as UTC -> epoch millis.
-      // Backend emits '%Y-%m-%d %H:%M' without tz info; values are UTC.
       const parseBackendTime = (raw) => {
         if (raw == null) return 0
         if (typeof raw === 'number') {
@@ -4096,8 +4210,6 @@ export default {
         return isNaN(t) ? 0 : t
       }
 
-      // Floor-snap to the K-line bar that CONTAINS the given timestamp.
-      // Returns 0 if no bars are available so caller can skip.
       const snapToBar = (ts) => {
         if (!ts || klineTimestamps.length === 0) return ts || 0
         let lo = 0; let hi = klineTimestamps.length - 1
@@ -4111,56 +4223,113 @@ export default {
         return klineTimestamps[lo]
       }
 
-      const createSignalOverlay = (timestamp, price, isBuy, markerStyle) => {
-        if (!timestamp || !price) return
-        try {
-          if (typeof chartInstance.createOverlay !== 'function') return
-          const overlayId = chartInstance.createOverlay({
-            name: 'signalTag',
-            points: [
-              { timestamp, value: price },
-              { timestamp, value: price }
-            ],
-            extendData: {
-              text: isBuy ? 'B' : 'S',
-              color: isBuy ? '#00E676' : '#FF5252',
-              side: isBuy ? 'buy' : 'sell',
-              action: isBuy ? 'buy' : 'sell',
-              price,
-              markerStyle: markerStyle || 'solid'
-            },
-            lock: true
-          }, 'candle_pane')
-          if (overlayId && chart.addedSignalOverlayIds) {
-            chart.addedSignalOverlayIds.push(overlayId)
-          }
-        } catch (_) {}
+      const barAnchorPrices = (ts, isBuy, fallbackPrice, markerStyle) => {
+        const bar = barByTs.get(ts)
+        const isDashed = markerStyle === 'dashed'
+        if (!bar) {
+          const p = Number(fallbackPrice) || 0
+          const minGap = Math.max(Math.abs(p) * 0.01, 1e-8)
+          const labelGap = minGap * (isDashed ? 1.8 : 1.2)
+          return isBuy
+            ? { label: p + labelGap, anchor: p + minGap * 0.35 }
+            : { label: p - labelGap, anchor: p - minGap * 0.35 }
+        }
+        const high = Number(bar.high)
+        const low = Number(bar.low)
+        const close = Number(bar.close)
+        const open = Number(bar.open)
+        const ref = Number.isFinite(high) && Number.isFinite(low)
+          ? (isBuy ? high : low)
+          : (Number.isFinite(close) ? close : open)
+        const span = Math.max(
+          (Number.isFinite(high) && Number.isFinite(low)) ? (high - low) : 0,
+          Math.abs(ref) * 0.001,
+          1e-8
+        )
+        const gap = Math.max(span * 0.38, Math.abs(ref) * 0.0045)
+        const labelGap = gap * (isDashed ? 1.35 : 0.9)
+        const anchorGap = gap * 0.18
+        if (!Number.isFinite(ref) || ref <= 0) {
+          const p = Number(fallbackPrice) || 0
+          return { label: p, anchor: p }
+        }
+        return isBuy
+          ? { label: ref + labelGap, anchor: ref + anchorGap }
+          : { label: ref - labelGap, anchor: ref - anchorGap }
+      }
+
+      const createSignalOverlay = ({ timestamp, labelPrice, anchorPrice, isBuy, markerStyle, text, color }) => {
+        if (!timestamp || !labelPrice) return
+        const payload = {
+          name: 'signalTag',
+          points: [
+            { timestamp, value: labelPrice },
+            { timestamp, value: anchorPrice || labelPrice }
+          ],
+          extendData: {
+            text: text || (isBuy ? 'B' : 'S'),
+            color: color || (isBuy ? '#00E676' : '#FF5252'),
+            side: isBuy ? 'buy' : 'sell',
+            action: isBuy ? 'buy' : 'sell',
+            price: labelPrice,
+            markerStyle: markerStyle || 'solid',
+            source: 'backtest',
+            fontSize: 11
+          },
+          lock: true
+        }
+        if (typeof chart.addBacktestOverlay === 'function') {
+          chart.addBacktestOverlay(payload)
+        } else if (typeof chartInstance.createOverlay === 'function') {
+          try { chartInstance.createOverlay(payload, 'candle_pane') } catch (_) {}
+        }
       }
 
       for (const trade of trades) {
-        const ty = (trade.type || '').toLowerCase()
-        const isBuy = ty.startsWith('open_long') || ty === 'buy' || ty === 'close_short'
-        const isSell = ty.startsWith('open_short') || ty === 'sell' || ty === 'close_long'
+        const ty = String(trade.type || '').toLowerCase().replace(/-/g, '_')
+        const meta = this.backtestTradeMarkerMeta(trade)
+        const actionKey = this.backtestMarkerActionKey(ty)
+        const known = actionKey !== 'other' ||
+          ty.startsWith('open_') || ty.startsWith('close_') || ty.startsWith('add_') ||
+          ty === 'buy' || ty === 'sell' || ty === 'liquidation'
+        if (!known) continue
+
+        const isBuy = meta.isBuy
+        const isSell = !isBuy && (
+          ty.startsWith('open_short') || ty === 'sell' || ty === 'add_short' ||
+          ty.startsWith('close_long') || ty === 'liquidation'
+        )
         if (!isBuy && !isSell) continue
 
-        // Execution bar: where the fill actually happened (chart-aligned).
-        // Prefer bar_time (already floored to signal_tf by backend) over `time`
-        // which may be at the finer exec TF in MTF mode.
         const execTs = snapToBar(parseBackendTime(trade.bar_time || trade.timestamp || trade.time))
-        // Signal bar: where the rule fired. Backend backfills `signal_bar_time`
-        // by subtracting one signal_tf from bar_time for pure entries/exits
-        // under `next_bar_open`; for SL/TP/trailing it equals bar_time.
-        const signalTs = trade.signal_bar_time ? snapToBar(parseBackendTime(trade.signal_bar_time)) : execTs
+        const signalTs = trade.signal_bar_time
+          ? snapToBar(parseBackendTime(trade.signal_bar_time))
+          : execTs
+        const execPrice = Number(trade.price) || 0
+        if (!execTs || !execPrice) continue
 
-        const price = trade.price || 0
-        if (!execTs || !price) continue
+        const execAnchor = barAnchorPrices(execTs, isBuy, execPrice, 'solid')
+        createSignalOverlay({
+          timestamp: execTs,
+          labelPrice: execAnchor.label,
+          anchorPrice: execAnchor.anchor,
+          isBuy,
+          markerStyle: 'solid',
+          text: meta.fillLabel,
+          color: meta.color
+        })
 
-        // Always draw the execution marker (solid box, original style).
-        createSignalOverlay(execTs, price, isBuy, 'solid')
-        // Only draw the signal marker when it lands on a DIFFERENT bar to avoid
-        // visual noise on bar_close mode or SL/TP triggers (same-bar fills).
         if (signalTs && signalTs !== execTs) {
-          createSignalOverlay(signalTs, price, isBuy, 'dashed')
+          const sigAnchor = barAnchorPrices(signalTs, isBuy, execPrice, 'dashed')
+          createSignalOverlay({
+            timestamp: signalTs,
+            labelPrice: sigAnchor.label,
+            anchorPrice: sigAnchor.anchor,
+            isBuy,
+            markerStyle: 'dashed',
+            text: meta.signalLabel,
+            color: meta.color
+          })
         }
       }
     },
@@ -5037,6 +5206,13 @@ export default {
       if (run.slippage != null && !isNaN(Number(run.slippage))) {
         this.slippage = Number(run.slippage) * 100
       }
+      const execCfg = (run.config_snapshot && run.config_snapshot.executionConfig) || {}
+      const ea = (run.result && run.result.executionAssumptions) || {}
+      if (typeof execCfg.strictMode === 'boolean') {
+        this.strictMode = execCfg.strictMode
+      } else if (typeof ea.strictMode === 'boolean') {
+        this.strictMode = ea.strictMode
+      }
       if (run.leverage != null) this.leverage = Math.max(1, parseInt(run.leverage, 10) || 1)
       if (run.trade_direction) this.tradeDirection = String(run.trade_direction)
     },
@@ -5084,6 +5260,7 @@ export default {
         this.result = res
         this.hasResult = true
         this.backtestRunId = run.id
+        this.stampBacktestMarkerContext()
       } else if (run.status === 'failed') {
         this.result = { ...(typeof res === 'object' ? res : {}), errorMessage: run.error_message || run.errorMessage }
         this.hasResult = true
@@ -5108,6 +5285,55 @@ export default {
     },
 
     // ===== Backtest paired trade: exit reason tag (TP/SL/liquidation/signal) =====
+    backtestMarkerActionKey (typeRaw) {
+      const ty = String(typeRaw || '').toLowerCase().replace(/-/g, '_')
+      if (ty === 'liquidation') return 'liquidation'
+      if (ty === 'open_long' || ty === 'buy') return 'openLong'
+      if (ty === 'add_long') return 'addLong'
+      if (ty === 'close_long_stop') return 'closeLongStop'
+      if (ty === 'close_long_profit') return 'closeLongProfit'
+      if (ty === 'close_long_trailing') return 'closeLongTrailing'
+      if (ty === 'close_long') return 'closeLong'
+      if (ty === 'open_short' || ty === 'sell') return 'openShort'
+      if (ty === 'add_short') return 'addShort'
+      if (ty === 'close_short_stop') return 'closeShortStop'
+      if (ty === 'close_short_profit') return 'closeShortProfit'
+      if (ty === 'close_short_trailing') return 'closeShortTrailing'
+      if (ty === 'close_short') return 'closeShort'
+      return 'other'
+    },
+    backtestTradeMarkerMeta (trade) {
+      const ty = String((trade && trade.type) || '').toLowerCase().replace(/-/g, '_')
+      const actionKey = this.backtestMarkerActionKey(ty)
+      const fillLabel = this.$t(`indicatorIde.backtestMarkerAction.${actionKey}`)
+      const signalPrefix = this.$t('indicatorIde.backtestMarkerSignalPrefix')
+      const signalLabel = `${signalPrefix}${fillLabel}`
+      const isBuy = ty.startsWith('open_long') || ty === 'buy' || ty === 'add_long' || ty === 'close_short'
+      const isSell = ty.startsWith('open_short') || ty === 'sell' || ty === 'add_short' ||
+        ty.startsWith('close_long') || ty === 'liquidation'
+      const colorByAction = {
+        openLong: '#00C853',
+        addLong: '#00E676',
+        closeLong: '#EF5350',
+        closeLongStop: '#FF6D00',
+        closeLongProfit: '#29B6F6',
+        closeLongTrailing: '#7E57C2',
+        openShort: '#FF5252',
+        addShort: '#FF8A80',
+        closeShort: '#00C853',
+        closeShortStop: '#FF6D00',
+        closeShortProfit: '#29B6F6',
+        closeShortTrailing: '#7E57C2',
+        liquidation: '#D50000',
+        other: '#78909C'
+      }
+      return {
+        isBuy: isBuy || !isSell,
+        fillLabel,
+        signalLabel,
+        color: colorByAction[actionKey] || (isBuy ? '#00E676' : '#FF5252')
+      }
+    },
     exitTagLabel (record) {
       const ty = String(record.closeType || '').toLowerCase().replace(/-/g, '_')
       const reason = String(record.closeReason || '').toLowerCase()
@@ -5181,9 +5407,11 @@ export default {
       }
     },
     market () {
+      this.invalidateBacktestMarkersOnContextChange()
       this.schedulePersistIdeUiState()
     },
     selectedIndicatorId () {
+      this.invalidateBacktestMarkersOnContextChange()
       this.schedulePersistIdeUiState()
     },
     chartVisibleIndicatorIds: {
@@ -5193,6 +5421,15 @@ export default {
       }
     },
     selectedWatchlistKey () {
+      this.schedulePersistIdeUiState()
+    },
+    strictMode () {
+      this.schedulePersistIdeUiState()
+    },
+    commission () {
+      this.schedulePersistIdeUiState()
+    },
+    slippage () {
       this.schedulePersistIdeUiState()
     },
     userId () {
@@ -5234,10 +5471,12 @@ export default {
     },
     symbol () {
       this.qtSymbol = this.symbol
+      this.invalidateBacktestMarkersOnContextChange()
       this.ensureChartReady()
       this.schedulePersistIdeUiState()
     },
     timeframe () {
+      this.invalidateBacktestMarkersOnContextChange()
       this.ensureChartReady()
       this.schedulePersistIdeUiState()
     },
@@ -5249,6 +5488,13 @@ export default {
           } else {
             this.renderEquityChart()
           }
+        })
+      }
+    },
+    ideWorkspaceTab (val) {
+      if (val === 'chart' && this.shouldShowBacktestMarkersOnChart()) {
+        this.$nextTick(() => {
+          setTimeout(() => this.renderBacktestSignals(), 200)
         })
       }
     },
@@ -5903,6 +6149,54 @@ export default {
 .params-row-full > .strategy-directives-card {
   width: 100%;
   box-sizing: border-box;
+}
+
+.strict-mode-card {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(250, 140, 22, 0.22);
+  background: linear-gradient(165deg, #fffaf5 0%, #fff 100%);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  &--on {
+    border-color: rgba(24, 144, 255, 0.28);
+    background: linear-gradient(165deg, #f4f9ff 0%, #fff 100%);
+    box-shadow: inset 0 0 0 1px rgba(24, 144, 255, 0.06);
+  }
+}
+.strict-mode-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.strict-mode-card__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  /deep/ .ant-tag {
+    margin: 0;
+    line-height: 18px;
+    font-size: 10px;
+    border-radius: 4px;
+  }
+}
+.strict-mode-card__hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #64748b;
+}
+.strict-mode-direction {
+  .param-label {
+    margin-bottom: 6px;
+  }
 }
 
 .direction-radio-group {
@@ -6746,6 +7040,48 @@ body.realdark .backtest-panel-toolbar {
   line-height: 1.4;
 }
 .eq-section { margin-bottom: 14px; }
+.backtest-marker-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed #d9e2ec;
+  background: rgba(248, 250, 252, 0.9);
+  font-size: 11px;
+  color: #64748b;
+}
+.backtest-marker-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #334155;
+}
+.backtest-marker-legend__hint {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: 400;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+.backtest-marker-legend__icon {
+  display: inline-block;
+  width: 18px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.backtest-marker-legend__icon--fill {
+  background: #00e676;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.backtest-marker-legend__icon--signal {
+  background: transparent;
+  border: 1.5px dashed #00e676;
+}
 .eq-title, .trades-title {
   font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; display: flex; align-items: center;
   .trades-count { font-weight: 400; font-size: 12px; color: #999; margin-left: 4px; }
@@ -8136,6 +8472,17 @@ body.realdark .backtest-panel-toolbar {
     color: rgba(255, 255, 255, 0.55) !important;
     &:hover { color: rgba(255, 255, 255, 0.88) !important; }
   }
+  .strict-mode-card {
+    border-color: rgba(250, 140, 22, 0.28);
+    background: linear-gradient(165deg, rgba(250, 140, 22, 0.08) 0%, #1f1f1f 100%);
+    &--on {
+      border-color: rgba(88, 166, 255, 0.35);
+      background: linear-gradient(165deg, rgba(23, 125, 220, 0.12) 0%, #1f1f1f 100%);
+      box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.08);
+    }
+  }
+  .strict-mode-card__title { color: rgba(255, 255, 255, 0.88); }
+  .strict-mode-card__hint { color: rgba(255, 255, 255, 0.55); }
   .direction-radio-group /deep/ .ant-radio-button-wrapper {
     background: #262626;
     border-color: #434343 !important;
@@ -8427,6 +8774,12 @@ body.realdark .backtest-panel-toolbar {
   .experiment-reasoning { color: rgba(255,255,255,0.45); }
   .experiment-candidate-reasoning { color: rgba(255,255,255,0.35); }
   .eq-title, .trades-title { color: rgba(255,255,255,0.85); .trades-count { color: rgba(255,255,255,0.45); } }
+  .backtest-marker-legend {
+    border-color: #303030;
+    background: rgba(31, 31, 31, 0.85);
+  }
+  .backtest-marker-legend__item { color: rgba(255, 255, 255, 0.82); }
+  .backtest-marker-legend__hint { color: rgba(255, 255, 255, 0.45); }
   .panel-title-actions /deep/ .ant-btn:not(.ant-btn-primary) {
     background: #1f1f1f;
     border-color: #434343;

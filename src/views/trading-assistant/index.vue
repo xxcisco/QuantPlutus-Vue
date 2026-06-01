@@ -247,7 +247,7 @@
                                 <a-icon type="edit" />
                                 {{ $t('trading-assistant.editStrategy') }}
                               </a-menu-item>
-                              <a-menu-item key="backtest">
+                              <a-menu-item v-if="showStrategyListBacktest" key="backtest">
                                 <a-icon type="experiment" />
                                 {{ $t('dashboard.indicator.action.backtest') }}
                               </a-menu-item>
@@ -340,7 +340,7 @@
                             <a-icon type="edit" />
                             {{ $t('trading-assistant.editStrategy') }}
                           </a-menu-item>
-                          <a-menu-item key="backtest">
+                          <a-menu-item v-if="showStrategyListBacktest" key="backtest">
                             <a-icon type="experiment" />
                             {{ $t('dashboard.indicator.action.backtest') }}
                           </a-menu-item>
@@ -1803,6 +1803,10 @@ export default {
     },
     isScriptStrategiesOnlyPage () {
       return !!(this.$route.meta && this.$route.meta.scriptStrategiesOnly)
+    },
+    /** Script 策略页暂无可用回测 UI（/backtest-center 已重定向），隐藏列表回测入口 */
+    showStrategyListBacktest () {
+      return !this.isScriptStrategiesOnlyPage
     },
     isIndicatorSignalOnlyPage () {
       return !!(this.$route.meta && this.$route.meta.indicatorSignalOnly)
@@ -3549,15 +3553,8 @@ export default {
       return config
     },
     /**
-     * 将 @strategy 注释字段转为 trading_config 扁平字段。
-     *
-     * 契约（与后端 trading_executor._to_ratio / snapshot resolver 完全
-     * 一致）：trading_config 里所有 *_pct 字段都是 **percent**，例：
-     *     # @strategy stopLossPct 0.5       -> 0.5%（亚 1% SL，做市/剥头皮场景）
-     *     # @strategy stopLossPct 3         -> 3%
-     *     # @strategy stopLossPct 0.01      -> 0.01%
-     * 历史上系统曾接受 `0.03` 表示 3% 的写法，现在已收口为纯 percent
-     * —— 避免 0.01 / 0.5 这种亚 1% 输入被误判为 1% / 50%。
+     * 保存时由后端 StrategyConfigParser.to_trading_config_risk_flat 再次校正；
+     * 此处尽量与入库 percent 字段对齐，避免 UI 展示与 DB 短暂不一致。
      */
     buildRiskPositionFromIndicatorCode (code) {
       const raw = this.parseStrategyAnnotationRaw(code || '')
@@ -3566,22 +3563,29 @@ export default {
         return isNaN(f) ? null : f
       }
       const toBool = (v) => ['true', '1', 'yes', 'on'].includes(String(v).toLowerCase())
+      const ratioToPercent = (v, defaultPercent = 0) => {
+        const n = toFloat(v)
+        if (n == null || n <= 0) return defaultPercent
+        if (n > 1 && n <= 100) return n
+        return n * 100
+      }
       const clampPct = (v, max = 100) => {
         const n = Number(v)
         if (!Number.isFinite(n) || n <= 0) return 0
         return Math.min(n, max)
       }
 
-      const sl = clampPct(toFloat(raw.stopLossPct))
-      const tp = clampPct(toFloat(raw.takeProfitPct), 1000)
+      const sl = clampPct(ratioToPercent(raw.stopLossPct))
+      const tp = clampPct(ratioToPercent(raw.takeProfitPct), 1000)
       const trailingEnabled = raw.trailingEnabled != null ? toBool(raw.trailingEnabled) : false
-      const trailingStopPct = clampPct(toFloat(raw.trailingStopPct))
-      const trailingActivationPct = clampPct(toFloat(raw.trailingActivationPct), 1000)
+      const trailingStopPct = clampPct(ratioToPercent(raw.trailingStopPct))
+      const trailingActivationPct = clampPct(ratioToPercent(raw.trailingActivationPct), 1000)
 
-      const entryRaw = toFloat(raw.entryPct)
-      const entryPctOut = (entryRaw == null || entryRaw <= 0)
-        ? 100
-        : clampPct(entryRaw)
+      const hasEntry = Object.prototype.hasOwnProperty.call(raw, 'entryPct') &&
+        raw.entryPct != null && raw.entryPct !== ''
+      const entryPctOut = hasEntry
+        ? clampPct(ratioToPercent(raw.entryPct))
+        : 100
 
       return {
         stop_loss_pct: sl,

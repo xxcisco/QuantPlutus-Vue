@@ -170,7 +170,6 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch, shallowRef, getCurrentInstance } from 'vue'
 import { init, registerIndicator, registerOverlay } from 'klinecharts'
 import request from '@/utils/request'
-import { decryptCodeAuto, needsDecrypt } from '@/utils/codeDecrypt'
 import ExchangeKlineWs from '@/utils/exchangeWs'
 import { usePyodide } from '@/services/pyodide/usePyodide'
 import {
@@ -222,7 +221,7 @@ export default {
       default: null
     }
   },
-  emits: ['retry', 'price-change', 'load', 'indicator-toggle'],
+  emits: ['retry', 'price-change', 'load', 'indicator-toggle', 'indicators-updated'],
   setup (props, { emit }) {
     // K线数据
     const klineData = shallowRef([])
@@ -355,8 +354,10 @@ export default {
 
     // 已添加的指标 ID 列表（用于清理）
     const addedIndicatorIds = ref([])
-    // 已添加的信号 overlay ID 列表（用于清理）
+    // 指标信号 overlay（updateIndicators 刷新时会清除）
     const addedSignalOverlayIds = ref([])
+    // 回测成交/信号 overlay（与指标信号分开，避免被 updateIndicators 清掉）
+    const addedBacktestOverlayIds = ref([])
     // 已添加的画线 overlay ID 列表（用于清理和管理）
     const addedDrawingOverlayIds = ref([])
     // 当前激活的画线工具
@@ -981,25 +982,7 @@ export default {
       }
 
       try {
-        // 检查代码是否需要解密（购买的指标）
-        let finalCode = userCode
-        const isEncrypted = indicatorInfo.is_encrypted || indicatorInfo.isEncrypted || 0
-        if (isEncrypted || needsDecrypt(userCode, isEncrypted)) {
-          // 获取用户ID（优先级：indicatorInfo > props > params）
-          const userId = indicatorInfo.user_id || indicatorInfo.userId || props.userId || params.userId
-          // 使用原始数据库ID（originalId），如果没有则使用id
-          const indicatorId = indicatorInfo.originalId || indicatorInfo.id || params.indicatorId
-
-          if (userId && indicatorId) {
-            try {
-              finalCode = await decryptCodeAuto(finalCode, userId, indicatorId)
-            } catch (decryptError) {
-              throw new Error('代码解密失败，无法执行指标: ' + (decryptError.message || '未知错误'))
-            }
-          } else {
-            throw new Error('缺少必要的解密参数（用户ID或指标ID），无法执行加密指标')
-          }
-        }
+        const finalCode = userCode
 
         // 数据归一化：兼容 internal(time) / KLineChart(timestamp) 两种字段名，统一为秒级 time。
         const rawData = klineData.map(item => {
@@ -1096,7 +1079,7 @@ registerOverlay({
       // 【关键修改2】彻底禁止该 Overlay 响应任何鼠标事件
       // 这样鼠标放上去也不会有蓝色的选中框
       lock: true,
-      needDefaultPointFigure: true,
+      needDefaultPointFigure: false,
       needDefaultXAxisFigure: false,
       needDefaultYAxisFigure: false,
 
@@ -1113,22 +1096,22 @@ registerOverlay({
         // `next_bar_open` (signal fires on bar t, executes at t+1 open).
         const markerStyle = overlay.extendData?.markerStyle || 'solid'
         const isDashed = markerStyle === 'dashed'
+        const isBacktest = overlay.extendData?.source === 'backtest'
 
         // 1. 获取信号点坐标
         if (!coordinates[0]) return []
         const x = coordinates[0].x
-        const signalY = coordinates[0].y // Point 0: Python中计算的标签位置（已包含垂直间距）
+        const signalY = coordinates[0].y // Point 0: 标签位置（已含与 K 线的价格间距）
 
-        // 2. 获取K线极值坐标（用于画圆点）
-        const anchorY = coordinates[1] ? coordinates[1].y : signalY // Point 1: K线的high/low
+        // 2. 获取锚点坐标（圆点略离开 K 线高低点）
+        const anchorY = coordinates[1] ? coordinates[1].y : signalY
 
-        const boxPaddingX = 8
-        const boxPaddingY = 4
-        const fontSize = 12
+        const boxPaddingX = isBacktest ? 5 : 8
+        const boxPaddingY = isBacktest ? 2 : 4
+        const fontSize = Number(overlay.extendData?.fontSize) || (isBacktest ? 11 : 12)
         const textStr = String(text || '')
-        // 简单的字符宽度估算
-        const textWidth = textStr.split('').reduce((acc, char) => acc + (char.charCodeAt(0) > 255 ? 12 : 7), 0)
-        const boxWidth = textWidth + boxPaddingX * 2
+        const textWidth = textStr.split('').reduce((acc, char) => acc + (char.charCodeAt(0) > 255 ? 11 : 6.5), 0)
+        const boxWidth = Math.max(textWidth + boxPaddingX * 2, isBacktest ? 28 : 20)
         const boxHeight = fontSize + boxPaddingY * 2
 
         // Compatibility: old overlays used extendData.type='buy'/'sell', new overlays use extendData.side='buy'/'sell'
@@ -1136,19 +1119,21 @@ registerOverlay({
         const isBuy = side === 'buy'
 
         // 3. 计算 Box 的 Y 轴位置
-        // 【关键修改】直接使用 signalY（Python中已经调整好的位置），不再使用固定margin
-        // signalY 已经包含了反转信号的垂直间距调整
         const boxY = isBuy ? signalY : (signalY - boxHeight)
 
-        // 计算线段连接点
-        // 圆点画在K线极值位置（anchorY），紧挨着K线
-        // 连线从圆点连到标签框
-        const circleY = anchorY // 圆点位置：K线的High或Low
-        const lineStartY = circleY // 连线起点：圆点位置
-        const lineEndY = isBuy ? boxY : (boxY + boxHeight) // 连线终点：标签框边缘
+        // 引线：锚点圆点 -> 标签框
+        const circleY = anchorY
+        const lineStartY = circleY
+        const lineEndY = isBuy ? boxY : (boxY + boxHeight)
+        const lineStyle = isBacktest
+          ? { style: 'stroke', color: color, dashedValue: isDashed ? [3, 2] : [4, 3] }
+          : { style: 'stroke', color: color, dashedValue: [2, 2] }
+        const circleRadius = isBacktest ? 3 : 4
+        const solidTextColor = '#ffffff'
+        const textWeight = isBacktest ? 'bold' : 'bold'
 
         if (isDashed) {
-          // Signal-bar marker: hollow box + dashed border + faded text.
+          // 信号 K 线：空心虚线框，文字用描边色
           return [
             {
               type: 'line',
@@ -1158,12 +1143,12 @@ registerOverlay({
                   { x, y: lineEndY }
                 ]
               },
-              styles: { style: 'stroke', color: color, dashedValue: [2, 2] },
+              styles: lineStyle,
               ignoreEvent: true
             },
             {
               type: 'circle',
-              attrs: { x, y: circleY, r: 3 },
+              attrs: { x, y: circleY, r: circleRadius },
               styles: { style: 'stroke', color: color, lineWidth: 1.5 },
               ignoreEvent: true
             },
@@ -1174,9 +1159,15 @@ registerOverlay({
                 y: boxY,
                 width: boxWidth,
                 height: boxHeight,
-                r: 4
+                r: 3
               },
-              styles: { style: 'stroke_fill', color: 'rgba(255,255,255,0.0)', borderColor: color, borderSize: 1, borderDashedValue: [3, 2] },
+              styles: {
+                style: 'stroke',
+                color: 'rgba(0,0,0,0)',
+                borderColor: color,
+                borderSize: 1.5,
+                borderDashedValue: [4, 3]
+              },
               ignoreEvent: true
             },
             {
@@ -1188,33 +1179,30 @@ registerOverlay({
                 align: 'center',
                 baseline: 'middle'
               },
-              styles: { color: color, size: fontSize, weight: 'normal' },
+              styles: { color: color, size: fontSize, weight: '600' },
               ignoreEvent: true
             }
           ]
         }
 
         return [
-          // 1. 虚线 (从圆点连到标签框)
           {
             type: 'line',
             attrs: {
               coordinates: [
-                { x, y: lineStartY }, // 从圆点（K线极值位置）
-                { x, y: lineEndY } // 连到标签框边缘
+                { x, y: lineStartY },
+                { x, y: lineEndY }
               ]
             },
-            styles: { style: 'stroke', color: color, dashedValue: [2, 2] },
+            styles: lineStyle,
             ignoreEvent: true
           },
-          // 2. 圆点 (画在K线极值位置，紧挨着K线)
           {
             type: 'circle',
-            attrs: { x, y: circleY, r: 4 },
+            attrs: { x, y: circleY, r: circleRadius },
             styles: { style: 'fill', color: color },
             ignoreEvent: true
           },
-          // 3. 背景框 (基于 boxY)
           {
             type: 'rect',
             attrs: {
@@ -1222,12 +1210,11 @@ registerOverlay({
               y: boxY,
               width: boxWidth,
               height: boxHeight,
-              r: 4
+              r: 3
             },
             styles: { style: 'fill', color: color, borderSize: 0 },
             ignoreEvent: true
           },
-          // 4. 文字
           {
             type: 'text',
             attrs: {
@@ -1237,7 +1224,7 @@ registerOverlay({
               align: 'center',
               baseline: 'middle'
             },
-            styles: { color: '#ffffff', size: fontSize, weight: 'bold', backgroundColor: color, borderRadius: 5 },
+            styles: { color: solidTextColor, size: fontSize, weight: textWeight },
             ignoreEvent: true
           }
         ]
@@ -1649,6 +1636,7 @@ registerOverlay({
 
       // 立即停止旧的实时数据源（WS / REST），防止旧标的数据污染新数据
       stopRealtime()
+      clearBacktestOverlays()
 
       loading.value = true
       error.value = null
@@ -2342,6 +2330,7 @@ registerOverlay({
       // 如果图表已存在，先销毁
       if (chartRef.value) {
         try {
+          clearBacktestOverlays()
           chartRef.value.destroy()
         } catch (e) {}
         chartRef.value = null
@@ -3790,6 +3779,35 @@ registerOverlay({
       }
       } finally {
         indicatorsUpdating.value = false
+        emit('indicators-updated')
+      }
+    }
+
+    const getChartInstance = () => chartRef.value || null
+
+    const clearBacktestOverlays = () => {
+      const inst = chartRef.value
+      if (!inst) {
+        addedBacktestOverlayIds.value = []
+        return
+      }
+      addedBacktestOverlayIds.value.forEach(id => {
+        try {
+          if (typeof inst.removeOverlay === 'function') inst.removeOverlay(id)
+        } catch (_) {}
+      })
+      addedBacktestOverlayIds.value = []
+    }
+
+    const addBacktestOverlay = (overlayConfig) => {
+      const inst = chartRef.value
+      if (!inst || typeof inst.createOverlay !== 'function') return null
+      try {
+        const overlayId = inst.createOverlay(overlayConfig, 'candle_pane')
+        if (overlayId) addedBacktestOverlayIds.value.push(overlayId)
+        return overlayId
+      } catch (_) {
+        return null
       }
     }
 
@@ -4054,7 +4072,11 @@ registerOverlay({
       activeDrawingTool,
       selectDrawingTool,
       clearAllDrawings,
-      addedSignalOverlayIds
+      addedSignalOverlayIds,
+      addedBacktestOverlayIds,
+      getChartInstance,
+      clearBacktestOverlays,
+      addBacktestOverlay
     }
   }
 }

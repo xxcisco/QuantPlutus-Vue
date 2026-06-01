@@ -59,7 +59,7 @@
       size="small"
       :pagination="{ pageSize: 15, size: 'small' }"
       rowKey="id"
-      :scroll="{ x: 980 }"
+      :scroll="{ x: 1090 }"
       :customRow="customRowProps"
       :rowSelection="{ selectedRowKeys: selectedRowKeys, onChange: onRowSelectionChange }"
     >
@@ -82,6 +82,20 @@
         </a-tag>
         <a-tag v-else size="small" color="blue">
           {{ $t('dashboard.indicator.backtest.historyFillTimingNext') }}
+        </a-tag>
+      </template>
+      <template slot="simulation" slot-scope="text, record">
+        <a-tag v-if="simulationKind(record) === 'aggressive_1m'" size="small" color="geekblue">
+          {{ simulationLabel(record) }}
+        </a-tag>
+        <a-tag v-else-if="simulationKind(record) === 'strict'" size="small" color="blue">
+          {{ simulationLabel(record) }}
+        </a-tag>
+        <a-tag v-else-if="simulationFallback(record)" size="small" color="orange">
+          {{ simulationLabel(record) }}
+        </a-tag>
+        <a-tag v-else size="small">
+          {{ simulationLabel(record) }}
         </a-tag>
       </template>
       <template slot="createdAt" slot-scope="text">
@@ -274,6 +288,34 @@ export default {
       if (r === 'same_bar_close' || r === 'current_bar_close' || r === 'bar_close' || r === 'close') return 'same'
       return 'next'
     },
+    simulationSummary (record) {
+      return (record && record.simulation_summary) || {}
+    },
+    simulationKind (record) {
+      const sum = this.simulationSummary(record)
+      const mode = String(sum.mode || '').toLowerCase()
+      if (mode === 'strict') return 'strict'
+      if (mode === 'aggressive_1m' || mode === 'mtf') return 'aggressive_1m'
+      return 'aggressive_bar'
+    },
+    simulationFallback (record) {
+      return !!this.simulationSummary(record).mtfFallbackReason
+    },
+    simulationLabel (record) {
+      const sum = this.simulationSummary(record)
+      const kind = this.simulationKind(record)
+      if (sum.mtfFallbackReason && kind === 'aggressive_bar') {
+        return this.$t('dashboard.indicator.backtest.historySimulationFallback')
+      }
+      if (kind === 'strict') {
+        return this.$t('dashboard.indicator.backtest.historySimulationStrict')
+      }
+      if (kind === 'aggressive_1m') {
+        const tf = sum.execTimeframe || '1m'
+        return this.$t('dashboard.indicator.backtest.historySimulationAggressive1m', { tf })
+      }
+      return this.$t('dashboard.indicator.backtest.historySimulationAggressiveBar')
+    },
     initColumns () {
       const columns = [
         { title: '#', dataIndex: 'id', key: 'id', width: 60 },
@@ -281,6 +323,7 @@ export default {
         { title: this.$t('dashboard.indicator.backtest.historySymbol') || 'Symbol', key: 'symbol', width: 150, scopedSlots: { customRender: 'symbol' } },
         { title: this.$t('dashboard.indicator.backtest.timeframe') || 'TF', dataIndex: 'timeframe', key: 'timeframe', width: 70 },
         { title: this.$t('dashboard.indicator.backtest.historyFillTimingCol'), key: 'fillTiming', width: 96, scopedSlots: { customRender: 'fillTiming' } },
+        { title: this.$t('dashboard.indicator.backtest.historySimulationCol'), key: 'simulation', width: 110, scopedSlots: { customRender: 'simulation' } },
         { title: this.$t('dashboard.indicator.backtest.historyRange'), key: 'range', width: 180, scopedSlots: { customRender: 'range' } },
         { title: this.$t('dashboard.indicator.backtest.tradeDirection'), dataIndex: 'trade_direction', key: 'trade_direction', width: 80 },
         { title: this.$t('dashboard.indicator.backtest.leverage'), dataIndex: 'leverage', key: 'leverage', width: 60 },
