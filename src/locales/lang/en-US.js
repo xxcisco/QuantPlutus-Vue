@@ -792,7 +792,7 @@ const locale = {
   'notice.type.securityLogin': 'Login Alert',
   'notice.type.profileTest': 'Test Notification',
 
-  'notice.event.login.title': 'QuantDinger login alert · {reason}',
+  'notice.event.login.title': 'NEXTPlutus login alert · {reason}',
   'notice.event.login.reason.newDevice': 'New device',
   'notice.event.login.reason.newRegion': 'New region',
   'notice.event.login.reason.both': 'New device & region',
@@ -807,7 +807,7 @@ const locale = {
   'notice.event.login.line.ip': 'IP: {ip}',
   'notice.event.login.footer': 'If this was not you, change your password immediately and review exchange API permissions.',
 
-  'notice.event.profileTest.title': 'QuantDinger notification test',
+  'notice.event.profileTest.title': 'NEXTPlutus notification test',
   'notice.event.profileTest.body': 'This is a test message from Profile → Notification settings. If you see this, the channel is configured correctly.',
 
   'notice.event.signal.title': 'QD Signal | {symbol} | {action} {side}',
@@ -3102,7 +3102,7 @@ const locale = {
   'request.unauthorizedDesc': 'Token invalid or expired, please login again.',
   'settings.openrouterBalance': 'OpenRouter Account Balance',
   'settings.commercialLicense.title': 'Commercial use requires a paid license',
-  'settings.commercialLicense.body': 'QuantDinger is provided for personal study and research only. Any form of commercial use — including but not limited to running it as a public SaaS, reselling it, offering managed-trading services, paid advisory or fund-management products — requires a written commercial license from us beforehand. Unauthorized commercial deployments will be pursued through legal channels.',
+  'settings.commercialLicense.body': 'NEXTPlutus is provided for personal study and research only. Any form of commercial use — including but not limited to running it as a public SaaS, reselling it, offering managed-trading services, paid advisory or fund-management products — requires a written commercial license from us beforehand. Unauthorized commercial deployments will be pursued through legal channels.',
   'settings.commercialLicense.contactLabel': 'Licensing contact',
   'settings.queryBalance': 'Query Balance',
   'settings.balanceUsage': 'Used',

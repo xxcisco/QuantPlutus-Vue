@@ -2935,7 +2935,7 @@ const locale = {
   'request.unauthorizedDesc': 'Session expirée ou invalide. Veuillez vous reconnecter.',
   'settings.openrouterBalance': 'Solde du compte OpenRouter',
   'settings.commercialLicense.title': 'L\'utilisation commerciale nécessite une licence payante',
-  'settings.commercialLicense.body': 'QuantDinger est fourni uniquement à des fins d\'étude et de recherche personnelles. Toute forme d\'utilisation commerciale – y compris, mais sans s\'y limiter, son exploitation en tant que SaaS public, sa revente, la fourniture de services de trading gérés, le conseil payant ou les produits de gestion de fonds – nécessite au préalable une licence commerciale écrite de notre part. Les déploiements commerciaux non autorisés feront l\'objet de poursuites judiciaires.',
+  'settings.commercialLicense.body': 'NEXTPlutus est fourni uniquement à des fins d\'étude et de recherche personnelles. Toute forme d\'utilisation commerciale – y compris, mais sans s\'y limiter, son exploitation en tant que SaaS public, sa revente, la fourniture de services de trading gérés, le conseil payant ou les produits de gestion de fonds – nécessite au préalable une licence commerciale écrite de notre part. Les déploiements commerciaux non autorisés feront l\'objet de poursuites judiciaires.',
   'settings.commercialLicense.contactLabel': 'Contact pour les licences',
   'settings.queryBalance': 'Interroger le solde',
   'settings.balanceUsage': 'Utilisé',

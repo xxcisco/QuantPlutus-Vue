@@ -2917,7 +2917,7 @@ const locale = {
   'request.unauthorizedDesc': '認証が無効または期限切れです。再度ログインしてください。',
   'settings.openrouterBalance': 'OpenRouter アカウント残高',
   'settings.commercialLicense.title': '商用利用には有償ライセンスが必要です',
-  'settings.commercialLicense.body': 'QuantDinger は個人の学習および研究目的のみで提供されています。公開 SaaS としての運用、再販、運用代行サービス、有料コンサルティング、ファンド運用商品など、あらゆる形態の商用利用には、事前に書面による商用ライセンスの取得が必要です。無許可の商用展開については、法的手段を通じて対処いたします。',
+  'settings.commercialLicense.body': 'NEXTPlutus は個人の学習および研究目的のみで提供されています。公開 SaaS としての運用、再販、運用代行サービス、有料コンサルティング、ファンド運用商品など、あらゆる形態の商用利用には、事前に書面による商用ライセンスの取得が必要です。無許可の商用展開については、法的手段を通じて対処いたします。',
   'settings.commercialLicense.contactLabel': 'ライセンスに関するお問い合わせ',
   'settings.queryBalance': '残高を照会',
   'settings.balanceUsage': '使用済み',

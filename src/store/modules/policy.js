@@ -32,7 +32,7 @@ const DEFAULT_POLICY = {
   live_market_categories: ['Crypto', 'Forex', 'USStock']
 }
 
-const STORAGE_KEY = 'quantdinger.broker-market-policy.v1'
+const STORAGE_KEY = 'NEXTPlutus.broker-market-policy.v1'
 
 function readCachedPolicy () {
   try {

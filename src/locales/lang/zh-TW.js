@@ -2380,7 +2380,7 @@ const locale = {
 'request.unauthorizedDesc': '登入已失效，請重新登入。',
 'settings.openrouterBalance': 'OpenRouter 賬戶餘額',
 'settings.commercialLicense.title': '商業化營運需取得商業授權',
-'settings.commercialLicense.body': 'QuantDinger 僅供個人學習與研究使用。若您計劃將本系統用於任何形式的商業化營運（包括但不限於對外提供 SaaS 服務、二次銷售、代客交易、付費諮詢、私募服務等），必須事先獲得官方書面商業授權，否則我們將依法追究相應法律責任。',
+'settings.commercialLicense.body': 'NEXTPlutus 僅供個人學習與研究使用。若您計劃將本系統用於任何形式的商業化營運（包括但不限於對外提供 SaaS 服務、二次銷售、代客交易、付費諮詢、私募服務等），必須事先獲得官方書面商業授權，否則我們將依法追究相應法律責任。',
 'settings.commercialLicense.contactLabel': '商務合作聯繫方式',
 'settings.queryBalance': '查詢餘額',
 'settings.balanceUsage': '已使用',

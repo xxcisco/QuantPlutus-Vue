@@ -829,7 +829,7 @@ const locale = {
   'notice.type.securityLogin': '登录提醒',
   'notice.type.profileTest': '通知测试',
 
-  'notice.event.login.title': 'QuantDinger 登录提醒 · {reason}',
+  'notice.event.login.title': 'NEXTPlutus 登录提醒 · {reason}',
   'notice.event.login.reason.newDevice': '新设备',
   'notice.event.login.reason.newRegion': '新地区',
   'notice.event.login.reason.both': '新设备与新地区',
@@ -844,7 +844,7 @@ const locale = {
   'notice.event.login.line.ip': 'IP：{ip}',
   'notice.event.login.footer': '如非本人操作，请立即修改密码并检查交易所 API 权限。',
 
-  'notice.event.profileTest.title': 'QuantDinger 通知测试',
+  'notice.event.profileTest.title': 'NEXTPlutus 通知测试',
   'notice.event.profileTest.body': '这是一条来自个人中心「通知设置」的测试消息。若您收到本条消息，说明该渠道配置正确。',
 
   'notice.event.signal.title': 'QD 信号 | {symbol} | {action} {side}',
@@ -2947,7 +2947,7 @@ const locale = {
   'request.unauthorizedDesc': '登录已失效，请重新登录。',
   'settings.openrouterBalance': 'OpenRouter 账户余额',
   'settings.commercialLicense.title': '商业化运营需取得商业授权',
-  'settings.commercialLicense.body': 'QuantDinger 仅供个人学习与研究使用。若您计划将本系统用于任何形式的商业化运营（包括但不限于对外提供 SaaS 服务、二次销售、代客交易、付费咨询、私募服务等），必须事先获得官方书面商业授权，否则我们将依法追究相应法律责任。',
+  'settings.commercialLicense.body': 'NEXTPlutus 仅供个人学习与研究使用。若您计划将本系统用于任何形式的商业化运营（包括但不限于对外提供 SaaS 服务、二次销售、代客交易、付费咨询、私募服务等），必须事先获得官方书面商业授权，否则我们将依法追究相应法律责任。',
   'settings.commercialLicense.contactLabel': '商务合作联系方式',
   'settings.queryBalance': '查询余额',
   'settings.balanceUsage': '已使用',

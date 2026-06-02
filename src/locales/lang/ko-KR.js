@@ -2915,7 +2915,7 @@ const locale = {
   'request.unauthorizedDesc': '인증이 만료되었습니다. 다시 로그인하세요.',
   'settings.openrouterBalance': 'OpenRouter 계정 잔액',
   'settings.commercialLicense.title': '상업적 이용에는 유료 라이선스가 필요합니다',
-  'settings.commercialLicense.body': 'QuantDinger는 개인 학습 및 연구 목적으로만 제공됩니다. 공개 SaaS 운영, 재판매, 위탁 거래 서비스, 유료 컨설팅, 펀드 운용 상품 등 모든 형태의 상업적 이용에는 사전에 당사의 서면 상용 라이선스가 필요합니다. 무단 상업적 배포에 대해서는 법적 절차에 따라 책임을 묻습니다.',
+  'settings.commercialLicense.body': 'NEXTPlutus는 개인 학습 및 연구 목적으로만 제공됩니다. 공개 SaaS 운영, 재판매, 위탁 거래 서비스, 유료 컨설팅, 펀드 운용 상품 등 모든 형태의 상업적 이용에는 사전에 당사의 서면 상용 라이선스가 필요합니다. 무단 상업적 배포에 대해서는 법적 절차에 따라 책임을 묻습니다.',
   'settings.commercialLicense.contactLabel': '라이선스 문의',
   'settings.queryBalance': '잔액 조회',
   'settings.balanceUsage': '사용됨',
