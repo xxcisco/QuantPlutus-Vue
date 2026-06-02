@@ -79,10 +79,10 @@ def on_bar(ctx, bar):
     params: [
       { name: 'fast_period', type: 'integer', default: 10, min: 2, max: 120, step: 1 },
       { name: 'slow_period', type: 'integer', default: 30, min: 5, max: 240, step: 1 },
-      { name: 'position_pct', type: 'percent', default: 0.8, min: 0.05, max: 1, step: 0.01 },
-      { name: 'hard_stop_pct', type: 'percent', default: 0.025, min: 0.001, max: 0.5, step: 0.001 },
-      { name: 'trailing_stop_pct', type: 'percent', default: 0.015, min: 0.001, max: 0.5, step: 0.001 },
-      { name: 'trailing_arm_pct', type: 'percent', default: 0.02, min: 0.001, max: 0.5, step: 0.001 }
+      { name: 'position_pct', type: 'percent', default: 80, min: 5, max: 100, step: 1 },
+      { name: 'hard_stop_pct', type: 'percent', default: 2.5, min: 0.1, max: 50, step: 0.1 },
+      { name: 'trailing_stop_pct', type: 'percent', default: 1.5, min: 0.1, max: 50, step: 0.1 },
+      { name: 'trailing_arm_pct', type: 'percent', default: 2, min: 0.1, max: 50, step: 0.1 }
     ]
   },
   {
@@ -151,11 +151,11 @@ def on_bar(ctx, bar):
         ctx.layers = 0
 `,
     params: [
-      { name: 'entry_pct', type: 'percent', default: 0.25, min: 0.01, max: 1, step: 0.01 },
-      { name: 'dip_step_pct', type: 'percent', default: 0.02, min: 0.001, max: 0.5, step: 0.001 },
+      { name: 'entry_pct', type: 'percent', default: 25, min: 1, max: 100, step: 1 },
+      { name: 'dip_step_pct', type: 'percent', default: 2, min: 0.1, max: 50, step: 0.1 },
       { name: 'max_layers', type: 'integer', default: 4, min: 1, max: 10, step: 1 },
-      { name: 'take_profit_pct', type: 'percent', default: 0.04, min: 0.001, max: 1, step: 0.001 },
-      { name: 'hard_stop_pct', type: 'percent', default: 0.10, min: 0.005, max: 0.9, step: 0.005 }
+      { name: 'take_profit_pct', type: 'percent', default: 4, min: 0.1, max: 100, step: 0.1 },
+      { name: 'hard_stop_pct', type: 'percent', default: 10, min: 0.5, max: 90, step: 0.5 }
     ]
   },
   {
@@ -235,19 +235,33 @@ def on_bar(ctx, bar):
     params: [
       { name: 'fast_period', type: 'integer', default: 10, min: 2, max: 120, step: 1 },
       { name: 'slow_period', type: 'integer', default: 30, min: 5, max: 240, step: 1 },
-      { name: 'position_pct', type: 'percent', default: 0.9, min: 0.05, max: 1, step: 0.01 },
-      { name: 'tp1_pct', type: 'percent', default: 0.02, min: 0.001, max: 1, step: 0.001 },
-      { name: 'tp2_pct', type: 'percent', default: 0.05, min: 0.001, max: 1, step: 0.001 },
-      { name: 'tp3_pct', type: 'percent', default: 0.10, min: 0.001, max: 2, step: 0.001 },
-      { name: 'tp1_close', type: 'percent', default: 0.4, min: 0.05, max: 1, step: 0.05 },
-      { name: 'tp2_close', type: 'percent', default: 0.4, min: 0.05, max: 1, step: 0.05 },
-      { name: 'hard_stop_pct', type: 'percent', default: 0.03, min: 0.001, max: 0.5, step: 0.001 }
+      { name: 'position_pct', type: 'percent', default: 90, min: 5, max: 100, step: 1 },
+      { name: 'tp1_pct', type: 'percent', default: 2, min: 0.1, max: 100, step: 0.1 },
+      { name: 'tp2_pct', type: 'percent', default: 5, min: 0.1, max: 100, step: 0.1 },
+      { name: 'tp3_pct', type: 'percent', default: 10, min: 0.1, max: 200, step: 0.1 },
+      { name: 'tp1_close', type: 'percent', default: 40, min: 5, max: 100, step: 1 },
+      { name: 'tp2_close', type: 'percent', default: 40, min: 5, max: 100, step: 1 },
+      { name: 'hard_stop_pct', type: 'percent', default: 3, min: 0.1, max: 50, step: 0.1 }
     ]
   }
 ]
 
 function escapeForRegExp (value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** UI stores percent params as 0–100 (e.g. 80 = 80%). Code uses 0–1 ratios. */
+export function normalizePercentParamValue (raw) {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return null
+  if (n > 0 && n <= 1) return n * 100
+  return n
+}
+
+export function percentParamToRatio (value) {
+  const n = normalizePercentParamValue(value)
+  if (n == null) return 0
+  return n / 100
 }
 
 function toPythonLiteral (value) {
@@ -273,9 +287,14 @@ export function buildTemplateParamValues (templateOrKey, overrides = {}) {
   const template = typeof templateOrKey === 'string' ? getScriptTemplateByKey(templateOrKey) : templateOrKey
   if (!template) return {}
   return template.params.reduce((acc, param) => {
-    acc[param.name] = Object.prototype.hasOwnProperty.call(overrides, param.name)
+    const raw = Object.prototype.hasOwnProperty.call(overrides, param.name)
       ? overrides[param.name]
       : param.default
+    if (param.type === 'percent') {
+      acc[param.name] = normalizePercentParamValue(raw) ?? param.default
+    } else {
+      acc[param.name] = raw
+    }
     return acc
   }, {})
 }
@@ -285,7 +304,9 @@ export function buildTemplateCode (templateOrKey, overrides = {}) {
   if (!template) return ''
   const values = buildTemplateParamValues(template, overrides)
   return template.params.reduce((code, param) => {
-    const literal = toPythonLiteral(values[param.name])
+    const stored = values[param.name]
+    const codeValue = param.type === 'percent' ? percentParamToRatio(stored) : stored
+    const literal = toPythonLiteral(codeValue)
     const pattern = new RegExp(`(ctx\\.param\\(['"]${escapeForRegExp(param.name)}['"],\\s*)([^\\)]+)(\\))`)
     return code.replace(pattern, `$1${literal}$3`)
   }, template.code)
