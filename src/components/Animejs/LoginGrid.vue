@@ -141,7 +141,8 @@ export default {
         delay: utils.stagger(this.staggerDelay, {
           grid: [this.cols, this.rows],
           from: utils.random(0, squares.length - 1)
-        })
+        }),
+        onComplete: () => this._runLoop(squares, id)
       })
     }
   }
