@@ -392,7 +392,7 @@
             size="large"
             allow-clear
           >
-            <a-button slot="enterButton" type="primary" icon="search">
+            <a-button slot="enterButton" type="primary" icon="search" >
               {{ $t('dashboard.analysis.modal.addStock.search') }}
             </a-button>
           </a-input-search>
@@ -4587,7 +4587,18 @@ export default {
 /* Add Stock Modal */
 .add-stock-modal-content {
   .market-tabs { margin-bottom: 16px; }
-  .symbol-search-section { margin-bottom: 24px; }
+  .symbol-search-section { 
+    margin-bottom: 24px; 
+
+    ::v-deep .ant-input {
+      height: 100%;
+      border-radius: var(--wise-r-xl)  0   0  var(--wise-r-xl) !important;
+    }
+
+    ::v-deep  .ant-btn {
+      border-radius: 0 var(--wise-r-xl) var(--wise-r-xl)  0 !important;
+    }
+  }
   .market-mismatch-hint {
     margin-top: 8px;
     padding: 8px 12px;
