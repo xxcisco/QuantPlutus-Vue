@@ -226,7 +226,6 @@
         <a-button
           block
           :loading="testingExchange"
-          :disabled="testingDesktopBlocked"
           @click="handleTestExchangeConnection"
         >
           <a-icon type="api" />

@@ -317,28 +317,6 @@
                 </a-col>
               </a-row>
             </a-form>
-
-            <!-- Brand group footer: commercial license notice. Shown only
-                 under "Brand & Identity" so it's visible right where an
-                 operator sets up their fork. Single official email channel
-                 to avoid impersonation risk via informal IM handles. -->
-            <div v-if="activeGroupKey === 'brand'" class="commercial-license-notice">
-              <a-alert
-                type="warning"
-                show-icon
-                :message="$t('settings.commercialLicense.title')"
-              >
-                <div slot="description" class="license-body">
-                  <p>{{ $t('settings.commercialLicense.body') }}</p>
-                  <p class="license-contact">
-                    <span class="contact-label">{{ $t('settings.commercialLicense.contactLabel') }}:</span>
-                    <a href="mailto:support@quantdinger.com" class="contact-link">
-                      <a-icon type="mail" /> support@quantdinger.com
-                    </a>
-                  </p>
-                </div>
-              </a-alert>
-            </div>
           </div>
         </section>
       </div>
