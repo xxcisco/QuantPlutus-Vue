@@ -1,6 +1,13 @@
 <template>
   <div class="position-records strategy-tab-pane-inner" :class="{ 'theme-dark': isDark }">
     <div class="positions-section">
+      <a-alert
+        v-if="showReconciliationAlert"
+        class="position-reconciliation-alert"
+        type="warning"
+        show-icon
+        :message="reconciliationMessage"
+      />
       <div v-if="positions.length === 0 && !loading" class="empty-state strategy-tab-empty">
         <a-empty :description="$t('trading-assistant.table.noPositions')" />
       </div>
@@ -12,7 +19,7 @@
         :pagination="false"
         size="small"
         rowKey="id"
-        :scroll="{ x: 800 }"
+        :scroll="{ x: 960 }"
       >
         <template slot="symbol" slot-scope="text, record">
           <strong>{{ record.symbol || text }}</strong>
@@ -43,9 +50,14 @@
             ${{ parseFloat(record.unrealized_pnl || text || 0).toFixed(2) }}
           </span>
         </template>
-        <template slot="pnlPercent" slot-scope="text, record">
-          <span :class="{ 'profit': parseFloat(record.pnl_percent || text || 0) > 0, 'loss': parseFloat(record.pnl_percent || text || 0) < 0 }">
-            {{ parseFloat(record.pnl_percent || text || 0).toFixed(2) }}%
+        <template slot="positionRoi" slot-scope="text, record">
+          <span :class="pnlClass(record.position_margin_pnl_percent || text)">
+            {{ formatPercent(record.position_margin_pnl_percent || text) }}
+          </span>
+        </template>
+        <template slot="capitalContribution" slot-scope="text, record">
+          <span :class="pnlClass(record.strategy_capital_pnl_percent || text)">
+            {{ formatPercent(record.strategy_capital_pnl_percent || text) }}
           </span>
         </template>
       </a-table>
@@ -86,10 +98,31 @@ export default {
   },
   data () {
     return {
-      positions: []
+      positions: [],
+      reconciliation: {
+        status: 'not_checked',
+        notes: [],
+        account_positions: []
+      }
     }
   },
   computed: {
+    showReconciliationAlert () {
+      const status = String((this.reconciliation && this.reconciliation.status) || 'not_checked')
+      return !['ok', 'not_checked'].includes(status)
+    },
+    reconciliationMessage () {
+      const status = String((this.reconciliation && this.reconciliation.status) || '')
+      const notes = (this.reconciliation && this.reconciliation.notes) || []
+      const detail = Array.isArray(notes) && notes.length ? ` (${notes.slice(0, 2).join('; ')})` : ''
+      const messageKeys = {
+        account_only: 'trading-assistant.positions.reconciliation.accountOnly',
+        strategy_only: 'trading-assistant.positions.reconciliation.strategyOnly',
+        mismatch: 'trading-assistant.positions.reconciliation.mismatch',
+        error: 'trading-assistant.positions.reconciliation.error'
+      }
+      return messageKeys[status] ? `${this.$t(messageKeys[status])}${detail}` : ''
+    },
     columns () {
       return [
         {
@@ -142,11 +175,18 @@ export default {
           scopedSlots: { customRender: 'unrealizedPnl' }
         },
         {
-          title: this.$t('trading-assistant.table.pnlPercent'),
-          dataIndex: 'pnl_percent',
-          key: 'pnl_percent',
-          width: 100,
-          scopedSlots: { customRender: 'pnlPercent' }
+          title: this.$t('trading-assistant.table.positionRoi'),
+          dataIndex: 'position_margin_pnl_percent',
+          key: 'position_margin_pnl_percent',
+          width: 120,
+          scopedSlots: { customRender: 'positionRoi' }
+        },
+        {
+          title: this.$t('trading-assistant.table.capitalContribution'),
+          dataIndex: 'strategy_capital_pnl_percent',
+          key: 'strategy_capital_pnl_percent',
+          width: 120,
+          scopedSlots: { customRender: 'capitalContribution' }
         }
       ]
     }
@@ -175,6 +215,11 @@ export default {
         const res = await getStrategyPositions(this.strategyId)
         if (res.code === 1) {
           const rawPositions = res.data.positions || res.data.items || []
+          this.reconciliation = res.data.account_reconciliation || {
+            status: 'not_checked',
+            notes: [],
+            account_positions: []
+          }
 
           this.positions = rawPositions.map((position, index) => {
             const mt = String(this.marketType || 'swap').toLowerCase()
@@ -185,13 +230,14 @@ export default {
             const entryPrice = parseFloat(position.entry_price || position.entryPrice || 0)
             const size = parseFloat(position.size || '0') || 0
             const pnl = parseFloat(position.unrealized_pnl || position.unrealizedPnl || '0') || 0
-            let pnlPercent = parseFloat(position.pnl_percent || position.pnlPercent || '0') || 0
-
-            if (entryPrice > 0 && size > 0) {
-              pnlPercent = (pnl / (entryPrice * size)) * 100 * lev
-            } else if (mt !== 'spot') {
-              pnlPercent = pnlPercent * lev
+            const notional = parseFloat(position.notional_value || position.notionalValue || 0) || (entryPrice > 0 && size > 0 ? entryPrice * size : 0)
+            const legacyPct = this.safeNumber(position.pnl_percent ?? position.pnlPercent)
+            let marginPct = this.safeNumber(position.position_margin_pnl_percent ?? position.positionMarginPnlPercent)
+            if (!Number.isFinite(marginPct)) {
+              marginPct = Number.isFinite(legacyPct) ? legacyPct : (notional > 0 ? (pnl / notional) * 100 * lev : 0)
             }
+            let capitalPct = this.safeNumber(position.strategy_capital_pnl_percent ?? position.capital_contribution_percent ?? position.strategyCapitalPnlPercent)
+            if (!Number.isFinite(capitalPct)) capitalPct = 0
 
             return {
               id: position.id || index,
@@ -201,22 +247,46 @@ export default {
               entry_price: entryPrice > 0 ? entryPrice.toString() : '0',
               current_price: position.current_price || position.currentPrice || '0',
               unrealized_pnl: position.unrealized_pnl || position.unrealizedPnl || '0',
-              pnl_percent: pnlPercent,
+              pnl_percent: marginPct,
+              position_margin_pnl_percent: marginPct,
+              position_notional_pnl_percent: this.safeNumber(position.position_notional_pnl_percent ?? position.positionNotionalPnlPercent) || 0,
+              strategy_capital_pnl_percent: capitalPct,
+              notional_value: notional,
               updated_at: position.updated_at || position.updatedAt || ''
             }
           })
         } else {
           this.positions = []
+          this.reconciliation = { status: 'not_checked', notes: [], account_positions: [] }
         }
       } catch (error) {
         this.positions = []
+        this.reconciliation = { status: 'not_checked', notes: [], account_positions: [] }
       }
     },
     hasValidPrice (price) {
       const value = parseFloat(price)
       return Number.isFinite(value) && value > 0
     },
+    safeNumber (value) {
+      if (value === null || value === undefined || value === '') return NaN
+      const parsed = parseFloat(value)
+      return Number.isFinite(parsed) ? parsed : NaN
+    },
+    formatPercent (value) {
+      const parsed = this.safeNumber(value)
+      return `${(Number.isFinite(parsed) ? parsed : 0).toFixed(2)}%`
+    },
+    pnlClass (value) {
+      const parsed = this.safeNumber(value)
+      return {
+        profit: Number.isFinite(parsed) && parsed > 0,
+        loss: Number.isFinite(parsed) && parsed < 0
+      }
+    },
     getNotional (record) {
+      const supplied = parseFloat(record.notional_value || 0)
+      if (Number.isFinite(supplied) && supplied > 0) return supplied
       const size = parseFloat(record.size || 0)
       const cp = parseFloat(record.current_price || 0)
       if (size > 0 && cp > 0) return size * cp
@@ -264,6 +334,11 @@ export default {
   &.theme-dark .empty-state {
     background: #141414;
     border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .position-reconciliation-alert {
+    margin-bottom: 12px;
+    border-radius: 6px;
   }
 
   ::v-deep .ant-table {

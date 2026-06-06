@@ -44,13 +44,16 @@ def on_bar(ctx, bar):
     if len(bars) < ctx.slow_period:
         return
     closes = [b['close'] for b in bars]
+    prev_fast = _ema(closes[:-1], ctx.fast_period)
+    prev_slow = _ema(closes[:-1], ctx.slow_period)
     fast = _ema(closes, ctx.fast_period)
     slow = _ema(closes, ctx.slow_period)
+    cross_up = prev_fast <= prev_slow and fast > slow
     price = bar['close']
 
-    if not ctx.position and fast > slow:
+    if not ctx.position and cross_up:
         qty = (ctx.equity * ctx.position_pct) / price
-        ctx.buy(price, qty)
+        ctx.open_long(amount=qty, price=price)
         ctx.peak_price = price
         ctx.trailing_armed = False
         ctx.log(f"BUY at {price:.2f}")
@@ -117,7 +120,7 @@ def on_bar(ctx, bar):
     if not ctx.position:
         if _trigger_open(ctx, bar):
             qty = (ctx.equity * ctx.entry_pct) / price
-            ctx.buy(price, qty)
+            ctx.open_long(amount=qty, price=price)
             ctx.entry_anchor = price
             ctx.layers = 1
             ctx.avg_cost = price
@@ -139,7 +142,7 @@ def on_bar(ctx, bar):
     next_trigger = ctx.entry_anchor * (1 - ctx.dip_step_pct * ctx.layers)
     if ctx.layers < ctx.max_layers and price <= next_trigger:
         qty = (ctx.equity * ctx.entry_pct) / price
-        ctx.buy(price, qty)
+        ctx.add_long(amount=qty, price=price)
         ctx.layers += 1
         ctx.avg_cost = (ctx.avg_cost * (ctx.layers - 1) + price) / ctx.layers
         ctx.log(f"SCALE IN layer {ctx.layers} at {price:.2f}, avg {ctx.avg_cost:.2f}")
@@ -193,13 +196,16 @@ def on_bar(ctx, bar):
     if len(bars) < ctx.slow_period:
         return
     closes = [b['close'] for b in bars]
+    prev_fast = _ema(closes[:-1], ctx.fast_period)
+    prev_slow = _ema(closes[:-1], ctx.slow_period)
     fast = _ema(closes, ctx.fast_period)
     slow = _ema(closes, ctx.slow_period)
+    cross_up = prev_fast <= prev_slow and fast > slow
     price = bar['close']
 
-    if not ctx.position and fast > slow:
+    if not ctx.position and cross_up:
         qty = (ctx.equity * ctx.position_pct) / price
-        ctx.buy(price, qty)
+        ctx.open_long(amount=qty, price=price)
         ctx.original_qty = qty
         ctx.tp_hits = 0
         ctx.log(f"BUY at {price:.2f}, qty {qty:.4f}")
@@ -219,12 +225,12 @@ def on_bar(ctx, bar):
 
     if ctx.tp_hits == 0 and pnl_pct >= ctx.tp1_pct:
         sell_qty = ctx.original_qty * ctx.tp1_close
-        ctx.sell(price, sell_qty)
+        ctx.close_long(amount=sell_qty, price=price)
         ctx.tp_hits = 1
         ctx.log(f"TP1 at {price:.2f}, closed {ctx.tp1_close*100:.0f}%")
     elif ctx.tp_hits == 1 and pnl_pct >= ctx.tp2_pct:
         sell_qty = ctx.original_qty * ctx.tp2_close
-        ctx.sell(price, sell_qty)
+        ctx.close_long(amount=sell_qty, price=price)
         ctx.tp_hits = 2
         ctx.log(f"TP2 at {price:.2f}, closed {ctx.tp2_close*100:.0f}%")
     elif ctx.tp_hits == 2 and pnl_pct >= ctx.tp3_pct:
