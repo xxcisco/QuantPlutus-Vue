@@ -64,8 +64,58 @@ function tt (key, fallback) {
   return fallback
 }
 
+function tf (key, fallback, values = {}) {
+  let text = tt(key, fallback)
+  Object.keys(values).forEach(k => {
+    text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), values[k])
+  })
+  return text
+}
+
+function getBackendErrorMessage (error) {
+  const data = error && error.response && error.response.data
+  if (!data) return ''
+  if (typeof data === 'string') return data
+  return data.msg || data.message || data.error || ''
+}
+
+function normalizeBusinessErrorMessage (message) {
+  if (!message) return ''
+  const liveConflict = message.match(/Live strategy conflict: another running strategy already uses the same API key\/exchange\/market\/symbol \(([^)]+)\)\. Please stop strategy (\d+)(?: \((.+)\))? first\./i)
+  if (liveConflict) {
+    const [, scope, strategyId, strategyName] = liveConflict
+    const target = strategyName ? `${strategyId} (${strategyName})` : strategyId
+    return tf(
+      'request.liveStrategyConflict',
+      'Live strategy conflict: only one live strategy can run for the same API key / exchange / market type / symbol ({scope}). Please stop strategy {target} first.',
+      { scope, target }
+    )
+  }
+  const gridSpacing = message.match(/Grid spacing is too narrow after fees: worst cell \[([^\]]+)\] captures ~([0-9.]+)% but needs ~([0-9.]+)% to cover round-trip fees \(([0-9.]+)% per side plus safety buffer\)\. Widen the price range, reduce gridCount, or lower fee settings\./i)
+  if (gridSpacing) {
+    const [, cell, captures, required, fee] = gridSpacing
+    return tf(
+      'request.gridSpacingTooNarrow',
+      'Grid spacing is too narrow after fees: worst cell [{cell}] captures about {captures}% but needs about {required}% to cover round-trip fees ({fee}% per side plus safety buffer). Widen the price range, reduce grid count, or lower fee settings.',
+      { cell, captures, required, fee }
+    )
+  }
+  return message
+}
+
+function attachBackendErrorMessage (error) {
+  const message = normalizeBusinessErrorMessage(getBackendErrorMessage(error))
+  if (!message) return error
+  error.backendMessage = message
+  try {
+    error.message = message
+  } catch (e) { /* noop */ }
+  return error
+}
+
 // 异常拦截处理器
 const errorHandler = (error) => {
+  attachBackendErrorMessage(error)
   if (error.response) {
     const data = error.response.data
     if (error.response.status === 403) {

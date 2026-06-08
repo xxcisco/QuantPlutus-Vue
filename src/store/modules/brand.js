@@ -1,5 +1,7 @@
 import { getBrandConfig } from '@/api/brand'
 
+const BUILD_APP_VERSION = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '3.0.28'
+
 /**
  * Defaults match the values the backend would return if every BRAND_* env
  * var were empty.  Keeping them here as a fallback lets the first-paint of
@@ -8,7 +10,7 @@ import { getBrandConfig } from '@/api/brand'
  */
 const DEFAULT_BRAND = {
   app_name: 'NEXTPlutus',
-  app_version: '1.0.0',
+  app_version: BUILD_APP_VERSION,
   copyright: '© 2025-2026 NEXTPlutus. All rights reserved.',
   logos: {
     light: '',
