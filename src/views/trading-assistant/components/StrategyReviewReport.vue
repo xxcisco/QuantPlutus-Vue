@@ -61,7 +61,10 @@
               <a-icon type="robot" />
               {{ $t('strategyReview.aiSummary') }}
             </span>
-            <a-tag :color="aiStatusColor">{{ aiStatusLabel }}</a-tag>
+            <div class="ai-status-block">
+              <a-tag :color="aiStatusColor">{{ aiStatusLabel }}</a-tag>
+              <span v-if="aiStatusDetail" class="panel-sub ai-status-detail">{{ aiStatusDetail }}</span>
+            </div>
           </div>
           <div class="summary-text">{{ aiSummary }}</div>
           <div v-if="aiDiagnosis.length" class="ai-list-grid">
@@ -219,21 +222,36 @@ export default {
       if (status === 'fallback') return 'orange'
       return 'default'
     },
+    aiStatusDetail () {
+      const status = this.ai.status || 'skipped'
+      if (status === 'ok') {
+        const pieces = []
+        if (this.ai.provider) pieces.push(String(this.ai.provider))
+        if (this.ai.model) pieces.push(String(this.ai.model))
+        if (this.ai.elapsed_ms) pieces.push(`${this.ai.elapsed_ms}ms`)
+        return pieces.join(' · ')
+      }
+      if (status === 'fallback') {
+        const reason = this.ai.error || this.ai.report || this.$t('strategyReview.aiFallbackDetail')
+        return this.truncateText(reason, 120)
+      }
+      return this.$t('strategyReview.aiSkippedDetail')
+    },
     metricCards () {
       const m = this.metrics
       return [
         {
           key: 'net',
           label: this.$t('strategyReview.metric.netPnl'),
-          value: this.formatMoney(m.total_net_pnl, true),
-          tone: this.toneClass(m.total_net_pnl),
+          value: this.formatMoney(m.window_net_pnl != null ? m.window_net_pnl : m.total_net_pnl, true),
+          tone: this.toneClass(m.window_net_pnl != null ? m.window_net_pnl : m.total_net_pnl),
           hint: this.$t('strategyReview.metric.netPnlHint')
         },
         {
           key: 'return',
           label: this.$t('strategyReview.metric.returnPct'),
-          value: this.formatPercent(m.total_return_pct),
-          tone: this.toneClass(m.total_return_pct),
+          value: this.formatPercent(m.performance_total_return_pct != null ? m.performance_total_return_pct : m.total_return_pct),
+          tone: this.toneClass(m.performance_total_return_pct != null ? m.performance_total_return_pct : m.total_return_pct),
           hint: this.$t('strategyReview.metric.returnPctHint')
         },
         {
@@ -253,9 +271,9 @@ export default {
         {
           key: 'drawdown',
           label: this.$t('strategyReview.metric.maxDrawdown'),
-          value: this.formatPercent(m.max_drawdown_pct),
-          tone: (m.max_drawdown_pct || 0) > 0 ? 'tone-danger' : 'tone-neutral',
-          hint: this.formatMoney(m.max_drawdown)
+          value: this.formatPercent(m.performance_max_drawdown_pct != null ? m.performance_max_drawdown_pct : m.max_drawdown_pct),
+          tone: ((m.performance_max_drawdown_pct != null ? m.performance_max_drawdown_pct : m.max_drawdown_pct) || 0) > 0 ? 'tone-danger' : 'tone-neutral',
+          hint: this.formatMoney(m.performance_max_drawdown != null ? m.performance_max_drawdown : m.max_drawdown)
         },
         {
           key: 'fees',
@@ -362,6 +380,11 @@ export default {
       const days = item && item.lookback_days ? item.lookback_days : 30
       const pnl = this.formatMoney(item && item.total_net_pnl, true)
       return `${timeText} · ${this.$t('strategyReview.historyLookback', { days })} · ${pnl}`
+    },
+    truncateText (value, maxLen = 120) {
+      const text = String(value || '').trim()
+      if (!text || text.length <= maxLen) return text
+      return `${text.slice(0, maxLen - 1)}…`
     },
     formatTime (value) {
       if (!value) return '--'
@@ -500,6 +523,21 @@ export default {
   gap: 8px;
   font-weight: 700;
   color: #183b63;
+}
+
+.ai-status-block {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ai-status-detail {
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .panel-sub {

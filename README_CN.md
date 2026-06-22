@@ -81,7 +81,7 @@
 | 项目 | 说明 |
 |------|------|
 | 官方前端镜像 | `ghcr.io/brokermr810/quantdinger-frontend` |
-| 常用标签 | `latest`、semver（`3.0.22`）、`{major}.{minor}`（`3.0`） |
+| 常用标签 | `latest`、semver（`4.0.1`）、`{major}.{minor}`（`4.0`） |
 
 可用标签见 [QuantDinger Releases](https://github.com/brokermr810/QuantDinger/releases) 与 [QuantDinger-Vue Releases](https://github.com/brokermr810/QuantDinger-Vue/releases)。
 
@@ -91,7 +91,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/brokermr810/QuantDinger/main/install.sh | bash
-# 打开 http://localhost:8888  （默认账号 quantdinger / 123456）
+# 打开 http://localhost:8888，并使用安装器配置的管理员账号登录
 ```
 
 或克隆主仓库后执行 `docker compose pull && docker compose up -d`。`frontend` 服务使用 `ghcr.io/brokermr810/quantdinger-frontend`，**无需**本地 Vue 源码目录。
@@ -129,7 +129,7 @@ docker run -d --name quantdinger-frontend \
 固定版本而非 `latest`：
 
 ```bash
-docker pull ghcr.io/brokermr810/quantdinger-frontend:3.0.22
+docker pull ghcr.io/brokermr810/quantdinger-frontend:4.0.1
 ```
 
 ### 固定标签与更新镜像（Compose）
@@ -138,11 +138,11 @@ docker pull ghcr.io/brokermr810/quantdinger-frontend:3.0.22
 
 ```ini
 # 前后端锁定同一版本
-IMAGE_TAG=3.0.22
+IMAGE_TAG=4.0.1
 
 # 或仅覆盖前端（后端仍用 IMAGE_TAG / latest）
-# FRONTEND_TAG=3.0.22
-# BACKEND_TAG=3.0.21
+# FRONTEND_TAG=4.0.1
+# BACKEND_TAG=4.0.1
 ```
 
 标签解析优先级（高者生效）：**`FRONTEND_TAG` → `IMAGE_TAG` → `latest`**。
@@ -220,14 +220,14 @@ docker compose up -d --no-deps frontend
 |------|------|
 | Node.js | 建议 **18 LTS**（最低 16.13+，需支持 [corepack](https://nodejs.org/api/corepack.html)） |
 | pnpm | **10.x** — 版本由 `package.json` 的 `packageManager` 锁定；通过 `corepack enable` 安装 |
-| Git | 必需 — 生产构建会通过 `git-revision-webpack-plugin` 写入提交信息 |
+| Git | 必需 — 生产构建会从本地仓库写入提交与精确 release tag 信息 |
 | Backend | QuantDinger 后端可访问，默认 `http://localhost:5000`（见下文） |
 
 请使用 **`pnpm install`** 并保留仓库中的 **`pnpm-lock.yaml`**。不要提交 `package-lock.json`；仅用 npm 安装可能与 CI/Docker 解析出不同的依赖树。
 
 ### 安装与启动
 
-请使用 **Git 克隆**（无 `.git` 的源码 ZIP 可能导致 `pnpm build` 失败）：
+建议使用 **Git 克隆**，这样生产构建可以准确写入 release tag 与 commit 信息。无 `.git` 的源码 ZIP 仍可构建，但会回退到 package/env 版本信息：
 
 ```bash
 git clone https://github.com/brokermr810/QuantDinger-Vue.git
@@ -253,20 +253,16 @@ pnpm run serve
 | `pnpm run serve`（本源码目录） | `http://localhost:8000` |
 | 主仓库 Docker（GHCR 前端镜像） | `http://localhost:8888` |
 
-默认登录信息取决于后端配置。在默认 Docker 体验中，常见为：
-
-```text
-quantdinger / 123456
-```
+登录信息取决于后端配置。安装器会要求配置管理员密码；`123456` 只是不安全的本地兜底值，不建议用于共享或生产环境。
 
 ### API 代理
 
-本地开发时，`/api/*` 请求会通过 `vue.config.js` 代理到后端。
+本地开发时，`/api/*` 请求会通过 `vite.config.js` 代理到后端。
 
-- 代理配置文件：`vue.config.js`
+- 代理配置文件：`vite.config.js`
 - 默认目标地址：`http://localhost:5000`
 
-如果后端运行在其他地址或端口，请相应调整代理配置。
+如果后端运行在其他地址或端口，请在本地环境设置 `VITE_DEV_PROXY_TARGET`，或相应调整代理配置。
 
 ### 生产构建（源码）
 
@@ -326,8 +322,8 @@ QuantDinger-Vue/
 │   ├── store/                 # Vuex 状态管理
 │   ├── utils/                 # 工具、请求拦截器、加密辅助
 │   └── views/                 # 页面级模块
-├── vue.config.js              # Vue CLI / webpack 与开发代理
-├── babel.config.js
+├── vite.config.js             # Vite 构建、版本注入与开发代理
+├── pnpm-workspace.yaml
 ├── package.json
 ├── pnpm-lock.yaml             # 依赖锁定文件，需与 package.json 一并提交
 ├── Dockerfile
@@ -344,12 +340,12 @@ QuantDinger-Vue/
 | Editor | CodeMirror 5 |
 | Networking | Axios + interceptors |
 | i18n | vue-i18n |
-| Build | Vue CLI 5、Webpack 5、pnpm |
+| Build | Vite 5、pnpm |
 | Styling | Less + scoped CSS |
 
 ## 国际化
 
-当前前端通过 `src/locales/lang/` 支持 10 种语言：
+当前前端通过 `src/locales/lang/` 支持 11 种语言：
 
 | 语言 | 文件 | 语言 | 文件 |
 |------|------|------|------|
@@ -358,6 +354,7 @@ QuantDinger-Vue/
 | 한국어 | `ko-KR.js` | Deutsch | `de-DE.js` |
 | Français | `fr-FR.js` | ไทย | `th-TH.js` |
 | Tiếng Việt | `vi-VN.js` | العربية | `ar-SA.js` |
+| Русский | `ru-RU.js` |  |  |
 
 如需新增语言，可参考现有格式新增文件，并在 `src/locales/index.js` 中注册。
 

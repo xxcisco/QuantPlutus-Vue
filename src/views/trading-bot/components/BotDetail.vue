@@ -193,7 +193,6 @@
 
     <a-card :bordered="false" class="detail-tabs-card" style="margin-top: 12px;">
       <a-tabs v-model="activeTab" :animated="false">
-        <!-- 参数 Tab -->
         <a-tab-pane key="params" :tab="$t('trading-bot.tab.params')">
           <div v-if="activeTab === 'params'" class="params-panel">
             <div class="params-section">
@@ -922,7 +921,6 @@ export default {
   .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 }
 
-/* ===================== 参数面板 ===================== */
 .params-panel { padding: 4px 0; }
 .params-section {
   margin-bottom: 20px;
@@ -944,7 +942,6 @@ export default {
   }
 }
 
-/* ===================== 实时挂单 ===================== */
 .resting-orders-panel { padding: 4px 0; }
 .resting-orders-toolbar {
   display: flex;
@@ -1339,7 +1336,6 @@ export default {
     grid-template-columns: 1fr;
   }
 }
-/* ===================== 暗黑模式 ===================== */
 .theme-dark {
   .detail-header-card, .detail-tabs-card, .hedge-summary-card { background: #1f1f1f; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
   .hedge-summary__name { color: #e8e8e8; }

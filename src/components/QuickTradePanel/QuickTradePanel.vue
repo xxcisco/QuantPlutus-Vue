@@ -78,7 +78,6 @@
                 <a-icon type="plus" /> {{ $t('quickTrade.addAccountInline') }}
               </a-button>
             </div>
-            <!-- 合约 + 现货余额（与当前交易模式联动高亮） -->
             <div class="qt-balance" v-if="selectedCredentialId">
               <template v-if="balanceLoading">
                 <a-spin size="small" />
@@ -421,9 +420,7 @@ export default {
     source: { type: String, default: 'manual' }, // ai_radar / ai_analysis / indicator / manual
     marketType: { type: String, default: 'swap' }, // swap / spot
     embedded: { type: Boolean, default: false },
-    /** 指标 IDE 右侧浮动面板：更紧凑的分区与卡片样式 */
     embeddedIde: { type: Boolean, default: false },
-    /** 与图表工具栏共用：全屏时挂到全屏根，否则 body（IDE 内由父组件传入 chartToolbarGetPopupContainer） */
     overlayGetContainer: { type: Function, default: null }
   },
   data () {
@@ -483,7 +480,6 @@ export default {
     isSwapMode () {
       return this.tradeMode === 'swap'
     },
-    /** 刻度均匀分布，避免 2/5/10 挤在滑轨左侧重叠 */
     leverageMarks () {
       const keys = this.embeddedIde ? [1, 50, 125] : [1, 25, 50, 100, 125]
       return keys.reduce((acc, v) => {
@@ -557,7 +553,6 @@ export default {
   },
   watch: {
     visible (val) {
-      /* 嵌入指标 IDE：右侧抽屉用 v-if 挂载/销毁；Tab 场景已移除 */
       if (this.embedded) {
         if (val) {
           this.init()
@@ -1091,7 +1086,6 @@ export default {
       this.$emit('update:visible', false)
     },
     handleHistoryCollapse (activeKeys) {
-      // activeKeys 是数组，如果包含 'history' 则展开，否则折叠
       this.historyCollapsed = !activeKeys.includes('history')
     },
     formatPrice (val) {
@@ -1116,7 +1110,7 @@ export default {
 
 <style lang="less" scoped>
 .quick-trade-drawer {
-  /deep/ .ant-drawer-body {
+  ::v-deep .ant-drawer-body {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -1165,7 +1159,6 @@ export default {
   border-radius: 0;
   overflow: visible;
   background: transparent;
-  /* 与 Tab 内容区留出边距，避免左右贴边 */
   .qt-embedded-split--cols {
     padding: 8px 18px 12px;
   }
@@ -1187,7 +1180,6 @@ export default {
   .qt-mode-card { margin-top: 8px; }
   .qt-tpsl-card { margin-top: 8px; }
 
-  /* ---- 杠杆卡片：内部元素纵向间距 ---- */
   .qt-mode-card .qt-section-title-row {
     margin-bottom: 14px;
   }
@@ -1206,7 +1198,6 @@ export default {
     margin-top: 14px;
   }
 
-  /* ---- 止盈止损卡片：内部元素纵向间距 ---- */
   .qt-tpsl-card .qt-section-title-row {
     margin-bottom: 14px;
   }
@@ -1221,13 +1212,11 @@ export default {
     margin-top: 16px;
   }
 
-  /* ---- 提交按钮：嵌入左列内半宽 ---- */
   .qt-submit-section--embedded-left {
     padding: 12px 0 4px;
     .qt-submit-btn { height: 40px; font-size: 14px; border-radius: 8px; }
   }
 
-  /* ---- 右列：持仓 + 交易记录 ---- */
   .qt-position-section { padding: 0 0 10px; }
   .qt-history-section { padding: 0 0 10px; }
 
@@ -1237,9 +1226,7 @@ export default {
   .qt-account-actions .qt-add-account-btn { height: 30px; }
 }
 
-/* 指标 IDE 浮动闪电交易：分区更清晰 */
 .quick-trade-embedded.qt-embedded-ide {
-  /* 与父级 ide-quick-panel-body 的 12px 横向留白一致，覆盖通用 embedded 的 18px */
   .qt-embedded-split--cols {
     padding: 0 12px 12px;
     gap: 14px;
@@ -1264,7 +1251,7 @@ export default {
     background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
     border: 1px solid rgba(15, 23, 42, 0.08);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-select-selection {
       border-radius: 8px;
       border-color: #e2e8f0;
     }
@@ -1360,10 +1347,10 @@ export default {
   gap: 8px;
   .qt-symbol-selector {
     width: 100%;
-    /deep/ .ant-select {
+    ::v-deep .ant-select {
       width: 100%;
     }
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-select-selection {
       border-radius: 6px;
       border: 1px solid #d9d9d9;
     }
@@ -1548,44 +1535,43 @@ export default {
   min-width: 0;
   padding: 4px 6px 26px;
 
-  /deep/ .ant-slider {
+  ::v-deep .ant-slider {
     margin: 8px 6px 0;
   }
 
-  /deep/ .ant-slider-rail,
-  /deep/ .ant-slider-track,
-  /deep/ .ant-slider-step {
+  ::v-deep .ant-slider-rail,
+  ::v-deep .ant-slider-track,
+  ::v-deep .ant-slider-step {
     height: 4px;
   }
 
-  /deep/ .ant-slider-handle {
+  ::v-deep .ant-slider-handle {
     width: 14px;
     height: 14px;
     margin-top: -5px;
   }
 
-  /deep/ .ant-slider-mark {
+  ::v-deep .ant-slider-mark {
     top: 14px;
   }
 
-  /deep/ .ant-slider-mark-text {
+  ::v-deep .ant-slider-mark-text {
     font-size: 11px;
     color: #8c8c8c;
     white-space: nowrap;
     transform: translateX(-50%);
   }
 
-  /deep/ .ant-slider-mark-text-active {
+  ::v-deep .ant-slider-mark-text-active {
     color: #1890ff;
     font-weight: 600;
   }
 
-  /* 首尾刻度贴边时略向内收，防止裁切 */
-  /deep/ .ant-slider-mark:first-child .ant-slider-mark-text {
+  ::v-deep .ant-slider-mark:first-child .ant-slider-mark-text {
     transform: translateX(0);
   }
 
-  /deep/ .ant-slider-mark:last-child .ant-slider-mark-text {
+  ::v-deep .ant-slider-mark:last-child .ant-slider-mark-text {
     transform: translateX(-100%);
   }
 }
@@ -1651,7 +1637,7 @@ export default {
 .qt-margin-radio {
   width: 100%;
   display: flex;
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     flex: 1;
     text-align: center;
     padding: 0 4px;
@@ -1733,7 +1719,7 @@ export default {
 .qt-close-scope-radio {
   width: 100%;
   display: flex;
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     flex: 1;
     text-align: center;
     padding: 0 4px;
@@ -1822,25 +1808,25 @@ export default {
 
 .qt-history-section {
   padding: 8px 20px 12px;
-  /deep/ .ant-collapse {
+  ::v-deep .ant-collapse {
     background: transparent;
     border: none;
   }
-  /deep/ .ant-collapse-item {
+  ::v-deep .ant-collapse-item {
     border: none;
   }
-  /deep/ .ant-collapse-header {
+  ::v-deep .ant-collapse-header {
     padding: 0 !important;
     cursor: pointer;
     &:hover {
       opacity: 0.8;
     }
   }
-  /deep/ .ant-collapse-content {
+  ::v-deep .ant-collapse-content {
     border: none;
     background: transparent;
   }
-  /deep/ .ant-collapse-content-box {
+  ::v-deep .ant-collapse-content-box {
     padding: 8px 0 0 0 !important;
   }
   .qt-section-header {
@@ -1931,7 +1917,7 @@ export default {
       background: linear-gradient(135deg, #262626 0%, #1c1c1c 100%);
       border-color: #363636;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-      /deep/ .ant-select-selection {
+      ::v-deep .ant-select-selection {
         border-color: #434343;
       }
     }
@@ -1960,12 +1946,12 @@ export default {
   .qt-symbol-bar {
     background: linear-gradient(180deg, #262626 0%, #1f1f1f 100%);
     .qt-current-price { color: #e0e0e0; }
-    /deep/ .ant-select-selection {
+    ::v-deep .ant-select-selection {
       background: #262626;
       border-color: #303030;
       color: #e0e0e0;
     }
-    /deep/ .ant-select-selection__placeholder {
+    ::v-deep .ant-select-selection__placeholder {
       color: #666;
     }
   }
@@ -1992,7 +1978,7 @@ export default {
     .qt-history-count {
       color: #888;
     }
-    /deep/ .ant-collapse {
+    ::v-deep .ant-collapse {
       background: transparent !important;
       color: #ccc;
       .ant-collapse-header {
@@ -2012,22 +1998,22 @@ export default {
     .qt-trade-symbol { color: #e0e0e0; }
     .qt-trade-amount { color: #ccc; }
   }
-  /deep/ .ant-collapse {
+  ::v-deep .ant-collapse {
     background: transparent !important;
     color: #ccc;
     .ant-collapse-header { color: #ccc !important; }
     .ant-collapse-content { background: transparent; color: #ccc; }
   }
-  /deep/ .ant-drawer-content {
+  ::v-deep .ant-drawer-content {
     background: #141414;
   }
-  /deep/ .ant-select-selection,
-  /deep/ .ant-input-number {
+  ::v-deep .ant-select-selection,
+  ::v-deep .ant-input-number {
     background: #262626;
     border-color: #303030;
     color: #e0e0e0;
   }
-  /deep/ .ant-radio-group .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-group .ant-radio-button-wrapper {
     background: #262626;
     border-color: #303030;
     color: #ccc;
@@ -2037,12 +2023,12 @@ export default {
       color: #fff;
     }
   }
-  /deep/ .ant-slider-rail { background: #303030; }
-  /deep/ .ant-slider-track { background: #737373; }
-  .qt-leverage-slider-wrap /deep/ .ant-slider-mark-text {
+  ::v-deep .ant-slider-rail { background: #303030; }
+  ::v-deep .ant-slider-track { background: #737373; }
+  .qt-leverage-slider-wrap ::v-deep .ant-slider-mark-text {
     color: #8c8c8c;
   }
-  .qt-leverage-slider-wrap /deep/ .ant-slider-mark-text-active {
+  .qt-leverage-slider-wrap ::v-deep .ant-slider-mark-text-active {
     color: #58a6ff;
   }
   .qt-balance {

@@ -96,6 +96,7 @@
       :title="snapshotModalTitle"
       :footer="null"
       width="820px"
+      :wrap-class-name="snapshotModalWrapClass"
       :body-style="{ paddingTop: '8px' }"
       @cancel="snapshotModalVisible = false"
     >
@@ -193,7 +194,7 @@ import moment from 'moment'
 
 const CRYPTO_EXCHANGE_IDS = new Set([
   'binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange',
-  'kraken', 'kucoin', 'gate', 'bitfinex', 'deepcoin', 'htx'
+  'kraken', 'kucoin', 'gate', 'bitfinex', 'htx'
 ])
 
 const DISPLAY_NAMES = {
@@ -206,7 +207,6 @@ const DISPLAY_NAMES = {
   kucoin: 'KuCoin',
   gate: 'Gate.io',
   bitfinex: 'Bitfinex',
-  deepcoin: 'Deepcoin',
   htx: 'HTX'
 }
 
@@ -220,7 +220,6 @@ const ICON_COLORS = {
   kucoin: '#24AE8F',
   gate: '#17E1A4',
   bitfinex: '#16B157',
-  deepcoin: '#7B61FF',
   htx: '#1B2C3B'
 }
 
@@ -278,6 +277,10 @@ export default {
       return n > 0
         ? `${this.$t('trading-assistant.positions.tabOpenOrders')} (${n})`
         : this.$t('trading-assistant.positions.tabOpenOrders')
+    },
+    snapshotModalWrapClass () {
+      const base = 'exchange-account-snapshot-modal'
+      return this.isDarkTheme ? `${base} ${base}--dark` : base
     },
     positionColumns () {
       return [
@@ -607,5 +610,112 @@ export default {
 }
 .snapshot-tabs {
   margin-top: 4px;
+}
+</style>
+
+<style lang="less">
+.exchange-account-snapshot-modal--dark {
+  .ant-modal-content,
+  .ant-modal-header,
+  .ant-modal-body {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .ant-modal-header {
+    border-bottom-color: #303030;
+  }
+
+  .ant-modal-title {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .ant-modal-close {
+    color: rgba(255, 255, 255, 0.56);
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.86);
+    }
+  }
+
+  .snapshot-fetched-at {
+    color: rgba(255, 255, 255, 0.56);
+  }
+
+  .ant-alert-info {
+    background: #102437;
+    border-color: #164a72;
+  }
+
+  .ant-alert-warning {
+    background: rgba(250, 173, 20, 0.12);
+    border-color: rgba(250, 173, 20, 0.38);
+  }
+
+  .ant-alert-error {
+    background: rgba(255, 77, 79, 0.12);
+    border-color: rgba(255, 77, 79, 0.38);
+  }
+
+  .ant-alert-message,
+  .ant-alert-description {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  .ant-tabs-bar {
+    border-bottom-color: #3a3a3a;
+  }
+
+  .ant-tabs-nav .ant-tabs-tab {
+    color: rgba(255, 255, 255, 0.58);
+
+    &:hover {
+      color: #69c0ff;
+    }
+  }
+
+  .ant-tabs-nav .ant-tabs-tab-active {
+    color: #40a9ff;
+  }
+
+  .ant-tabs-ink-bar {
+    background: #1890ff;
+  }
+
+  .ant-table,
+  .ant-table-content,
+  .ant-table-body,
+  .ant-table-placeholder {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .ant-table-thead > tr > th {
+    background: #141414;
+    color: rgba(255, 255, 255, 0.78);
+    border-bottom-color: #3a3a3a;
+  }
+
+  .ant-table-tbody > tr > td {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.84);
+    border-bottom-color: #3a3a3a;
+  }
+
+  .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td,
+  .ant-table-tbody > tr.ant-table-row-hover > td,
+  .ant-table-tbody > tr.ant-table-row-selected > td {
+    background: #262626 !important;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .ant-table-placeholder {
+    border-top-color: #3a3a3a;
+    border-bottom-color: #3a3a3a;
+  }
+
+  .ant-empty-description {
+    color: rgba(255, 255, 255, 0.56);
+  }
 }
 </style>

@@ -82,7 +82,7 @@ If you are looking for one-click deployment, Docker Compose, backend APIs, or th
 | Image | Registry path |
 |-------|----------------|
 | Official frontend | `ghcr.io/brokermr810/quantdinger-frontend` |
-| Tags | `latest`, semver (`3.0.22`), `{major}.{minor}` (`3.0`) |
+| Tags | `latest`, semver (`4.0.1`), `{major}.{minor}` (`4.0`) |
 
 See available tags on [QuantDinger Releases](https://github.com/brokermr810/QuantDinger/releases) and [QuantDinger-Vue Releases](https://github.com/brokermr810/QuantDinger-Vue/releases).
 
@@ -92,7 +92,7 @@ Fastest path — backend + frontend + Postgres + Redis, frontend pulled from GHC
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/brokermr810/QuantDinger/main/install.sh | bash
-# open http://localhost:8888  (default login: quantdinger / 123456)
+# open http://localhost:8888 and sign in with the admin account configured by the installer
 ```
 
 Or clone the main repo and run `docker compose pull && docker compose up -d`. The `frontend` service uses `ghcr.io/brokermr810/quantdinger-frontend` — no Vue source tree required.
@@ -130,7 +130,7 @@ docker run -d --name quantdinger-frontend \
 Pin a release instead of `latest`:
 
 ```bash
-docker pull ghcr.io/brokermr810/quantdinger-frontend:3.0.22
+docker pull ghcr.io/brokermr810/quantdinger-frontend:4.0.1
 ```
 
 ### Pin and update image tags (Compose)
@@ -139,11 +139,11 @@ In the **main repo project root**, create or edit `.env`:
 
 ```ini
 # Lock both backend and frontend to the same release
-IMAGE_TAG=3.0.22
+IMAGE_TAG=4.0.1
 
 # Or override frontend only (backend keeps IMAGE_TAG / latest)
-# FRONTEND_TAG=3.0.22
-# BACKEND_TAG=3.0.21
+# FRONTEND_TAG=4.0.1
+# BACKEND_TAG=4.0.1
 ```
 
 Tag resolution (highest wins): **`FRONTEND_TAG` → `IMAGE_TAG` → `latest`**.
@@ -213,14 +213,14 @@ docker compose up -d --no-deps frontend   # if using main repo bind-mount path
 |-------------|---------|
 | Node.js | **18 LTS** recommended (16.13+ minimum for [corepack](https://nodejs.org/api/corepack.html)) |
 | pnpm | **10.x** — version pinned in `package.json` (`packageManager`); installed via `corepack enable` |
-| Git | Required — production builds embed commit metadata via `git-revision-webpack-plugin` |
+| Git | Required — production builds stamp commit and exact release tag metadata from the local repository |
 | Backend | QuantDinger API reachable at `http://localhost:5000` (see below) |
 
 Use **`pnpm install`** with the committed **`pnpm-lock.yaml`**. Do not commit `package-lock.json`; npm installs can resolve a different dependency tree than CI/Docker.
 
 ### Install and Run
 
-Clone with Git (a plain source ZIP without `.git` may break `pnpm build`):
+Clone with Git when possible so release and commit metadata can be stamped accurately. A plain source ZIP can still build, but it falls back to package/env version metadata:
 
 ```bash
 git clone https://github.com/brokermr810/QuantDinger-Vue.git
@@ -246,20 +246,16 @@ Before `pnpm run serve`, ensure the backend answers on port **5000**. Common opt
 | `pnpm run serve` (this source tree) | `http://localhost:8000` |
 | Main repo Docker stack (GHCR frontend image) | `http://localhost:8888` |
 
-Default login follows backend configuration. In the default Docker experience it is commonly:
-
-```text
-quantdinger / 123456
-```
+Login credentials follow backend configuration. The installer prompts for an admin password; `123456` is only an unsafe local fallback and should not be used for shared or production environments.
 
 ### API Proxy
 
-In local development, `/api/*` requests are proxied to the backend through `vue.config.js`.
+In local development, `/api/*` requests are proxied to the backend through `vite.config.js`.
 
-- Proxy config file: `vue.config.js`
+- Proxy config file: `vite.config.js`
 - Default backend target: `http://localhost:5000`
 
-If your backend runs elsewhere, update the proxy target accordingly.
+If your backend runs elsewhere, set `VITE_DEV_PROXY_TARGET` in your local environment or update the proxy target accordingly.
 
 ### Production build (source)
 
@@ -319,8 +315,8 @@ QuantDinger-Vue/
 │   ├── store/                 # Vuex state management
 │   ├── utils/                 # Helpers, request interceptors, crypto utils
 │   └── views/                 # Page-level modules
-├── vue.config.js              # Vue CLI / webpack config and dev proxy
-├── babel.config.js
+├── vite.config.js             # Vite build config, version stamping, and dev proxy
+├── pnpm-workspace.yaml
 ├── package.json
 ├── pnpm-lock.yaml             # Lockfile — keep in sync with package.json
 ├── Dockerfile
@@ -337,12 +333,12 @@ QuantDinger-Vue/
 | Editor | CodeMirror 5 |
 | Networking | Axios with interceptors |
 | i18n | vue-i18n |
-| Build | Vue CLI 5, Webpack 5, pnpm |
+| Build | Vite 5, pnpm |
 | Styling | Less and scoped CSS |
 
 ## Internationalization
 
-QuantDinger frontend currently supports 10 languages through `src/locales/lang/`:
+QuantDinger frontend currently supports 11 languages through `src/locales/lang/`:
 
 | Language | File | Language | File |
 |----------|------|----------|------|
@@ -351,6 +347,7 @@ QuantDinger frontend currently supports 10 languages through `src/locales/lang/`
 | 한국어 | `ko-KR.js` | Deutsch | `de-DE.js` |
 | Français | `fr-FR.js` | ไทย | `th-TH.js` |
 | Tiếng Việt | `vi-VN.js` | العربية | `ar-SA.js` |
+| Русский | `ru-RU.js` |  |  |
 
 To add another language, create a matching file and register it in `src/locales/index.js`.
 

@@ -510,7 +510,7 @@ export default {
     color: rgba(0, 0, 0, 0.35);
   }
 
-  /deep/ .ant-table-tbody > tr.token-row-revoked > td {
+  ::v-deep .ant-table-tbody > tr.token-row-revoked > td {
     background: #fff2f0 !important;
   }
 

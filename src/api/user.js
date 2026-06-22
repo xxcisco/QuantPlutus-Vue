@@ -138,6 +138,37 @@ export function changePassword (data) {
   })
 }
 
+export function getMfaStatus () {
+  return request({
+    url: '/api/users/mfa/status',
+    method: 'get'
+  })
+}
+
+export function startMfaSetup () {
+  return request({
+    url: '/api/users/mfa/setup/start',
+    method: 'post',
+    data: {}
+  })
+}
+
+export function confirmMfaSetup (data) {
+  return request({
+    url: '/api/users/mfa/setup/confirm',
+    method: 'post',
+    data
+  })
+}
+
+export function disableMfa (data) {
+  return request({
+    url: '/api/users/mfa/disable',
+    method: 'post',
+    data
+  })
+}
+
 /**
  * Get current user's notification settings
  */

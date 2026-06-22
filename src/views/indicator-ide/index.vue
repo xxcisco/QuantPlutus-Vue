@@ -2,7 +2,6 @@
   <div class="indicator-ide" :class="{ 'theme-dark': isDarkTheme }">
     <!-- Main split panels -->
     <div class="ide-main">
-      <!-- 代码栏隐藏时：左侧窄条标签，点击抽出代码栏 -->
       <div
         v-show="!codeDrawerVisible"
         class="ide-code-rail"
@@ -134,7 +133,7 @@
                   <a-icon :type="aiDebugStateIcon()" />
                 </div>
                 <div class="ai-debug-card__headline">
-                  <span class="ai-debug-card__tag">{{ $t('indicatorIde.aiQaTag') || 'AI 质检' }}</span>
+                  <span class="ai-debug-card__tag">{{ $t('indicatorIde.aiQaTag') || 'AI QA' }}</span>
                   <span class="ai-debug-card__title">{{ aiDebugSummary.title }}</span>
                 </div>
                 <a-icon type="close" class="ai-debug-card__dismiss" @click="aiDebugSummary = null" />
@@ -142,23 +141,23 @@
               <div class="ai-debug-card__chips">
                 <span :class="['ai-debug-chip', `ai-debug-chip--${aiDebugState()}`]">{{ aiDebugStateLabel() }}</span>
                 <span v-if="aiDebugSummary.fixed_messages.length" class="ai-debug-chip ai-debug-chip--success">
-                  <a-icon type="check" style="font-size: 10px;" /> {{ aiDebugSummary.fixed_messages.length }} {{ $t('indicatorIde.fixed') || '已修复' }}
+                  <a-icon type="check" style="font-size: 10px;" /> {{ aiDebugSummary.fixed_messages.length }} {{ $t('indicatorIde.fixed') || 'fixed' }}
                 </span>
                 <span v-if="aiDebugSummary.remaining_messages.length" class="ai-debug-chip ai-debug-chip--warning">
-                  <a-icon type="eye" style="font-size: 10px;" /> {{ aiDebugSummary.remaining_messages.length }} {{ $t('indicatorIde.toWatch') || '待关注' }}
+                  <a-icon type="eye" style="font-size: 10px;" /> {{ aiDebugSummary.remaining_messages.length }} {{ $t('indicatorIde.toWatch') || 'to review' }}
                 </span>
               </div>
               <div v-if="aiDebugSummary.returned_text" class="ai-debug-card__body">
                 {{ aiDebugSummary.returned_text }}
               </div>
               <div v-if="aiDebugSummary.fixed_messages.length" class="ai-debug-card__group ai-debug-card__group--fixed">
-                <div class="ai-debug-card__group-label"><a-icon type="check-circle" /> {{ $t('indicatorIde.autoFixed') || '已自动修复' }}</div>
+                <div class="ai-debug-card__group-label"><a-icon type="check-circle" /> {{ $t('indicatorIde.autoFixed') || 'Auto fixed' }}</div>
                 <div v-for="(msg, idx) in aiDebugSummary.fixed_messages" :key="`fixed-${idx}`" class="ai-debug-card__item">
                   <span class="ai-debug-card__bullet ai-debug-card__bullet--green"></span>{{ msg }}
                 </div>
               </div>
               <div v-if="aiDebugSummary.remaining_messages.length" class="ai-debug-card__group ai-debug-card__group--remaining">
-                <div class="ai-debug-card__group-label"><a-icon type="warning" /> {{ $t('indicatorIde.needAttention') || '仍需关注' }}</div>
+                <div class="ai-debug-card__group-label"><a-icon type="warning" /> {{ $t('indicatorIde.needAttention') || 'Needs attention' }}</div>
                 <div v-for="(msg, idx) in aiDebugSummary.remaining_messages" :key="`remaining-${idx}`" class="ai-debug-card__item">
                   <span class="ai-debug-card__bullet ai-debug-card__bullet--orange"></span>{{ msg }}
                 </div>
@@ -208,7 +207,6 @@
         </div>
       </div>
 
-      <!-- Right panel：图表与闪电交易 / 回测与结果 分页，避免回测区挤在图表卡片下方 -->
       <div class="ide-right ide-right--workspace">
         <a-tabs v-model="ideWorkspaceTab" type="card" size="small" class="ide-workspace-tabs ide-workspace-tabs--pill" :animated="false">
           <a-tab-pane key="chart" :tab="$t('indicatorIde.workspaceTabChart')">
@@ -331,7 +329,7 @@
                                   class="ide-indicator-row"
                                 >
                                   <a-checkbox
-                                    :checked="isIndicatorChartVisible(ind.id)"
+                                    :checked="(chartVisibleIndicatorIds || []).some(x => Number(x) === Number(ind.id))"
                                     @change="e => onChartIndicatorCheckChange(ind.id, e.target.checked)"
                                   />
                                   <span
@@ -366,7 +364,6 @@
                       />
                     </div>
                   </div>
-                  <!-- 闪电交易与图表同在全屏根节点内，避免浏览器全屏层遮挡 -->
                   <div v-show="quickTradeDrawerVisible" class="ide-quick-right ide-quick-right--chart-fs">
                     <div class="ide-quick-panel-head">
                       <span class="ide-quick-panel-head-title">
@@ -399,7 +396,6 @@
             </div>
           </a-tab-pane>
           <a-tab-pane key="backtest" :tab="$t('indicatorIde.workspaceTabBacktest')">
-            <!-- 独立滚动层：Ant Tabs 的 tabpane 默认高度链不完整，仅靠 height:100% 会导致子级无法出现滚动条 -->
             <div class="ide-backtest-scroll-mount">
               <div class="ide-workspace-pane ide-workspace-pane--backtest">
                 <!--
@@ -489,7 +485,7 @@
                               class="ide-indicator-row"
                             >
                               <a-checkbox
-                                :checked="isIndicatorChartVisible(ind.id)"
+                                :checked="(chartVisibleIndicatorIds || []).some(x => Number(x) === Number(ind.id))"
                                 @change="e => onChartIndicatorCheckChange(ind.id, e.target.checked)"
                               />
                               <span
@@ -540,7 +536,6 @@
                       </div>
                     </div>
                     <div v-show="paramsPanelExpanded" class="params-scroll params-scroll--right">
-                      <!-- 上三下一：三列等宽等高 + 下方全宽风控，避免 auto-fit 网格在缩窗时行高失控 -->
                       <div class="params-layout">
                         <div class="params-row-three">
                           <div class="param-section param-section--top">
@@ -685,28 +680,8 @@
                           </div>
                         </div>
 
-                        <div
-                          v-if="!strategyDirectivesAlertDismissed || strategyDirectivesSummary.length"
-                          class="params-row-full"
-                        >
+                        <div v-if="strategyDirectivesSummary.length" class="params-row-full">
                           <div class="param-section strategy-directives-card">
-                            <a-alert
-                              v-if="!strategyDirectivesAlertDismissed"
-                              type="info"
-                              show-icon
-                              closable
-                              class="strategy-directives-alert"
-                              @close="dismissStrategyDirectivesAlert"
-                            >
-                              <template slot="message">{{ $t('indicatorIde.strategyDirectives.alertTitle') }}</template>
-                              <template slot="description">
-                                <div>{{ $t('indicatorIde.strategyDirectives.alertDesc') }}</div>
-                                <a class="strategy-directives-doc-link" @click.prevent="openStrategyDirectivesDocs">
-                                  {{ $t('indicatorIde.strategyDirectives.viewDocs') }}
-                                </a>
-                              </template>
-                            </a-alert>
-
                             <div class="strategy-directives-header">
                               <span class="param-label" style="margin: 0;">
                                 <a-icon type="lock" /> {{ $t('indicatorIde.strategyDirectives.title') }}
@@ -738,8 +713,16 @@
                       </div>
                     </div>
                   </div>
-                  <a-tabs v-model="resultTab" size="small" class="result-tabs" :animated="false">
-                    <a-tab-pane key="backtest" :tab="$t('indicatorIde.backtestResults')">
+                  <div class="result-split-workbench">
+                    <section class="result-split-panel result-split-panel--backtest">
+                      <div class="workbench-panel-header">
+                        <div class="workbench-panel-title">
+                          <a-icon type="bar-chart" />
+                          <span>{{ $t('indicatorIde.resultOverviewTitle') }}</span>
+                        </div>
+                        <div v-if="hasResult" class="workbench-panel-meta">{{ symbol }} / {{ timeframe }}</div>
+                      </div>
+                      <div class="workbench-panel-body">
                       <!-- Running state -->
                       <div v-if="running" class="result-running">
                         <a-spin size="large" />
@@ -754,135 +737,113 @@
                       </div>
 
                       <!-- Results -->
-                      <div v-else class="result-data">
-                        <backtest-assumptions-panel
-                          :execution-assumptions="result.executionAssumptions"
-                          :precision-info="result.precision_info"
-                          :strict-mode="strictMode"
-                          :commission="Number(commission || 0) / 100"
-                          :slippage="Number(slippage || 0) / 100"
-                        />
-
-                        <div v-if="showBacktestMarkerLegend" class="backtest-marker-legend">
-                          <span class="backtest-marker-legend__item">
-                            <i class="backtest-marker-legend__icon backtest-marker-legend__icon--fill" />
-                            {{ $t('indicatorIde.backtestMarkerFill') }}
-                          </span>
-                          <span class="backtest-marker-legend__item">
-                            <i class="backtest-marker-legend__icon backtest-marker-legend__icon--signal" />
-                            {{ $t('indicatorIde.backtestMarkerSignal') }}
-                          </span>
-                          <span class="backtest-marker-legend__hint">{{ $t('indicatorIde.backtestMarkerHint') }}</span>
-                        </div>
-
-                        <!-- Metric cards -->
-                        <div class="metrics-grid">
-                          <div v-for="m in metricCards" :key="m.label" :class="['metric-card', m.cls]">
-                            <div class="metric-label">{{ m.label }}</div>
-                            <div class="metric-value">{{ m.value }}</div>
-                          </div>
-                        </div>
-
-                        <!-- Equity curve -->
-                        <div class="eq-section">
-                          <div class="eq-title">
-                            <a-icon type="area-chart" style="margin-right: 6px;" />
-                            {{ $t('indicatorIde.equityCurve') }}
-                          </div>
-                          <div ref="eqChart" class="equity-chart"></div>
-                        </div>
-
-                        <!-- Trade table -->
-                        <div class="trades-section">
-                          <div class="trades-title">
-                            <a-icon type="swap" style="margin-right: 6px;" />
-                            {{ $t('indicatorIde.trades') }}
-                            <span class="trades-count">({{ pairedTrades.length }})</span>
-                          </div>
-                          <a-table
-                            :columns="tradeColumns"
-                            :dataSource="pairedTrades"
-                            :pagination="{ pageSize: 8, size: 'small' }"
-                            size="small"
-                            :scroll="{ x: 820 }"
-                            rowKey="id"
-                          >
-                            <template slot="type" slot-scope="text">
-                              <a-tag :color="text === 'long' ? 'green' : 'red'" style="margin: 0;">{{ text.toUpperCase() }}</a-tag>
-                            </template>
-                            <template slot="exitTag" slot-scope="text, record">
-                              <a-tag
-                                v-if="record"
-                                :color="exitTagColor(record)"
-                                style="margin: 0;"
-                              >{{ exitTagLabel(record) }}</a-tag>
-                            </template>
-                            <template slot="price" slot-scope="text">
-                              <span style="font-variant-numeric: tabular-nums;">{{ fmtPrice(text) }}</span>
-                            </template>
-                            <template slot="profit" slot-scope="text">
-                              <span :style="{ color: text > 0 ? '#52c41a' : text < 0 ? '#f5222d' : '#666', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }">{{ fmtMoney(text) }}</span>
-                            </template>
-                            <template slot="money" slot-scope="text">
-                              <span style="font-weight: 600; font-variant-numeric: tabular-nums;">{{ fmtMoney(text) }}</span>
-                            </template>
-                          </a-table>
-                        </div>
-
-                        <!-- AI Optimize CTA -->
-                        <div v-if="hasResult && !running" class="ai-optimize-card">
-                          <div class="ai-optimize-card-inner">
-                            <div class="ai-optimize-card-icon">
-                              <a-icon type="experiment" />
+                      <div v-else class="result-data result-data--workbench">
+                        <div class="backtest-workbench">
+                          <div class="backtest-workbench-main">
+                            <div class="backtest-overview-head">
+                              <div>
+                                <div class="backtest-overview-kicker">{{ symbol }} / {{ timeframe }}</div>
+                                <div class="backtest-overview-title">{{ backtestInsight }}</div>
+                              </div>
                             </div>
-                            <div class="ai-optimize-card-body">
-                              <div class="ai-optimize-card-title">{{ $t('indicatorIde.aiOptimize') }}</div>
-                              <div class="ai-optimize-card-desc">{{ $t('indicatorIde.aiOptimizeHint') }}</div>
+
+                            <div class="metrics-grid metrics-grid--workbench">
+                              <div v-for="m in metricCards" :key="m.label" :class="['metric-card', m.cls]">
+                                <div class="metric-label">{{ m.label }}</div>
+                                <div class="metric-value">{{ m.value }}</div>
+                              </div>
                             </div>
-                            <a-button
-                              type="primary"
-                              size="small"
-                              :loading="aiOptimizing"
-                              @click="handleAIOptimize"
-                            >
-                              <a-icon v-if="!aiOptimizing" type="thunderbolt" />
-                              {{ $t('indicatorIde.aiOptimize') }}
-                            </a-button>
+
+                            <div v-if="backtestDiagnostics.length" class="backtest-quality-strip">
+                              <span class="backtest-quality-strip__title">
+                                <a-icon type="safety-certificate" />
+                                {{ $t('indicatorIde.resultDiagnostics') }}
+                              </span>
+                              <span
+                                v-for="item in backtestDiagnostics"
+                                :key="item.key"
+                                :class="['backtest-quality-chip', 'backtest-quality-chip--' + item.tone]"
+                                :title="item.desc"
+                              >
+                                <a-icon :type="item.icon" />
+                                <span>{{ item.title }}</span>
+                                <strong>{{ item.value }}</strong>
+                              </span>
+                            </div>
+
+                            <div class="eq-section eq-section--hero">
+                              <div class="eq-title">
+                                <a-icon type="area-chart" style="margin-right: 6px;" />
+                                {{ $t('indicatorIde.equityCurve') }}
+                              </div>
+                              <div ref="eqChart" class="equity-chart equity-chart--large"></div>
+                            </div>
+
+                            <div class="trades-section trades-section--workbench">
+                              <div class="trades-title">
+                                <a-icon type="swap" style="margin-right: 6px;" />
+                                {{ $t('indicatorIde.trades') }}
+                                <span class="trades-count">({{ pairedTrades.length }})</span>
+                              </div>
+                              <a-table
+                                :columns="tradeColumns"
+                                :dataSource="pairedTrades"
+                                :pagination="{ pageSize: 8, size: 'small' }"
+                                size="small"
+                                :scroll="{ x: 820 }"
+                                rowKey="id"
+                              >
+                                <template slot="type" slot-scope="text">
+                                  <a-tag :color="text === 'long' ? 'green' : 'red'" style="margin: 0;">{{ text.toUpperCase() }}</a-tag>
+                                </template>
+                                <template slot="exitTag" slot-scope="text, record">
+                                  <a-tag
+                                    v-if="record"
+                                    :color="exitTagColor(record)"
+                                    style="margin: 0;"
+                                  >{{ exitTagLabel(record) }}</a-tag>
+                                </template>
+                                <template slot="price" slot-scope="text">
+                                  <span style="font-variant-numeric: tabular-nums;">{{ fmtPrice(text) }}</span>
+                                </template>
+                                <template slot="profit" slot-scope="text">
+                                  <span :style="{ color: text > 0 ? '#52c41a' : text < 0 ? '#f5222d' : '#666', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }">{{ fmtMoney(text) }}</span>
+                                </template>
+                                <template slot="money" slot-scope="text">
+                                  <span style="font-weight: 600; font-variant-numeric: tabular-nums;">{{ fmtMoney(text) }}</span>
+                                </template>
+                              </a-table>
+                            </div>
                           </div>
+
                         </div>
                       </div>
-                    </a-tab-pane>
+                      </div>
+                    </section>
 
-                    <a-tab-pane key="aisystem" :tab="$t('indicatorIde.aiExperimentTab')">
+                    <section class="result-split-panel result-split-panel--optimizer">
+                      <div class="workbench-panel-header">
+                        <div class="workbench-panel-title">
+                          <a-icon type="experiment" />
+                          <span>{{ $t('indicatorIde.tuningLaunchTitle') }}</span>
+                        </div>
+                        <div class="workbench-panel-meta">{{ $t('indicatorIde.tuningLaunchDesc') }}</div>
+                      </div>
+                      <div class="workbench-panel-body">
                       <div v-if="!experimentRunning" class="ide-tuning-launch">
-                        <div class="ide-tuning-launch-header">
-                          <div class="ide-tuning-launch-icon"><a-icon type="experiment" /></div>
-                          <div>
-                            <div class="ide-tuning-launch-title">{{ $t('indicatorIde.tuningLaunchTitle') }}</div>
-                            <div class="ide-tuning-launch-subtitle">{{ $t('indicatorIde.tuningLaunchDesc') }}</div>
+                        <div class="optimizer-workflow">
+                          <div class="optimizer-workflow-step">
+                            <div class="optimizer-step-index">1</div>
+                            <div>
+                              <div class="optimizer-step-title">{{ $t('indicatorIde.optimizeStepMethod') }}</div>
+                              <div class="optimizer-step-desc">{{ activeTuneMethodOption ? activeTuneMethodOption.hint : $t('indicatorIde.optimizeStepMethodDesc') }}</div>
+                            </div>
                           </div>
                         </div>
 
                         <div class="ide-tuning-method-cards ide-tuning-method-cards--single">
                           <div class="ide-tuning-method-card">
-                            <div class="ide-tune-mode-row">
-                              <span class="ide-tune-mode-label">{{ $t('indicatorIde.tuneModeLabel') }}</span>
-                              <a-select
-                                v-model="tuneMode"
-                                size="small"
-                                class="ide-tune-mode-select"
-                                :disabled="experimentRunning"
-                              >
-                                <a-select-option value="structured">{{ $t('indicatorIde.tuneModeStructured') }}</a-select-option>
-                                <a-select-option value="ai">{{ $t('indicatorIde.tuneModeAi') }}</a-select-option>
-                              </a-select>
-                              <span class="ide-tune-mode-desc">
-                                {{ tuneMode === 'ai' ? $t('indicatorIde.aiTuneExplain') : $t('indicatorIde.structuredTuneExplain') }}
-                              </span>
-                            </div>
-
-                            <template v-if="tuneMode === 'structured'">
-                              <div class="ide-tune-pills">
+                              <div class="ide-tune-pills ide-tune-pills--five">
                                 <button
                                   v-for="opt in tuneMethodOptions"
                                   :key="opt.value"
@@ -900,7 +861,7 @@
                                   </a-tooltip>
                                 </button>
                               </div>
-                              <div class="ide-tune-dimensions">
+                              <div v-if="structuredTuneMethod !== 'ai'" class="ide-tune-dimensions">
                                 <div class="ide-tune-dimensions-summary">
                                   <span class="ide-tune-dimensions-summary-label">
                                     <a-icon type="appstore" />
@@ -915,7 +876,7 @@
                                     </span>
                                     <span class="ide-tune-dim-stat ide-tune-dim-stat--cartesian">
                                       <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepCartesianLabel') }}</span>
-                                      <span class="ide-tune-dim-stat-num">{{ experimentCartesianSize === Infinity ? '∞' : experimentCartesianSize.toLocaleString() }}</span>
+                                      <span class="ide-tune-dim-stat-num">{{ experimentCartesianSize === Infinity ? 'Infinity' : experimentCartesianSize.toLocaleString() }}</span>
                                     </span>
                                     <span class="ide-tune-dim-stat ide-tune-dim-stat--budget">
                                       <span class="ide-tune-dim-stat-cap">{{ $t('indicatorIde.sweepBudgetLabel') }}</span>
@@ -948,7 +909,7 @@
                                     <span class="ide-tune-dim-badge" :class="'ide-tune-dim-badge--' + d.source">
                                       {{ $t('indicatorIde.sweepSource_' + d.source) }}
                                     </span>
-                                    <span class="ide-tune-dim-count">×{{ d.values.length }}</span>
+                                    <span class="ide-tune-dim-count">x{{ d.values.length }}</span>
                                     <span class="ide-tune-dim-values">{{ formatSweepValues(d.values) }}</span>
                                   </label>
                                 </div>
@@ -957,25 +918,24 @@
                                   <span v-html="$t('indicatorIde.sweepDimensionsTip')"></span>
                                 </div>
                               </div>
-                            </template>
 
-                            <div v-else class="ide-tune-ai-feature-list">
+                            <div v-if="structuredTuneMethod === 'ai'" class="ide-tune-ai-feature-list">
                               <div class="ide-tune-ai-feature"><a-icon type="rocket" /><span>{{ $t('indicatorIde.aiTuneFeature1') }}</span></div>
                               <div class="ide-tune-ai-feature"><a-icon type="bulb" /><span>{{ $t('indicatorIde.aiTuneFeature2') }}</span></div>
                               <div class="ide-tune-ai-feature"><a-icon type="safety" /><span>{{ $t('indicatorIde.aiTuneFeature3') }}</span></div>
                             </div>
 
-                            <div class="ide-tune-method-meta" :class="{ 'ide-tune-method-meta--ai': tuneMode === 'ai' }">
+                            <div class="ide-tune-method-meta" :class="{ 'ide-tune-method-meta--ai': structuredTuneMethod === 'ai' }">
                               <span class="ide-tune-method-meta-hint">
-                                <template v-if="tuneMode === 'structured'">{{ activeTuneMethodOption ? activeTuneMethodOption.hint : '' }}</template>
-                                <template v-else>{{ $t('indicatorIde.aiTuneCta') }}</template>
+                                <template v-if="structuredTuneMethod === 'ai'">{{ $t('indicatorIde.aiTuneCta') }}</template>
+                                <template v-else>{{ activeTuneMethodOption ? activeTuneMethodOption.hint : '' }}</template>
                               </span>
                               <a-button
                                 type="primary"
-                                :ghost="tuneMode === 'structured'"
+                                :ghost="structuredTuneMethod !== 'ai'"
                                 size="small"
-                                :class="['ide-tune-run-btn', { 'ide-tune-run-btn--ai': tuneMode === 'ai' }]"
-                                :loading="experimentRunning && (tuneMode === 'ai' ? experimentRunKind === 'llm' : experimentRunKind === 'structured')"
+                                :class="['ide-tune-run-btn', { 'ide-tune-run-btn--ai': structuredTuneMethod === 'ai' }]"
+                                :loading="experimentRunning && (structuredTuneMethod === 'ai' ? experimentRunKind === 'llm' : experimentRunKind === 'structured')"
                                 :disabled="experimentRunning"
                                 @click="handleRunCurrentMode"
                               >
@@ -1334,7 +1294,7 @@
                                 <span class="experiment-change-name">{{ item.label }}</span>
                                 <span class="experiment-change-values">
                                   <span class="experiment-change-before">{{ item.fromLabel }}</span>
-                                  <span class="experiment-change-arrow">→</span>
+                                  <span class="experiment-change-arrow">-&gt;</span>
                                   <span class="experiment-change-after">{{ item.toLabel }}</span>
                                 </span>
                               </div>
@@ -1412,15 +1372,16 @@
                               <span class="experiment-change-name">{{ item.label }}</span>
                               <span class="experiment-change-values">
                                 <span class="experiment-change-before">{{ item.fromLabel }}</span>
-                                <span class="experiment-change-arrow">→</span>
+                                <span class="experiment-change-arrow">-&gt;</span>
                                 <span class="experiment-change-after">{{ item.toLabel }}</span>
                               </span>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </a-tab-pane>
-                  </a-tabs>
+                      </div>
+                    </section>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1578,11 +1539,11 @@ import { baseMixin } from '@/store/app-mixin'
 import request from '@/utils/request'
 import { formatBacktestTime } from '@/utils/userTime'
 import { resolveExperimentIndicatorParams } from '@/utils/experimentOverrides'
+import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModules'
 import { getUserInfo } from '@/api/login'
 import { getWatchlist, addWatchlist, searchSymbols } from '@/api/market'
 import KlineChart from '@/views/indicator-analysis/components/KlineChart.vue'
 import BacktestHistoryDrawer from '@/views/indicator-analysis/components/BacktestHistoryDrawer.vue'
-import BacktestAssumptionsPanel from '@/components/BacktestAssumptionsPanel.vue'
 import QuickTradePanel from '@/components/QuickTradePanel/QuickTradePanel'
 import { Modal } from 'ant-design-vue'
 import message from 'ant-design-vue/es/message'
@@ -1607,9 +1568,6 @@ const DATE_PRESETS = [
   { key: '3y', label: '3Y', days: 1095 }
 ]
 
-/** 与指标分析 / AI 资产分析一致的市场列表（含 A 股、H 股、预测市场） */
-const IDE_ADD_MARKET_KEYS = ['Crypto', 'USStock', 'CNStock', 'HKStock', 'Forex', 'Futures']
-
 function purchasedMarketHintStorageKey (userId) {
   const u = userId != null && userId !== '' ? String(userId) : '0'
   return `qd_ide_purchased_market_hint_dismissed_${u}`
@@ -1628,22 +1586,17 @@ function ideUiCacheStorageKey (userId) {
 export default {
   name: 'IndicatorIDE',
   mixins: [baseMixin],
-  components: { KlineChart, BacktestHistoryDrawer, BacktestAssumptionsPanel, QuickTradePanel },
+  components: { KlineChart, BacktestHistoryDrawer, QuickTradePanel },
   data () {
     return {
       userId: null,
       indicators: [],
       loadingIndicators: false,
       selectedIndicatorId: undefined,
-      /** 勾选显示在 K 线上的指标 id（可多选）；与「当前编辑」selectedIndicatorId 独立 */
       chartVisibleIndicatorIds: [],
       indicatorDropdownVisible: false,
-      // Independent visibility for the mirrored indicator picker living in
-      // the backtest tab. The picker itself is functionally identical to
-      // the chart-tab one (same models, same handlers), but it needs its
-      // own open/close state — otherwise opening one dropdown would visually
-      // open the other in the offscreen tab and Ant Design's overlay would
-      // race itself.
+      // The chart and backtest tabs use separate dropdown visibility state
+      // while sharing the same selected indicators.
       backtestIndicatorDropdownVisible: false,
       editorFullscreen: false,
       chartFullscreen: false,
@@ -1654,13 +1607,10 @@ export default {
       codeDrawerVisible: true,
       codePanelExpanded: true,
       paramsPanelExpanded: true,
-      /** 已购指标说明条：用户关闭后按账号写入 storage，不再展示 */
       purchasedMarketHintDismissed: false,
 
-      /** "# @strategy 来自代码"提示横幅；用户关闭后按账号持久化 */
       strategyDirectivesAlertDismissed: false,
 
-      /** 右侧工作区：chart=图表与闪电交易，backtest=回测参数与结果 */
       ideWorkspaceTab: 'chart',
 
       market: 'Crypto',
@@ -1696,9 +1646,7 @@ export default {
       backtestRunId: null,
 
       activeIndicators: [],
-      /** 是否在 K 线图上运行当前指标（关闭后仅保留 K 线，不计算/绘制指标） */
       chartIndicatorRunning: true,
-      resultTab: 'backtest',
       quickTradeDrawerVisible: false,
 
       // AI generation
@@ -1709,27 +1657,25 @@ export default {
       ideAiTipIndex: 0,
       ideAiTipTimer: null,
       ideAiTips: [
-        '正在分析需求，构建最优指标逻辑…',
-        'AI 可自动添加 @strategy 注解，写入推荐的风控与仓位（杠杆在回测面板单独设置）',
-        '生成完成后可一键运行回测',
-        '创建实盘策略时会携带当前代码与解析出的策略配置',
-        '使用 @param 声明可调参数，方便智能调参',
-        '边缘触发信号避免重复开仓，提升策略稳定性'
+        'Analyzing the request and building indicator logic...',
+        'AI can add @strategy directives for risk, entry sizing, and execution behavior.',
+        'Generated indicators can be backtested with one click.',
+        'Live strategies carry the current code and parsed strategy configuration.',
+        'Use @param to declare tunable parameters for smart optimization.',
+        'Signal debouncing helps avoid repeated entries and improves stability.'
       ],
       codeQualityHints: [],
       codeQualityLoading: false,
 
       aiOptimizing: false,
       experimentRunning: false,
-      /** 'llm' | 'structured' — which run is in progress / last explicit choice for UX */
       experimentRunKind: 'llm',
-      /** 'structured' | 'ai' — which mode the user has selected in the run-mode dropdown. */
-      tuneMode: 'structured',
+      /** Selected tuning method. 'ai' runs the LLM optimizer; the rest run structured sweeps. */
       structuredTuneMethod: 'grid',
       /** Sweep dimension keys the user has opted out of. Drives the
        *  "Tunable Dimensions" panel and shrinks parameterSpace at submit. */
       disabledSweepDims: [],
-      /** Populated by `buildStructuredTunePayload` when grid → DE auto-switch
+      /**
        *  fires because the parameter Cartesian product overflows the variant
        *  budget. UI surfaces this as a non-blocking notice. */
       lastSweepMethodAutoSwitch: null,
@@ -1777,7 +1723,7 @@ export default {
       showHistoryDrawer: false,
       historyIndicatorId: null,
 
-      ideAddMarketKeys: IDE_ADD_MARKET_KEYS,
+      ideAddMarketKeys: [],
 
       eqChartInstance: null,
       elapsedSec: 0,
@@ -1789,9 +1735,9 @@ export default {
       experimentParamSensitivityInstance: null,
       experimentChartsResizeHandler: null,
 
-      /** 最近一次成功回测时的图表上下文（market|symbol|timeframe|indicatorId） */
+      // Last successful backtest chart context key.
       _backtestRunContextKey: null,
-      /** 用于去重上下文变更时的清理调用 */
+      // Cleanup key for deduplicating marker refreshes.
       _backtestMarkerWatchKey: null
     }
   },
@@ -1811,12 +1757,10 @@ export default {
     chartTheme () {
       return this.isDarkTheme ? 'dark' : 'light'
     },
-    /** 解析当前代码里的 # @strategy 指令，生成只读"风控来自代码"卡片所需的展示数据。
-     *  数据源唯一来自代码注释，避免与 UI 输入冲突。 */
     strategyDirectivesSummary () {
       const raw = this.parseStrategyAnnotationRaw(this.currentCode || '')
       const t = (k) => this.$t(`indicatorIde.strategyDirectives.fields.${k}`) || k
-      const notSet = this.$t('indicatorIde.strategyDirectives.notSet') || '—'
+      const notSet = this.$t('indicatorIde.strategyDirectives.notSet') || '--'
       const fmtPct = (rawValue) => {
         const n = parseFloat(rawValue)
         if (!isFinite(n)) return notSet
@@ -1858,11 +1802,9 @@ export default {
         }
       })
     },
-    /** 绑定 this，供闪电交易子组件内调用 chartToolbarGetPopupContainer */
     ideQtOverlayGetContainer () {
       return (trigger) => this.chartToolbarGetPopupContainer(trigger)
     },
-    /** 有标的时开启 K 线轮询更新（与指标分析页一致） */
     klineRealtimeEnabled () {
       return !!(this.symbol && String(this.symbol).trim())
     },
@@ -1872,7 +1814,6 @@ export default {
     selectedIndicatorObj () {
       return this.selectedIndicatorId ? this.indicators.find(i => i.id === this.selectedIndicatorId) : null
     },
-    /** 指标市场购买的副本：后端禁止覆盖保存，前端只读展示，可回测 / 另存为后编辑 */
     selectedIndicatorIsPurchased () {
       const o = this.selectedIndicatorObj
       if (!o) return false
@@ -1950,6 +1891,13 @@ export default {
           label: this.$t('indicatorIde.structuredTuneTpe'),
           hint: this.$t('indicatorIde.structuredTuneTpeHint'),
           badge: this.$t('indicatorIde.structuredTuneBadgePro')
+        },
+        {
+          value: 'ai',
+          icon: 'experiment',
+          label: this.$t('indicatorIde.tuneModeAi'),
+          hint: this.$t('indicatorIde.aiTuneExplain'),
+          badge: this.$t('indicatorIde.structuredTuneBadgePro')
         }
       ]
     },
@@ -1966,9 +1914,6 @@ export default {
      *   { key, label, group, source, type, defaultValue, values, enabled }
      *
      * Sources:
-     *   - 'risk' / 'position' / 'leverage' — built-in
-     *   - 'indicator_declared' — @param has explicit `range=` / `values=`
-     *   - 'indicator_inferred' — @param has only a default, range auto-inferred
      */
     experimentSweepDimensions () {
       const dims = []
@@ -1976,7 +1921,6 @@ export default {
       // `$t` returns the key itself when a translation is missing, so a plain
       // `$t(key) || fallback` never falls through. Use `$te` (translation
       // exists) to detect missing keys and substitute a readable English label
-      // — this keeps the UI sane if future locales miss a string.
       const tr = (key, fallback) => (this.$te && this.$te(key)) ? this.$t(key) : fallback
       const fractionSeries = (ratio, fallbackValues, multipliers = [0.5, 1, 1.5], max = 1) => {
         const raw = Number(ratio || 0)
@@ -2009,7 +1953,6 @@ export default {
       pushDim({ key: 'leverage', label: tr('indicatorIde.leverage', 'Leverage'), group: 'risk', source: 'leverage', type: 'int', values: leverageValues })
 
       // P4: only sweep trailing-stop knobs when the strategy actually enables
-      // trailing — otherwise we waste candidate budget on a parameter the
       // backtest never reads.
       const trailingEnabled = String(ann.trailingEnabled || '').toLowerCase() === 'true'
       if (trailingEnabled) {
@@ -2046,7 +1989,7 @@ export default {
       }
       return out
     },
-    /** Cartesian product size — for the budget banner and method auto-switch
+    /**
      *  heuristic. Capped at Number.MAX_SAFE_INTEGER style overflow by clamping
      *  to a sentinel so the UI label stays readable on absurd spaces. */
     experimentCartesianSize () {
@@ -2284,7 +2227,6 @@ export default {
     experimentProgressPct () {
       if (!this.experimentMaxRounds) return 0
       if (this.experimentRunKind !== 'llm') return 0
-      // 市场状态检测阶段尚未进入第 1 轮时给少量进度，避免进度条长时间为 0
       if (this.experimentRunning && this.experimentCurrentRound < 1) {
         return 6
       }
@@ -2308,11 +2250,76 @@ export default {
         { title: this.$t('indicatorIde.tradeCount'), dataIndex: 'totalTrades', scopedSlots: { customRender: 'experimentTrades' }, width: 90 }
       ]
     },
+    benchmarkSummaryCards () {
+      const r = this.result || {}
+      if (r.benchmarkReturn == null) return []
+      return [
+        { label: this.$t('indicatorIde.strategyReturn'), value: this.fmtPct(r.totalReturn), cls: (r.totalReturn || 0) >= 0 ? 'positive' : 'negative' },
+        { label: this.$t('indicatorIde.spotReturn'), value: this.fmtPct(r.benchmarkReturn), cls: (r.benchmarkReturn || 0) >= 0 ? 'positive' : 'negative' },
+        { label: this.$t('indicatorIde.alphaVsSpot'), value: this.fmtPct(r.alphaReturn), cls: (r.alphaReturn || 0) >= 0 ? 'positive' : 'negative' }
+      ]
+    },
+    backtestInsight () {
+      const r = this.result || {}
+      if (!this.hasResult) return this.$t('indicatorIde.insightEmpty')
+      const total = Number(r.totalReturn || 0)
+      const alpha = r.alphaReturn != null ? Number(r.alphaReturn || 0) : null
+      const drawdown = Math.abs(Number(r.maxDrawdown || 0))
+      if (alpha != null && alpha > 0 && drawdown <= 15) return this.$t('indicatorIde.insightStrongAlpha')
+      if (alpha != null && alpha > 0) return this.$t('indicatorIde.insightPositiveAlphaHighRisk')
+      if (alpha != null && alpha <= 0 && total > 0) return this.$t('indicatorIde.insightPositiveButLagging')
+      if (total <= 0) return this.$t('indicatorIde.insightNegativeReturn')
+      return this.$t('indicatorIde.insightNeedMoreTrades')
+    },
+    backtestDiagnostics () {
+      const r = this.result || {}
+      const alpha = r.alphaReturn != null ? Number(r.alphaReturn || 0) : null
+      const drawdown = Math.abs(Number(r.maxDrawdown || 0))
+      const trades = Number(r.totalTrades || 0)
+      const sharpe = Number(r.sharpeRatio || 0)
+      return [
+        {
+          key: 'benchmark',
+          icon: alpha != null && alpha >= 0 ? 'rise' : 'fall',
+          tone: alpha == null ? 'neutral' : alpha >= 0 ? 'good' : 'warn',
+          title: this.$t('indicatorIde.diagnosticBenchmarkTitle'),
+          value: alpha == null ? '--' : this.fmtPct(alpha),
+          desc: alpha == null ? this.$t('indicatorIde.diagnosticBenchmarkMissing') : (alpha >= 0 ? this.$t('indicatorIde.diagnosticBenchmarkGood') : this.$t('indicatorIde.diagnosticBenchmarkWarn'))
+        },
+        {
+          key: 'drawdown',
+          icon: 'warning',
+          tone: drawdown <= 10 ? 'good' : drawdown <= 25 ? 'warn' : 'danger',
+          title: this.$t('indicatorIde.diagnosticDrawdownTitle'),
+          value: this.fmtPct(r.maxDrawdown),
+          desc: drawdown <= 10 ? this.$t('indicatorIde.diagnosticDrawdownGood') : drawdown <= 25 ? this.$t('indicatorIde.diagnosticDrawdownWarn') : this.$t('indicatorIde.diagnosticDrawdownDanger')
+        },
+        {
+          key: 'sample',
+          icon: 'database',
+          tone: trades >= 20 ? 'good' : trades >= 8 ? 'warn' : 'danger',
+          title: this.$t('indicatorIde.diagnosticSampleTitle'),
+          value: String(trades),
+          desc: trades >= 20 ? this.$t('indicatorIde.diagnosticSampleGood') : trades >= 8 ? this.$t('indicatorIde.diagnosticSampleWarn') : this.$t('indicatorIde.diagnosticSampleDanger')
+        },
+        {
+          key: 'quality',
+          icon: 'sliders',
+          tone: sharpe >= 1 ? 'good' : sharpe >= 0.4 ? 'warn' : 'danger',
+          title: this.$t('indicatorIde.diagnosticSharpeTitle'),
+          value: sharpe.toFixed(2),
+          desc: sharpe >= 1 ? this.$t('indicatorIde.diagnosticSharpeGood') : sharpe >= 0.4 ? this.$t('indicatorIde.diagnosticSharpeWarn') : this.$t('indicatorIde.diagnosticSharpeDanger')
+        }
+      ]
+    },
     metricCards () {
       const r = this.result || {}
       return [
         { label: this.$t('indicatorIde.totalReturn'), value: this.fmtPct(r.totalReturn), cls: (r.totalReturn || 0) >= 0 ? 'positive' : 'negative' },
         { label: this.$t('indicatorIde.maxDrawdown'), value: this.fmtPct(r.maxDrawdown), cls: 'negative' },
+        ...(r.benchmarkReturn != null ? [
+          { label: this.$t('indicatorIde.alphaVsSpot'), value: this.fmtPct(r.alphaReturn), cls: (r.alphaReturn || 0) >= 0 ? 'positive' : 'negative' }
+        ] : []),
         { label: this.$t('indicatorIde.sharpeRatio'), value: (r.sharpeRatio || 0).toFixed(2), cls: (r.sharpeRatio || 0) >= 1 ? 'positive' : '' },
         { label: this.$t('indicatorIde.winRate'), value: this.fmtPct(r.winRate), cls: (r.winRate || 0) >= 50 ? 'positive' : '' },
         { label: this.$t('indicatorIde.profitFactor'), value: (r.profitFactor || 0).toFixed(2), cls: (r.profitFactor || 0) >= 1.5 ? 'positive' : '' },
@@ -2388,7 +2395,8 @@ export default {
       return this.shouldShowBacktestMarkersOnChart()
     }
   },
-  async created () {
+  created: async function () {
+    await this.loadMarketModules()
     await this.loadUserId()
     this.loadPurchasedMarketHintDismissed()
     this.loadStrategyDirectivesAlertDismissed()
@@ -2396,6 +2404,7 @@ export default {
     await this.loadWatchlist()
     this.restoreIdeUiState()
     this.autoSelectFirstIndicator()
+    this.applyCopilotDraft()
   },
   mounted () {
     this._fullscreenListener = () => this.onGlobalFullscreenChange()
@@ -2441,12 +2450,69 @@ export default {
     } catch (_) {}
   },
   methods: {
+    async loadMarketModules () {
+      const options = await loadEnabledMarketOptions({ includeFeatures: ['research'] })
+      this.ideAddMarketKeys = options.map(item => item.value)
+      if (!this.ideAddMarketKeys.includes(this.addMarketTab)) {
+        this.addMarketTab = firstMarketValue(options)
+      }
+      if (!this.ideAddMarketKeys.includes(this.market)) {
+        this.market = this.addMarketTab || firstMarketValue(options)
+      }
+    },
+    applyCopilotDraft () {
+      const q = this.$route && this.$route.query ? this.$route.query : {}
+      const targetTab = String(q.tab || '').toLowerCase()
+      if (targetTab === 'backtest') {
+        this.ideWorkspaceTab = 'backtest'
+      }
+      let prompt = ''
+      let code = ''
+      try {
+        prompt = q.aiPrompt ? decodeURIComponent(String(q.aiPrompt)) : ''
+      } catch (_) {
+        prompt = String(q.aiPrompt || '')
+      }
+      if (!prompt) {
+        try {
+          prompt = sessionStorage.getItem('qd_copilot_indicator_prompt') || ''
+          if (prompt) sessionStorage.removeItem('qd_copilot_indicator_prompt')
+        } catch (_) {}
+      }
+      try {
+        code = sessionStorage.getItem('qd_copilot_indicator_code') || ''
+        if (code) sessionStorage.removeItem('qd_copilot_indicator_code')
+      } catch (_) {}
+      if (code) {
+        prompt = ''
+        try { sessionStorage.removeItem('qd_copilot_indicator_prompt') } catch (_) {}
+      }
+      if (prompt) {
+        this.aiPrompt = prompt
+        this.aiPanelExpanded = true
+        this.codeDrawerVisible = true
+        this.codePanelExpanded = true
+      }
+      if (code) {
+        this.currentCode = code
+        this.codeDirty = true
+        this.codeDrawerVisible = true
+        this.codePanelExpanded = true
+        this.$nextTick(() => {
+          if (this.cmInstance) {
+            this.cmInstance.setValue(code)
+            this.cmInstance.refresh()
+          }
+          this.syncTradeUiFromStrategyCode(code, { silent: true })
+        })
+      }
+    },
     // ===== Data loading =====
     async loadUserId () {
       try {
         const res = await getUserInfo()
         if (res && res.data) this.userId = res.data.id || res.data.user_id || 1
-      } catch {
+      } catch (_) {
         this.userId = 1
       }
     },
@@ -2492,7 +2558,7 @@ export default {
       } catch (_) { /* ignore */ }
     },
 
-    /** 在 CodeMirror 中跳到指定 # @strategy 行；若给定 key 但未找到，则跳到第一条；都没有则置顶。 */
+    // Jump CodeMirror to the requested @strategy directive.
     jumpToStrategyDirectiveLine (key) {
       const cm = this.cmInstance
       if (!cm) return
@@ -2663,12 +2729,9 @@ export default {
         const res = await getWatchlist({ userid: this.userId })
         if (res && res.code === 1 && res.data) this.watchlist = res.data
         this.reconcileIdeMarketFromWatchlist()
-      } catch { /* silent */ }
+      } catch (_) { /* silent */ }
     },
 
-    /**
-     * 以自选列表中的 market 字段为准（用户添加自选时的分类），避免仅靠 `market:symbol` 字符串解析或本地缓存漂移。
-     */
     reconcileIdeMarketFromWatchlist () {
       const key = this.selectedWatchlistKey
       if (!key || key === '__add__') return
@@ -2847,10 +2910,6 @@ export default {
     onBacktestIndicatorDropdownVisibleChange (visible) {
       this.backtestIndicatorDropdownVisible = visible
     },
-    isIndicatorChartVisible (rawId) {
-      const id = Number(rawId)
-      return (this.chartVisibleIndicatorIds || []).some(x => Number(x) === id)
-    },
     onChartIndicatorCheckChange (rawId, checked) {
       const id = Number(rawId)
       if (isNaN(id)) return
@@ -2868,13 +2927,11 @@ export default {
       this.backtestIndicatorDropdownVisible = false
       this.selectedIndicatorId = rawId
       const id = Number(rawId)
-      // 点击名称：切换编辑器并默认仅将该指标绘制到 K 线；多指标需再勾选其他行前复选框追加
       if (!isNaN(id)) {
         this.chartVisibleIndicatorIds = [id]
       }
       this.onIndicatorChange(rawId)
     },
-    /** 当前处于本页「图表 / 编辑器」全屏时的挂载根节点；Modal / message 与部分浮层共用 */
     resolveIdeFullscreenMountNode () {
       const fs = document.fullscreenElement || document.webkitFullscreenElement
       const ch = this.$refs.chartFullscreenEl
@@ -2886,7 +2943,6 @@ export default {
     ideModalGetContainer () {
       return this.resolveIdeFullscreenMountNode() || document.body
     },
-    /** 全屏切换后 message 等仍指向 body 会不可见；须 destroy 后才会用新 getContainer 重建实例 */
     applyIdeOverlayContainers () {
       const mount = this.resolveIdeFullscreenMountNode()
       const target = mount || document.body
@@ -2895,7 +2951,6 @@ export default {
         message.config({ getContainer: () => target })
       } catch (_) {}
     },
-    /** 浏览器全屏时浮层必须挂在全屏子树内；优先以 document.fullscreenElement 为准，避免与 chartFullscreen 短暂不同步 */
     chartToolbarGetPopupContainer () {
       const fs = document.fullscreenElement || document.webkitFullscreenElement
       const ch = this.$refs.chartFullscreenEl
@@ -3202,7 +3257,6 @@ export default {
       }
     },
 
-    /** 从代码行解析 # @strategy key value → { key: rawString } */
     parseStrategyAnnotationRaw (code) {
       const lineRe = /^#\s*@strategy\s+(\w+)\s*:?\s*(\S+)/i
       const config = {}
@@ -3266,7 +3320,6 @@ export default {
       }
       return String(rawValue)
     },
-    /** 与后端 StrategyConfigParser 一致：风控/仓位仅来自 @strategy（0–1 小数比例） */
     strategyConfigFromCode (code) {
       const raw = this.parseStrategyAnnotationRaw(code || '')
       const headers = this.parseIndicatorContractHeaders(code || '')
@@ -3324,6 +3377,11 @@ export default {
     buildBacktestStrategyConfig () {
       return this.strategyConfigFromCode(this.currentCode || '')
     },
+    resolveBacktestMarketType () {
+      const market = String(this.market || '').toLowerCase()
+      if (market !== 'crypto') return 'spot'
+      return 'spot'
+    },
     /**
      * Parse `@param` declarations into sweep metadata.
      *
@@ -3331,13 +3389,9 @@ export default {
      *                  type: 'int'|'float', defaultValue: number|null } }
      *
      * Resolution order per param:
-     *   1. `values=a,b,c`  → exact set         (source = 'declared')
-     *   2. `range=lo:hi:s` → arithmetic series (source = 'declared')
-     *   3. otherwise       → fractional series around the default
      *                        produced by `autoInferParamSweep` (source = 'inferred')
      *
      * Step 3 is the P1 improvement: it means a plain `# @param rsi_len int 14`
-     * declaration is enough to participate in structured tuning — the user
      * doesn't have to also remember the `range=` suffix syntax.
      */
     parseIndicatorParamRanges (code) {
@@ -3402,7 +3456,6 @@ export default {
 
         // Auto-infer (P1): generate ~5 candidates around the default. We pick
         // multiplicative factors instead of fixed offsets so the sweep adapts
-        // to the parameter's scale — a default of 14 produces [7,10,14,18,25],
         // a default of 100 produces [50,75,100,125,175].
         if (defaultValue == null) continue
         const inferred = this.autoInferParamSweep(type, defaultValue)
@@ -3416,11 +3469,9 @@ export default {
      * Build a fractional sweep around a default value (P1 fallback for
      * @param declarations without an explicit range=/values= clause).
      *
-     * Factors are deliberately asymmetric — we lean a bit higher than the
      * default (1.75x vs 0.5x) because most technical indicator parameters are
      * lookback windows, and longer lookbacks are usually what users tune
      * toward in trending regimes. For very small int defaults the factors
-     * collapse after rounding (e.g. default=2 → [1,2,3,4]); we return the
      * deduplicated, sorted set so the search space stays well-formed.
      */
     autoInferParamSweep (type, defaultValue) {
@@ -3458,7 +3509,7 @@ export default {
       if (values.length <= cap) return values.map(fmt).join(', ')
       const head = values.slice(0, cap - 1).map(fmt)
       const tail = fmt(values[values.length - 1])
-      return `${head.join(', ')}, …, ${tail}`
+      return `${head.join(', ')}, ... ${tail}`
     },
     buildExperimentBase () {
       if (!this.currentCode) return null
@@ -3519,7 +3570,6 @@ export default {
       }
       return (typeof token === 'string' && token) ? token : ''
     },
-    /** 解析单个 SSE 文本块（event: / data:） */
     _parseSseEventBlock (block) {
       if (!block || !String(block).trim()) return null
       let eventName = 'message'
@@ -3567,9 +3617,6 @@ export default {
         })
       }
     },
-    /**
-     * 使用 SSE（/api/experiment/ai-optimize）流式更新轮次与回测进度；避免 sync 接口长时间无响应导致 UI 卡在 0/3。
-     */
     async streamAiOptimizeWithSse (payload, signal) {
       const token = this._authTokenForFetch()
       const lang = storage.get('lang') || 'en-US'
@@ -3632,7 +3679,7 @@ export default {
       return finalData
     },
     handleRunCurrentMode () {
-      if (this.tuneMode === 'ai') return this.handleRunAIExperiment()
+      if (this.structuredTuneMethod === 'ai') return this.handleRunAIExperiment()
       return this.handleRunStructuredTune()
     },
     async handleRunAIExperiment () {
@@ -3659,7 +3706,6 @@ export default {
       this.experimentRoundScores = []
       this.experimentGlobalBestScoreLive = 0
       this.experimentLiveHint = this.$t('indicatorIde.experimentHintStarting')
-      this.resultTab = 'aisystem'
       this.elapsedSec = 0
       clearInterval(this.elapsedTimer)
       this.elapsedTimer = setInterval(() => { this.elapsedSec++ }, 1000)
@@ -3669,7 +3715,6 @@ export default {
         if (data && typeof data === 'object') {
           this.experimentResult = data
           this.experimentSelectedCandidateName = (((data || {}).bestStrategyOutput || {}).name) || ((((data || {}).rankedStrategies) || [])[0] || {}).name || ''
-          this.resultTab = 'aisystem'
           this.$message.success(this.$t('indicatorIde.aiExperimentDone'))
         } else {
           throw new Error(this.$t('indicatorIde.aiExperimentFailed'))
@@ -3705,7 +3750,6 @@ export default {
       this.experimentMaxRounds = 1
       this.experimentRoundScores = []
       this.experimentGlobalBestScoreLive = 0
-      this.resultTab = 'aisystem'
       this.elapsedSec = 0
       clearInterval(this.elapsedTimer)
       this.elapsedTimer = setInterval(() => { this.elapsedSec++ }, 1000)
@@ -3720,7 +3764,6 @@ export default {
         if (response && response.code === 1 && response.data) {
           this.experimentResult = response.data
           this.experimentSelectedCandidateName = (((response.data || {}).bestStrategyOutput || {}).name) || ((((response.data || {}).rankedStrategies) || [])[0] || {}).name || ''
-          this.resultTab = 'aisystem'
           this.$message.success(this.$t('indicatorIde.structuredTuneDone'))
         } else {
           throw new Error((response && response.msg) || this.$t('indicatorIde.structuredTuneFailed'))
@@ -3742,7 +3785,7 @@ export default {
       }
       this.codeDirty = true
     },
-    /** 与后端 StrategyConfigParser.VALID_KEYS 对齐（不含 leverage，杠杆仅回测面板） */
+    // Strategy annotation keys accepted by the local parser.
     _strategyAnnotationKeysSet () {
       return new Set([
         'stopLossPct', 'takeProfitPct', 'entryPct',
@@ -4295,7 +4338,6 @@ export default {
       this.running = true
       this.hasResult = false
       this.ideWorkspaceTab = 'backtest'
-      this.resultTab = 'backtest'
       this.elapsedSec = 0
       clearInterval(this.elapsedTimer)
       this.elapsedTimer = setInterval(() => { this.elapsedSec++ }, 1000)
@@ -4323,6 +4365,7 @@ export default {
             commission: Number(this.commission || 0) / 100,
             slippage: Number(this.slippage || 0) / 100,
             leverage: this.leverage,
+            marketType: this.resolveBacktestMarketType(),
             tradeDirection: this.tradeDirection,
             strategyConfig: this.buildBacktestStrategyConfig(),
             strictMode: this.strictMode,
@@ -4335,7 +4378,6 @@ export default {
           this.result = response.data.result || response.data
           this.hasResult = true
           this.stampBacktestMarkerContext()
-          this.resultTab = 'backtest'
           this.$nextTick(() => {
             setTimeout(() => {
               this.renderEquityChart()
@@ -4348,7 +4390,7 @@ export default {
         }
       } catch (e) {
         const backendMsg = e && e.response && e.response.data && (e.response.data.msg || e.response.data.message)
-        this.$message.error(backendMsg || e.message || this.$t('indicatorIde.backtestFailed'))
+        this.$message.error(e.backendMessage || e.message || backendMsg || this.$t('indicatorIde.backtestFailed'))
       } finally {
         this.running = false
         clearInterval(this.elapsedTimer)
@@ -4421,36 +4463,44 @@ export default {
         if (!bar) {
           const p = Number(fallbackPrice) || 0
           const minGap = Math.max(Math.abs(p) * 0.01, 1e-8)
-          const labelGap = minGap * (isDashed ? 1.8 : 1.2)
+          const labelGap = minGap * (isDashed ? 2.2 : 1.55)
           return isBuy
-            ? { label: p + labelGap, anchor: p + minGap * 0.35 }
-            : { label: p - labelGap, anchor: p - minGap * 0.35 }
+            ? { label: p - labelGap, anchor: p - minGap * 0.35 }
+            : { label: p + labelGap, anchor: p + minGap * 0.35 }
         }
         const high = Number(bar.high)
         const low = Number(bar.low)
         const close = Number(bar.close)
         const open = Number(bar.open)
         const ref = Number.isFinite(high) && Number.isFinite(low)
-          ? (isBuy ? high : low)
+          ? (isBuy ? low : high)
           : (Number.isFinite(close) ? close : open)
         const span = Math.max(
           (Number.isFinite(high) && Number.isFinite(low)) ? (high - low) : 0,
           Math.abs(ref) * 0.001,
           1e-8
         )
-        const gap = Math.max(span * 0.38, Math.abs(ref) * 0.0045)
-        const labelGap = gap * (isDashed ? 1.35 : 0.9)
-        const anchorGap = gap * 0.18
+        const gap = Math.max(span * 0.92, Math.abs(ref) * 0.010)
+        const labelGap = gap * (isDashed ? 1.7 : 1.2)
+        const anchorGap = gap * 0.22
         if (!Number.isFinite(ref) || ref <= 0) {
           const p = Number(fallbackPrice) || 0
           return { label: p, anchor: p }
         }
         return isBuy
-          ? { label: ref + labelGap, anchor: ref + anchorGap }
-          : { label: ref - labelGap, anchor: ref - anchorGap }
+          ? { label: ref - labelGap, anchor: ref - anchorGap }
+          : { label: ref + labelGap, anchor: ref + anchorGap }
       }
 
-      const createSignalOverlay = ({ timestamp, labelPrice, anchorPrice, isBuy, markerStyle, text, color }) => {
+      const markerLaneByTs = new Map()
+      const nextMarkerLane = (timestamp) => {
+        const key = String(timestamp || '')
+        const current = markerLaneByTs.get(key) || 0
+        markerLaneByTs.set(key, current + 1)
+        return current % 4
+      }
+
+      const createSignalOverlay = ({ timestamp, labelPrice, anchorPrice, isBuy, markerStyle, text, shortText, color, lane }) => {
         if (!timestamp || !labelPrice) return
         const payload = {
           name: 'signalTag',
@@ -4466,7 +4516,10 @@ export default {
             price: labelPrice,
             markerStyle: markerStyle || 'solid',
             source: 'backtest',
-            fontSize: 11
+            labelMode: 'compact',
+            shortText: shortText || text || (isBuy ? 'L' : 'S'),
+            lane: lane == null ? nextMarkerLane(timestamp) : lane,
+            fontSize: 10
           },
           lock: true
         }
@@ -4508,6 +4561,7 @@ export default {
           isBuy,
           markerStyle: 'solid',
           text: meta.fillLabel,
+          shortText: meta.shortFillLabel,
           color: meta.color
         })
 
@@ -4520,6 +4574,7 @@ export default {
             isBuy,
             markerStyle: 'dashed',
             text: meta.signalLabel,
+            shortText: meta.shortSignalLabel,
             color: meta.color
           })
         }
@@ -4634,7 +4689,7 @@ export default {
         }
       } catch (error) {
         const errMsg = (error && error.message) || this.$t('indicatorIde.aiGenerateFailed')
-        if (/积分不足|insufficient/i.test(errMsg)) {
+        if (/insufficient|credit/i.test(errMsg)) {
           this.$message.warning(errMsg)
         } else {
           this.$message.error(errMsg)
@@ -4681,9 +4736,9 @@ export default {
     },
     aiDebugStateLabel (summary = this.aiDebugSummary) {
       const state = this.aiDebugState(summary)
-      if (state === 'warning') return this.$t('indicatorIde.aiQaStateWarning') || '仍有提醒'
-      if (state === 'success') return this.$t('indicatorIde.aiQaStateSuccess') || '自动修复完成'
-      return this.$t('indicatorIde.aiQaStatePassed') || '质检已通过'
+      if (state === 'warning') return this.$t('indicatorIde.aiQaStateWarning') || 'Needs review'
+      if (state === 'success') return this.$t('indicatorIde.aiQaStateSuccess') || 'Auto fixed'
+      return this.$t('indicatorIde.aiQaStatePassed') || 'QA passed'
     },
     aiDebugStateTagColor (summary = this.aiDebugSummary) {
       const state = this.aiDebugState(summary)
@@ -4701,6 +4756,20 @@ export default {
     },
     formatQualityHint (h) {
       if (!h || !h.code) return ''
+      if (h.code === 'PARAM_DEFAULT_MISMATCH') {
+        const items = Array.isArray(h.params && h.params.items) ? h.params.items : []
+        const details = items
+          .map(item => {
+            const name = item && item.name ? item.name : '-'
+            const declared = item && item.declared !== undefined ? item.declared : '-'
+            const fallback = item && item.fallback !== undefined ? item.fallback : '-'
+            return `${name}: @param=${declared}, params.get=${fallback}`
+          })
+          .join('; ')
+        const key = 'indicatorIde.quality.PARAM_DEFAULT_MISMATCH'
+        const msg = this.$t(key, { details })
+        return msg === key ? `Parameter default mismatch${details ? `: ${details}` : ''}` : msg
+      }
       const key = `indicatorIde.quality.${h.code}`
       const msg = this.$t(key, h.params || {})
       return msg === key ? String(h.code) : msg
@@ -4749,7 +4818,6 @@ export default {
       return c.trim()
     },
 
-    // ===== @strategy：strategyConfig 来自代码注解；此处仅同步交易方向（杠杆由回测面板独立设置，不写进代码） =====
     syncTradeUiFromStrategyCode (code, opts = {}) {
       const silent = !!(opts && opts.silent)
       const raw = this.parseStrategyAnnotationRaw(code || '')
@@ -4835,12 +4903,15 @@ export default {
         '# @strategy trailingActivationPct 0.03  # Activate trailing after +3% in profit\n' +
         '# @strategy tradeDirection long         # long | short | both\n\n' +
         'df = df.copy()\n' +
-        "df['buy'] = False\n" +
-        "df['sell'] = False\n\n" +
+        "df['open_long'] = False\n" +
+        "df['close_long'] = False\n" +
+        "df['open_short'] = False\n" +
+        "df['close_short'] = False\n\n" +
         'output = {\n' +
         "  'name': my_indicator_name,\n" +
         "  'plots': [],\n" +
-        "  'signals': []\n" +
+        "  'signals': [],\n" +
+        "  'layers': []\n" +
         '}\n'
       )
     },
@@ -5009,17 +5080,37 @@ export default {
       this.eqChartInstance = echarts.init(dom)
       const dk = this.isDarkTheme
       const data = r.equityCurve
+      const benchmarkData = Array.isArray(r.benchmarkCurve) ? r.benchmarkCurve : []
+      const showBenchmark = benchmarkData.length > 1
       const isPositive = data.length > 1 && (data[data.length - 1].value || 0) >= (data[0].value || 0)
-      const lineColor = isPositive ? '#52c41a' : '#f5222d'
+      const strategyLineColor = isPositive ? '#52c41a' : '#f5222d'
+      const benchmarkLineColor = '#1677ff'
+      const strategyName = this.$t('indicatorIde.strategyEquity')
+      const benchmarkName = this.$t('indicatorIde.spotBenchmark')
       this.eqChartInstance.setOption({
         backgroundColor: 'transparent',
+        color: showBenchmark ? [strategyLineColor, benchmarkLineColor] : [strategyLineColor],
+        legend: showBenchmark
+          ? {
+              top: 0,
+              right: 12,
+              icon: 'roundRect',
+              itemWidth: 18,
+              itemHeight: 8,
+              textStyle: { color: dk ? 'rgba(255,255,255,0.65)' : '#64748b', fontSize: 11 },
+              data: [
+                { name: strategyName, icon: 'roundRect', itemStyle: { color: strategyLineColor } },
+                { name: benchmarkName, icon: 'roundRect', itemStyle: { color: benchmarkLineColor } }
+              ]
+            }
+          : undefined,
         tooltip: {
           trigger: 'axis',
           backgroundColor: dk ? '#1f1f1f' : '#fff',
           borderColor: dk ? '#434343' : '#ddd',
           textStyle: { color: dk ? 'rgba(255,255,255,0.85)' : '#333', fontSize: 12 }
         },
-        grid: { left: 60, right: 20, top: 15, bottom: 25 },
+        grid: { left: 60, right: 20, top: showBenchmark ? 34 : 15, bottom: 25 },
         xAxis: {
           type: 'category',
           data: data.map(d => d.time || ''),
@@ -5035,19 +5126,36 @@ export default {
           },
           splitLine: { lineStyle: { color: dk ? 'rgba(255,255,255,0.06)' : '#f0f0f0', type: 'dashed' } }
         },
-        series: [{
-          type: 'line',
-          data: data.map(d => d.value || 0),
-          smooth: 0.3,
-          showSymbol: false,
-          lineStyle: { width: 2, color: lineColor },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: isPositive ? 'rgba(82,196,26,0.2)' : 'rgba(245,34,45,0.2)' },
-              { offset: 1, color: 'rgba(0,0,0,0)' }
-            ])
-          }
-        }]
+        series: [
+          {
+            name: strategyName,
+            type: 'line',
+            data: data.map(d => d.value || 0),
+            smooth: 0.3,
+            showSymbol: false,
+            itemStyle: { color: strategyLineColor },
+            lineStyle: { width: 2, color: strategyLineColor },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: isPositive ? 'rgba(82,196,26,0.2)' : 'rgba(245,34,45,0.2)' },
+                { offset: 1, color: 'rgba(0,0,0,0)' }
+              ])
+            }
+          },
+          ...(showBenchmark ? [{
+            name: benchmarkName,
+            type: 'line',
+            data: data.map((_, idx) => {
+              const point = benchmarkData[idx]
+              return point ? Number(point.value || 0) : null
+            }),
+            smooth: 0.25,
+            showSymbol: false,
+            connectNulls: true,
+            itemStyle: { color: benchmarkLineColor },
+            lineStyle: { width: 2, color: benchmarkLineColor, type: 'dashed' }
+          }] : [])
+        ]
       })
       this._onResize = () => { if (this.eqChartInstance) this.eqChartInstance.resize() }
       window.addEventListener('resize', this._onResize)
@@ -5056,23 +5164,43 @@ export default {
     // ===== Experiment analytics charts =====
     disposeExperimentCharts () {
       if (this.experimentScatterInstance) {
-        try { this.experimentScatterInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentScatterInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
         this.experimentScatterInstance = null
       }
       if (this.experimentRadarInstance) {
-        try { this.experimentRadarInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentRadarInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
         this.experimentRadarInstance = null
       }
       if (this.experimentConvergenceInstance) {
-        try { this.experimentConvergenceInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentConvergenceInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
         this.experimentConvergenceInstance = null
       }
       if (this.experimentOosMatrixInstance) {
-        try { this.experimentOosMatrixInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentOosMatrixInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
         this.experimentOosMatrixInstance = null
       }
       if (this.experimentParamSensitivityInstance) {
-        try { this.experimentParamSensitivityInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentParamSensitivityInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
         this.experimentParamSensitivityInstance = null
       }
       if (this.experimentChartsResizeHandler) {
@@ -5116,11 +5244,28 @@ export default {
         }
       })
     },
+    getExperimentTooltipPosition (point, params, dom, rect, size) {
+      const viewWidth = (size && size.viewSize && size.viewSize[0]) || 0
+      const viewHeight = (size && size.viewSize && size.viewSize[1]) || 0
+      const boxWidth = (size && size.contentSize && size.contentSize[0]) || 220
+      const boxHeight = (size && size.contentSize && size.contentSize[1]) || 120
+      let x = point[0] + 14
+      let y = point[1] - boxHeight / 2
+      if (viewWidth && x + boxWidth + 8 > viewWidth) x = point[0] - boxWidth - 14
+      if (x < 8) x = 8
+      if (y < 8) y = 8
+      if (viewHeight && y + boxHeight + 8 > viewHeight) y = Math.max(8, viewHeight - boxHeight - 8)
+      return [x, y]
+    },
     renderExperimentConvergence () {
       const dom = this.$refs.experimentConvergenceChart
       if (!dom) return
       if (this.experimentConvergenceInstance) {
-        try { this.experimentConvergenceInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentConvergenceInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
       }
       this.experimentConvergenceInstance = echarts.init(dom)
       const dk = this.isDarkTheme
@@ -5135,9 +5280,15 @@ export default {
         backgroundColor: 'transparent',
         tooltip: {
           trigger: 'axis',
+          appendToBody: true,
+          confine: true,
+          borderWidth: 1,
+          padding: [8, 10],
+          extraCssText: 'z-index:3000;max-width:260px;white-space:normal;border-radius:8px;box-shadow:0 10px 28px rgba(15,23,42,0.18);pointer-events:none;',
+          position: this.getExperimentTooltipPosition,
           backgroundColor: dk ? '#1f1f1f' : '#fff',
           borderColor: dk ? '#434343' : '#ddd',
-          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12 },
+          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12, lineHeight: 18 },
           formatter: (params) => {
             const idx = (params && params[0] && params[0].dataIndex) || 0
             const row = rows[idx] || {}
@@ -5149,7 +5300,7 @@ export default {
             </div>`
           }
         },
-        grid: { left: 42, right: 18, top: 20, bottom: 34 },
+        grid: { left: 44, right: 30, top: 24, bottom: 40, containLabel: true },
         xAxis: {
           type: 'category',
           data: rows.map(r => String(r.index)),
@@ -5194,7 +5345,11 @@ export default {
       const dom = this.$refs.experimentOosMatrixChart
       if (!dom) return
       if (this.experimentOosMatrixInstance) {
-        try { this.experimentOosMatrixInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentOosMatrixInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
       }
       this.experimentOosMatrixInstance = echarts.init(dom)
       const dk = this.isDarkTheme
@@ -5224,9 +5379,15 @@ export default {
         backgroundColor: 'transparent',
         tooltip: {
           trigger: 'item',
+          appendToBody: true,
+          confine: true,
+          borderWidth: 1,
+          padding: [8, 10],
+          extraCssText: 'z-index:3000;max-width:260px;white-space:normal;border-radius:8px;box-shadow:0 10px 28px rgba(15,23,42,0.18);pointer-events:none;',
+          position: this.getExperimentTooltipPosition,
           backgroundColor: dk ? '#1f1f1f' : '#fff',
           borderColor: dk ? '#434343' : '#ddd',
-          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12 },
+          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12, lineHeight: 18 },
           formatter: (p) => {
             const m = (p.data && p.data._meta) || {}
             return `<div style="min-width:170px;">
@@ -5238,7 +5399,7 @@ export default {
             </div>`
           }
         },
-        grid: { left: 42, right: 18, top: 22, bottom: 38 },
+        grid: { left: 48, right: 36, top: 28, bottom: 46, containLabel: true },
         xAxis: {
           type: 'value',
           name: 'IS',
@@ -5275,7 +5436,11 @@ export default {
       const dom = this.$refs.experimentParamSensitivityChart
       if (!dom) return
       if (this.experimentParamSensitivityInstance) {
-        try { this.experimentParamSensitivityInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentParamSensitivityInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
       }
       this.experimentParamSensitivityInstance = echarts.init(dom)
       const dk = this.isDarkTheme
@@ -5292,9 +5457,15 @@ export default {
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'shadow' },
+          appendToBody: true,
+          confine: true,
+          borderWidth: 1,
+          padding: [8, 10],
+          extraCssText: 'z-index:3000;max-width:260px;white-space:normal;border-radius:8px;box-shadow:0 10px 28px rgba(15,23,42,0.18);pointer-events:none;',
+          position: this.getExperimentTooltipPosition,
           backgroundColor: dk ? '#1f1f1f' : '#fff',
           borderColor: dk ? '#434343' : '#ddd',
-          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12 },
+          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12, lineHeight: 18 },
           formatter: (params) => {
             const idx = (params && params[0] && params[0].dataIndex) || 0
             const row = plottedRows[idx] || {}
@@ -5308,7 +5479,7 @@ export default {
             </div>`
           }
         },
-        grid: { left: 108, right: 20, top: 18, bottom: 28 },
+        grid: { left: 116, right: 44, top: 24, bottom: 34, containLabel: true },
         xAxis: {
           type: 'value',
           axisLabel: { color: dk ? 'rgba(255,255,255,0.45)' : '#999', fontSize: 10 },
@@ -5346,7 +5517,11 @@ export default {
       const dom = this.$refs.experimentScatterChart
       if (!dom) return
       if (this.experimentScatterInstance) {
-        try { this.experimentScatterInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentScatterInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
       }
       this.experimentScatterInstance = echarts.init(dom)
       const dk = this.isDarkTheme
@@ -5384,9 +5559,15 @@ export default {
         backgroundColor: 'transparent',
         tooltip: {
           trigger: 'item',
+          appendToBody: true,
+          confine: true,
+          borderWidth: 1,
+          padding: [8, 10],
+          extraCssText: 'z-index:3000;max-width:260px;white-space:normal;border-radius:8px;box-shadow:0 10px 28px rgba(15,23,42,0.18);pointer-events:none;',
+          position: this.getExperimentTooltipPosition,
           backgroundColor: dk ? '#1f1f1f' : '#fff',
           borderColor: dk ? '#434343' : '#ddd',
-          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12 },
+          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12, lineHeight: 18 },
           formatter: (p) => {
             const m = (p.data && p.data._meta) || {}
             const translatedBestTag = m.isBest ? ` <span style="color:#f5a623;font-weight:600;">&#9733; ${this.$t('indicatorIde.analyticsRadarBest')}</span>` : ''
@@ -5399,12 +5580,12 @@ export default {
             </div>`
           }
         },
-        grid: { left: 52, right: 18, top: 20, bottom: 36 },
+        grid: { left: 58, right: 44, top: 28, bottom: 48, containLabel: true },
         xAxis: {
           type: 'value',
           name: this.$t('indicatorIde.maxDrawdown') + ' (%)',
           nameLocation: 'middle',
-          nameGap: 24,
+          nameGap: 30,
           nameTextStyle: { color: dk ? 'rgba(255,255,255,0.55)' : '#666', fontSize: 11 },
           min: 0,
           max: Math.ceil(xMax),
@@ -5416,7 +5597,7 @@ export default {
           type: 'value',
           name: this.$t('indicatorIde.totalReturn') + ' (%)',
           nameLocation: 'middle',
-          nameGap: 38,
+          nameGap: 46,
           nameTextStyle: { color: dk ? 'rgba(255,255,255,0.55)' : '#666', fontSize: 11 },
           min: Math.floor(yMin),
           max: Math.ceil(yMax),
@@ -5451,7 +5632,11 @@ export default {
       const dom = this.$refs.experimentRadarChart
       if (!dom) return
       if (this.experimentRadarInstance) {
-        try { this.experimentRadarInstance.dispose() } catch { /* ignore */ }
+        try {
+          this.experimentRadarInstance.dispose()
+        } catch (_) {
+          // Ignore chart disposal errors.
+        }
       }
       this.experimentRadarInstance = echarts.init(dom)
       const dk = this.isDarkTheme
@@ -5483,9 +5668,15 @@ export default {
         backgroundColor: 'transparent',
         tooltip: {
           trigger: 'item',
+          appendToBody: true,
+          confine: true,
+          borderWidth: 1,
+          padding: [8, 10],
+          extraCssText: 'z-index:3000;max-width:260px;white-space:normal;border-radius:8px;box-shadow:0 10px 28px rgba(15,23,42,0.18);pointer-events:none;',
+          position: this.getExperimentTooltipPosition,
           backgroundColor: dk ? '#1f1f1f' : '#fff',
           borderColor: dk ? '#434343' : '#ddd',
-          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12 }
+          textStyle: { color: dk ? 'rgba(255,255,255,0.88)' : '#333', fontSize: 12, lineHeight: 18 }
         },
         legend: {
           bottom: 4,
@@ -5496,8 +5687,8 @@ export default {
         },
         radar: {
           indicator,
-          radius: '62%',
-          center: ['50%', '48%'],
+          radius: '56%',
+          center: ['50%', '45%'],
           splitNumber: 4,
           axisName: {
             color: dk ? 'rgba(255,255,255,0.7)' : '#555',
@@ -5609,7 +5800,7 @@ export default {
         if (this.addSearchResults.length === 0) {
           this.addSelectedItem = { market: this.addMarketTab, symbol: this.addSearchKeyword.trim().toUpperCase(), name: '' }
         }
-      } catch {
+      } catch (_) {
         this.addSelectedItem = { market: this.addMarketTab, symbol: this.addSearchKeyword.trim().toUpperCase(), name: '' }
       } finally {
         this.addSearching = false
@@ -5720,7 +5911,6 @@ export default {
         this.backtestRunId = run.id
       }
 
-      this.resultTab = 'backtest'
       this.$nextTick(() => {
         setTimeout(() => {
           if (this.hasResult) {
@@ -5776,10 +5966,29 @@ export default {
         liquidation: '#D50000',
         other: '#78909C'
       }
+      const shortLabelByAction = {
+        openLong: 'L',
+        addLong: '+L',
+        closeLong: 'XL',
+        closeLongStop: 'SL',
+        closeLongProfit: 'TP',
+        closeLongTrailing: 'TR',
+        openShort: 'S',
+        addShort: '+S',
+        closeShort: 'XS',
+        closeShortStop: 'SL',
+        closeShortProfit: 'TP',
+        closeShortTrailing: 'TR',
+        liquidation: 'LQ',
+        other: 'X'
+      }
+      const shortFillLabel = shortLabelByAction[actionKey] || (isBuy ? 'L' : 'S')
       return {
         isBuy: isBuy || !isSell,
         fillLabel,
         signalLabel,
+        shortFillLabel,
+        shortSignalLabel: `${shortFillLabel}?`,
         color: colorByAction[actionKey] || (isBuy ? '#00E676' : '#FF5252')
       }
     },
@@ -5936,17 +6145,6 @@ export default {
       this.ensureChartReady()
       this.schedulePersistIdeUiState()
     },
-    resultTab (val) {
-      if (val === 'backtest' && this.hasResult) {
-        this.$nextTick(() => {
-          if (this.eqChartInstance) {
-            this.eqChartInstance.resize()
-          } else {
-            this.renderEquityChart()
-          }
-        })
-      }
-    },
     ideWorkspaceTab (val) {
       if (val === 'chart' && this.shouldShowBacktestMarkersOnChart()) {
         this.$nextTick(() => {
@@ -5977,8 +6175,7 @@ export default {
 .indicator-ide {
   display: flex;
   flex-direction: column;
-  /* 勿用 height:100% 依赖父级链：pro-layout 下父节点常无明确高度，会导致整页高度为 0 空白 */
-  min-height: calc(100vh - 64px);
+  min-height: var(--ide-shell-height, calc(100vh - 64px));
   height: auto;
   width: 100%;
   padding: 0;
@@ -5986,7 +6183,6 @@ export default {
   box-sizing: border-box;
 }
 
-// ===== Chart toolbar（原顶部按钮已迁入图表面板）=====
 .chart-panel-toolbar-top-actions {
   display: flex;
   align-items: center;
@@ -6044,14 +6240,14 @@ export default {
 }
 .ide-toolbar-select {
   min-width: 0;
-  /deep/ .ant-select-selection {
+  ::v-deep .ant-select-selection {
     border-radius: 8px;
     border-color: #e2e8f0;
     box-shadow: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
-  /deep/ .ant-select-selection:hover,
-  /deep/ .ant-select-focused .ant-select-selection {
+  ::v-deep .ant-select-selection:hover,
+  ::v-deep .ant-select-focused .ant-select-selection {
     border-color: @primary-color;
     box-shadow: 0 0 0 2px rgba(159, 232, 112, 0.22);
   }
@@ -6098,7 +6294,7 @@ export default {
 }
 .tf-group {
   flex-shrink: 0;
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     padding: 0 9px;
     font-size: 12px;
     height: 30px;
@@ -6106,17 +6302,17 @@ export default {
     border-color: #e2e8f0;
     color: #475569;
   }
-  /deep/ .ant-radio-button-wrapper:first-child {
+  ::v-deep .ant-radio-button-wrapper:first-child {
     border-radius: 8px 0 0 8px;
   }
-  /deep/ .ant-radio-button-wrapper:last-child {
+  ::v-deep .ant-radio-button-wrapper:last-child {
     border-radius: 0 8px 8px 0;
   }
 }
 .ide-tf-seg {
-  /deep/ .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
-    background: linear-gradient(135deg, #9fe870 0%, #7ccf49 100%);
-    border-color: #7ccf49 !important;
+  ::v-deep .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+    background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+    border-color: #096dd9 !important;
     color: #fff !important;
     box-shadow: 0 1px 4px rgba(159, 232, 112, 0.35);
     z-index: 1;
@@ -6126,7 +6322,6 @@ export default {
 // ===== Main =====
 .ide-main { display: flex; flex: 1 1 auto; overflow: visible; min-height: 0; align-items: stretch; }
 
-/* 代码栏收起：左侧竖条标签，点击展开（抽拉入口） */
 .ide-code-rail {
   flex: 0 0 32px;
   width: 32px;
@@ -6173,8 +6368,8 @@ export default {
   width: 30%;
   min-width: 280px;
   max-width: 400px;
-  height: calc(100vh - 64px - 8px);
-  max-height: calc(100vh - 64px - 8px);
+  height: calc(var(--ide-shell-height, calc(100vh - 64px)) - 8px);
+  max-height: calc(var(--ide-shell-height, calc(100vh - 64px)) - 8px);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -6315,7 +6510,7 @@ export default {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  /deep/ .ant-btn-sm {
+  ::v-deep .ant-btn-sm {
     width: 26px;
     height: 26px;
     padding: 0;
@@ -6370,14 +6565,14 @@ export default {
   &::-webkit-scrollbar { width: 5px; height: 5px; }
   &::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  /deep/ .CodeMirror {
+  ::v-deep .CodeMirror {
     height: 100%;
     font-size: 12px;
     font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
     line-height: 1.55;
   }
-  /deep/ .CodeMirror-vscrollbar,
-  /deep/ .CodeMirror-hscrollbar {
+  ::v-deep .CodeMirror-vscrollbar,
+  ::v-deep .CodeMirror-hscrollbar {
     &::-webkit-scrollbar { width: 5px; height: 5px; }
     &::-webkit-scrollbar-thumb { background: #c8c8c8; border-radius: 3px; }
     &::-webkit-scrollbar-track { background: transparent; }
@@ -6400,7 +6595,7 @@ export default {
   &:hover { background: #f5f7fa; }
 }
 .ai-gen-body { padding: 8px 10px 10px; }
-.ai-gen-body /deep/ .ai-prompt-input textarea {
+.ai-gen-body ::v-deep .ai-prompt-input textarea {
   min-height: 132px;
   line-height: 1.45;
 }
@@ -6541,10 +6736,8 @@ export default {
 
 // ===== Params =====
 .params-scroll {
-  /* 勿 flex:1：若外层变为 flex 列，会把整块参数区撑满视口，网格同行三卡被 stretch 成「高垫」、风控区被顶出首屏 */
   flex: none;
   min-height: 0;
-  /* 纵向滚动交给外层 .ide-backtest-scroll-mount，避免本层被撑高后 align-content:stretch 把网格行拉成「深井」 */
   overflow-x: hidden;
   overflow-y: visible;
   padding: 10px 12px;
@@ -6566,13 +6759,11 @@ export default {
   height: auto;
   max-height: none;
   overflow: hidden;
-  /* 避免 ant-row 在窄宽下 stretch 把整卡撑成与兄弟同高 */
-  /deep/ .ant-row {
+  ::v-deep .ant-row {
     align-items: flex-start;
   }
 }
 
-/* 回测参数：上三（等宽 1/3、等高）下一（风控全宽） */
 .params-layout {
   display: flex;
   flex-direction: column;
@@ -6636,7 +6827,7 @@ export default {
   font-size: 12px;
   font-weight: 700;
   color: #1e293b;
-  /deep/ .ant-tag {
+  ::v-deep .ant-tag {
     margin: 0;
     line-height: 18px;
     font-size: 10px;
@@ -6656,13 +6847,12 @@ export default {
 }
 
 .direction-radio-group {
-  /* 用网格等分三钮，避免 flex:1 + min-width 在窄侧栏里把同行其它 grid 列挤没 */
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
   min-width: 0;
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     flex: none !important;
     min-width: 0 !important;
     text-align: center;
@@ -6688,7 +6878,7 @@ export default {
     }
     .anticon { margin-right: 3px; }
   }
-  /deep/ .ant-radio-button-wrapper-checked {
+  ::v-deep .ant-radio-button-wrapper-checked {
     color: #fff !important;
     border-color: transparent !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
@@ -6721,14 +6911,13 @@ export default {
 }
 .strategy-directives-alert {
   margin-bottom: 10px;
-  /* show-icon + closable：勿用对称 padding 覆盖 Ant 默认，否则图标会与标题重叠 */
   padding: 10px 30px 10px 48px !important;
-  /deep/ .ant-alert-message {
+  ::v-deep .ant-alert-message {
     font-size: 12px;
     font-weight: 600;
     padding-left: 0;
   }
-  /deep/ .ant-alert-description { font-size: 11.5px; line-height: 1.55; }
+  ::v-deep .ant-alert-description { font-size: 11.5px; line-height: 1.55; }
 }
 .strategy-directives-doc-link {
   display: inline-block;
@@ -6800,7 +6989,7 @@ export default {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  /deep/ .ant-btn-sm {
+  ::v-deep .ant-btn-sm {
     border-radius: 999px;
     padding: 0 12px;
     height: 28px;
@@ -6809,14 +6998,13 @@ export default {
     border-color: #e2e8f0;
     color: #475569;
   }
-  /deep/ .ant-btn-primary.ant-btn-sm {
+  ::v-deep .ant-btn-primary.ant-btn-sm {
     border-color: transparent;
     background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
     box-shadow: 0 2px 6px rgba(24, 144, 255, 0.28);
   }
 }
 
-/* 极窄视口：方向三钮改竖排（仍基于 viewport；侧栏极窄时由 grid minmax 已保证日期/资金先换行） */
 @media (max-width: 360px) {
   .direction-radio-group {
     grid-template-columns: 1fr;
@@ -6835,13 +7023,11 @@ export default {
 .ide-right--workspace {
   min-height: 0;
   overflow: hidden;
-  /* 勿 align-self:flex-start：在 ide-main 行 flex 里会按「子内容高度」收缩，回测 Tab 内 flex 链易塌成 0 */
   align-self: stretch;
   flex: 1 1 0;
-  height: calc(100vh - 64px - 8px);
-  max-height: calc(100vh - 64px - 8px);
+  height: calc(var(--ide-shell-height, calc(100vh - 64px)) - 8px);
+  max-height: calc(var(--ide-shell-height, calc(100vh - 64px)) - 8px);
 }
-/* 根节点同时带 .ide-workspace-tabs 与 .ant-tabs，勿用 /deep/ .ant-tabs 仅匹配子级 */
 .ide-workspace-tabs {
   flex: 1 1 0;
   display: flex;
@@ -6849,15 +7035,13 @@ export default {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  /* vc-tabs 在 bar 与内容区之间插入了 Sentinel，.ant-tabs-content 不是根的直接子元素，不能用 `> .ant-tabs-content`。 */
-  /* 外层工作区为 type="card"，内容根节点带 .ant-tabs-card-content；内层 result-tabs 为 line，无此类名，不会误伤。 */
   & > {
-    /deep/ .ant-tabs-bar {
+    ::v-deep .ant-tabs-bar {
       flex-shrink: 0;
       margin-bottom: 0;
     }
   }
-  /deep/ .ant-tabs-card-content {
+  ::v-deep .ant-tabs-card-content {
     flex: 1 1 0;
     min-height: 0;
     overflow: hidden;
@@ -6877,7 +7061,6 @@ export default {
     }
   }
 }
-/* 回测 Tab：参与 flex 高度链，由本层 overflow-y:auto 产生滚动条 */
 .ide-backtest-scroll-mount {
   flex: 1 1 0;
   min-height: 120px;
@@ -6891,8 +7074,7 @@ export default {
   flex-direction: column;
   box-sizing: border-box;
 }
-/* 仅最外层「回测」工作区 tabpane（勿命中 result-tabs 内层 tabpane） */
-.ide-workspace-tabs /deep/ .ant-tabs-card-content > .ant-tabs-tabpane-active:has(.ide-backtest-scroll-mount) {
+.ide-workspace-tabs ::v-deep .ant-tabs-card-content > .ant-tabs-tabpane-active:has(.ide-backtest-scroll-mount) {
   flex: 1 1 0 !important;
   min-height: 0 !important;
   display: flex !important;
@@ -6942,14 +7124,11 @@ export default {
     // K-line timeframe segmented control: size to its 8 buttons only and stop
     // there. Previously this had `flex: 1 1 280px` which let it grow without
     // bound, squashing the indicator picker on its right (reported by users
-    // who saw "1m 5m 15m … 1W" stretch across half the toolbar).
     .ide-toolbar-group--tf {
       flex: 0 0 auto;
       min-width: 0;
       max-width: 100%;
     }
-    // Give the indicator picker the leftover space instead — that's the one
-    // that needs room to show long indicator names like "通道突破点·图表 1 个".
     .ide-toolbar-group--indicator {
       flex: 1 1 280px;
       min-width: 220px;
@@ -6974,13 +7153,12 @@ export default {
     display: inline-flex;
     flex-wrap: nowrap;
     overflow-x: auto;
-    // No more `max-width: 100%` — we want the segmented control to size to
     // its content (~360px for 8 buttons) so it stops claiming flex space
     // that the indicator picker needs.
     width: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
-    /deep/ .ant-radio-button-wrapper {
+    ::v-deep .ant-radio-button-wrapper {
       flex-shrink: 0;
     }
   }
@@ -6998,22 +7176,21 @@ body.realdark .backtest-panel-toolbar {
   padding-bottom: 16px;
 }
 
-/* 右侧「图表 / 回测」工作区 Tab：浅色卡片条（bar 为根下第一子；内容区用 card-content，避免 Sentinel 导致选不中） */
 .ide-workspace-tabs.ide-workspace-tabs--pill {
   padding: 0 10px 0;
   & > {
-    /deep/ .ant-tabs-bar {
+    ::v-deep .ant-tabs-bar {
       border-bottom: 1px solid #e8e8e8;
       margin: 0 0 0;
       padding: 8px 0 0;
       background: linear-gradient(180deg, #fafbfc 0%, #f4f6f9 100%);
-      /deep/ .ant-tabs-nav-container {
+      ::v-deep .ant-tabs-nav-container {
         height: auto !important;
       }
-      /deep/ .ant-tabs-nav-wrap {
+      ::v-deep .ant-tabs-nav-wrap {
         margin-bottom: 0;
       }
-      /deep/ .ant-tabs-tab {
+      ::v-deep .ant-tabs-tab {
         margin: 0 4px 0 0 !important;
         padding: 7px 18px !important;
         height: auto !important;
@@ -7031,7 +7208,7 @@ body.realdark .backtest-panel-toolbar {
           background: #f8fafc !important;
         }
       }
-      /deep/ .ant-tabs-tab-active {
+      ::v-deep .ant-tabs-tab-active {
         color: @primary-color !important;
         background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%) !important;
         border-color: #bae0ff !important;
@@ -7039,17 +7216,17 @@ body.realdark .backtest-panel-toolbar {
         position: relative;
         z-index: 1;
       }
-      /deep/ .ant-tabs-nav .ant-tabs-tab {
+      ::v-deep .ant-tabs-nav .ant-tabs-tab {
         &:last-child {
           margin-right: 0 !important;
         }
       }
-      /deep/ .ant-tabs-ink-bar {
+      ::v-deep .ant-tabs-ink-bar {
         display: none !important;
       }
     }
   }
-  /deep/ .ant-tabs-card-content {
+  ::v-deep .ant-tabs-card-content {
     border-radius: 0 0 10px 10px;
     background: #fff;
     border: 1px solid #e8e8e8;
@@ -7058,7 +7235,6 @@ body.realdark .backtest-panel-toolbar {
   }
 }
 
-/* 闪电交易：主布局内右侧栏，与 .ide-left 同为抽拉分栏（无全屏遮罩） */
 .ide-quick-right {
   width: 30%;
   min-width: 280px;
@@ -7110,26 +7286,26 @@ body.realdark .backtest-panel-toolbar {
   overflow-x: hidden;
   overflow-y: auto;
   padding: 0 0 8px;
-  /deep/ .quick-trade-panel-root {
+  ::v-deep .quick-trade-panel-root {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
-  /deep/ .quick-trade-embedded {
+  ::v-deep .quick-trade-embedded {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
   }
-  /deep/ .qt-embedded-split--cols {
+  ::v-deep .qt-embedded-split--cols {
     flex-direction: column;
     padding-left: 12px;
     padding-right: 12px;
   }
-  /deep/ .qt-embedded-split--cols .qt-embedded-col-left,
-  /deep/ .qt-embedded-split--cols .qt-embedded-col-right {
+  ::v-deep .qt-embedded-split--cols .qt-embedded-col-left,
+  ::v-deep .qt-embedded-split--cols .qt-embedded-col-right {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -7137,7 +7313,7 @@ body.realdark .backtest-panel-toolbar {
     padding-right: 0;
     margin-left: 0;
   }
-  /deep/ .qt-embedded-split--cols .qt-embedded-col-right {
+  ::v-deep .qt-embedded-split--cols .qt-embedded-col-right {
     border-left: none;
     border-top: 1px solid rgba(15, 23, 42, 0.08);
     padding-top: 12px;
@@ -7152,7 +7328,6 @@ body.realdark .backtest-panel-toolbar {
   overflow: hidden;
   background: #fff;
   align-self: stretch;
-  /* 高于下方回测区，避免同列层叠时盖住闪电交易侧栏内的浮层（与 body 下拉高 z-index 配合） */
   position: relative;
   z-index: 3;
   &.ide-panel--fullscreen {
@@ -7263,7 +7438,7 @@ body.realdark .backtest-panel-toolbar {
     width: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
-    /deep/ .ant-radio-button-wrapper {
+    ::v-deep .ant-radio-button-wrapper {
       flex-shrink: 0;
     }
   }
@@ -7287,14 +7462,14 @@ body.realdark .backtest-panel-toolbar {
     flex-direction: column;
     overflow: hidden;
   }
-  /deep/ .chart-left,
-  /deep/ .chart-wrapper,
-  /deep/ .chart-content-area,
-  /deep/ .kline-chart-container {
+  ::v-deep .chart-left,
+  ::v-deep .chart-wrapper,
+  ::v-deep .chart-content-area,
+  ::v-deep .kline-chart-container {
     height: 100% !important;
     min-height: 0 !important;
   }
-  /deep/ .chart-left {
+  ::v-deep .chart-left {
     width: 100% !important;
     flex: 1 1 100% !important;
     border-right: none !important;
@@ -7317,45 +7492,60 @@ body.realdark .backtest-panel-toolbar {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin: 12px 0;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 12px;
-  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 28px rgba(15, 23, 42, 0.06);
+  margin: 12px 0 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
   overflow: hidden;
   min-height: 0;
 }
-.params-card-header {
+.params-card-header,
+.workbench-panel-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 14px;
+  min-height: 46px;
+  padding: 10px 16px;
   cursor: pointer;
   user-select: none;
-  background: linear-gradient(135deg, rgba(24, 144, 255, 0.07) 0%, rgba(24, 144, 255, 0.02) 100%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.08) 0%, rgba(15, 23, 42, 0.02) 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   transition: background 0.15s;
-  &:hover { background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(24, 144, 255, 0.03) 100%); }
+  &:hover { background: linear-gradient(135deg, rgba(24, 144, 255, 0.11) 0%, rgba(15, 23, 42, 0.03) 100%); }
 }
-.params-card-title {
+.workbench-panel-header {
+  cursor: default;
+}
+.params-card-title,
+.workbench-panel-title {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
   color: #1e293b;
-  /deep/ .anticon { color: @primary-color; font-size: 15px; }
+  ::v-deep .anticon { color: @primary-color; font-size: 15px; }
+}
+.workbench-panel-meta {
+  min-width: 0;
+  max-width: 58%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #64748b;
 }
 .params-card-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  /deep/ .ant-btn-sm {
+  ::v-deep .ant-btn-sm {
     border-radius: 8px;
     font-weight: 600;
   }
-  /deep/ .ant-btn-primary.ant-btn-sm {
+  ::v-deep .ant-btn-primary.ant-btn-sm {
     box-shadow: 0 2px 8px rgba(24, 144, 255, 0.28);
   }
   > .anticon {
@@ -7374,14 +7564,14 @@ body.realdark .backtest-panel-toolbar {
   display: flex;
   flex-direction: column;
   overflow: visible;
-  /deep/ .ant-tabs {
+  ::v-deep .ant-tabs {
     display: flex;
     flex-direction: column;
     flex: 0 0 auto;
     min-height: 0;
     overflow: visible;
   }
-  /deep/ .ant-tabs-bar {
+  ::v-deep .ant-tabs-bar {
     margin-bottom: 0;
     flex-shrink: 0;
     background: linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%);
@@ -7391,7 +7581,7 @@ body.realdark .backtest-panel-toolbar {
     padding: 8px 12px 0;
     z-index: 2;
   }
-  /deep/ .ant-tabs-tab {
+  ::v-deep .ant-tabs-tab {
     font-size: 13px;
     font-weight: 600;
     margin: 0 6px 0 0 !important;
@@ -7399,12 +7589,11 @@ body.realdark .backtest-panel-toolbar {
     border-radius: 8px 8px 0 0 !important;
     transition: color 0.15s, background 0.15s;
   }
-  /deep/ .ant-tabs-tab-active {
+  ::v-deep .ant-tabs-tab-active {
     background: #fff !important;
     color: @primary-color !important;
   }
-  /* 外层 ide-backtest-scroll-mount 负责纵向滚动；内层按内容高度即可，勿 flex:1 撑在 auto 父级上（易变成 0 高） */
-  /deep/ .ant-tabs-content {
+  ::v-deep .ant-tabs-content {
     flex: 0 0 auto;
     min-height: auto;
     overflow: visible;
@@ -7453,6 +7642,308 @@ body.realdark .backtest-panel-toolbar {
     &.positive .metric-value { color: #52c41a; }
     &.negative .metric-value { color: #f5222d; }
   }
+}
+.result-data--workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.result-split-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.result-split-panel {
+  min-width: 0;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+.workbench-panel-body {
+  padding: 14px 16px 16px;
+}
+.result-split-panel--optimizer {
+  position: sticky;
+  top: 12px;
+}
+.result-split-panel--optimizer .experiment-panel,
+.result-split-panel--optimizer .ide-tuning-launch {
+  margin-bottom: 0;
+}
+.backtest-workbench {
+  display: block;
+}
+.backtest-workbench-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.backtest-overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.backtest-overview-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  color: @primary-color;
+  margin-bottom: 4px;
+}
+.backtest-overview-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+.backtest-overview-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #64748b;
+}
+.backtest-overview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.metrics-grid--workbench {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)) !important;
+}
+.backtest-quality-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.backtest-quality-strip__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+.backtest-quality-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(100, 116, 139, 0.18);
+  background: #fff;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: default;
+  strong {
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
+}
+.backtest-quality-chip--good {
+  border-color: rgba(22, 163, 74, 0.22);
+  background: rgba(22, 163, 74, 0.08);
+  color: #15803d;
+  strong { color: #15803d; }
+}
+.backtest-quality-chip--warn {
+  border-color: rgba(217, 119, 6, 0.24);
+  background: rgba(217, 119, 6, 0.09);
+  color: #b45309;
+  strong { color: #b45309; }
+}
+.backtest-quality-chip--danger {
+  border-color: rgba(220, 38, 38, 0.22);
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+  strong { color: #b91c1c; }
+}
+.backtest-quality-chip--neutral {
+  border-color: rgba(100, 116, 139, 0.18);
+  background: rgba(100, 116, 139, 0.08);
+  color: #64748b;
+}
+.backtest-result-tabs {
+  margin-top: 2px;
+  ::v-deep .ant-tabs-bar {
+    margin-bottom: 12px;
+    border-bottom-color: #e5e7eb;
+  }
+  ::v-deep .ant-tabs-tab {
+    font-weight: 600;
+    padding: 8px 12px !important;
+  }
+}
+.eq-section--hero {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.equity-chart--large {
+  height: 260px;
+}
+.benchmark-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.benchmark-summary-card {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  span {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+  strong {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
+  &.positive strong { color: #16a34a; }
+  &.negative strong { color: #dc2626; }
+}
+.chart-focus-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+.chart-focus-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: @primary-color;
+  background: rgba(24, 144, 255, 0.08);
+  flex-shrink: 0;
+}
+.chart-focus-body {
+  flex: 1;
+  min-width: 0;
+}
+.chart-focus-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.chart-focus-desc {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+.backtest-marker-legend--compact {
+  margin: 10px 0 0;
+}
+.trades-section--workbench {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.diagnostics-section {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.diagnostic-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+.diagnostic-card-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+  flex-shrink: 0;
+}
+.diagnostic-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  span { font-size: 12px; color: #64748b; font-weight: 600; }
+  strong { font-size: 18px; color: #0f172a; font-variant-numeric: tabular-nums; }
+  small { font-size: 11px; line-height: 1.45; color: #94a3b8; }
+}
+.diagnostic-card--good .diagnostic-card-icon { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
+.diagnostic-card--warn .diagnostic-card-icon { color: #d97706; background: rgba(217, 119, 6, 0.12); }
+.diagnostic-card--danger .diagnostic-card-icon { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+.backtest-sidecar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 12px;
+}
+.backtest-sidecar-card {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+.backtest-sidecar-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.backtest-sidecar-desc {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #64748b;
+}
+.backtest-sidecar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
 }
 .ai-optimize-card {
   margin-top: 16px;
@@ -7545,7 +8036,7 @@ body.realdark .backtest-panel-toolbar {
 .equity-chart { width: 100%; height: 200px; border-radius: 8px; }
 
 .ide-tuning-launch {
-  padding: 18px 20px 26px;
+  padding: 0;
 }
 .ide-tuning-launch-header {
   display: flex;
@@ -7581,6 +8072,44 @@ body.realdark .backtest-panel-toolbar {
   margin-top: 2px;
   line-height: 1.5;
 }
+.optimizer-workflow {
+  margin-bottom: 16px;
+}
+.optimizer-workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.optimizer-workflow-step--method {
+  margin: 16px 0 10px;
+  padding-top: 14px;
+  border-top: 1px dashed #e5e7eb;
+}
+.optimizer-step-index {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: @primary-color;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.optimizer-step-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.optimizer-step-desc {
+  margin-top: 1px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.45;
+}
 .ide-tuning-method-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
@@ -7604,31 +8133,31 @@ body.realdark .backtest-panel-toolbar {
 .ide-tuning-method-cards--single {
   grid-template-columns: 1fr;
 }
-.ide-tune-mode-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed #ececec;
+@media (max-width: 1280px) {
+  .result-split-workbench {
+    grid-template-columns: 1fr;
+  }
+  .result-split-panel--optimizer {
+    position: static;
+  }
 }
-.ide-tune-mode-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
-  flex-shrink: 0;
-}
-.ide-tune-mode-select {
-  min-width: 140px;
-  flex-shrink: 0;
-}
-.ide-tune-mode-desc {
-  flex: 1 1 240px;
-  min-width: 0;
-  font-size: 11px;
-  color: #8c8c8c;
-  line-height: 1.5;
+
+@media (max-width: 900px) {
+  .backtest-overview-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .backtest-overview-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .benchmark-summary-grid,
+  .diagnostic-grid {
+    grid-template-columns: 1fr;
+  }
+  .result-split-panel {
+    padding: 10px;
+  }
 }
 .ide-tuning-method-card-head {
   display: flex;
@@ -7658,7 +8187,7 @@ body.realdark .backtest-panel-toolbar {
   align-items: center;
   gap: 8px;
   padding-top: 4px;
-  /deep/ .ant-btn {
+  ::v-deep .ant-btn {
     border-radius: 8px;
     font-weight: 600;
   }
@@ -7728,6 +8257,17 @@ body.realdark .backtest-panel-toolbar {
 }
 .ide-tune-pill-label {
   white-space: nowrap;
+}
+.ide-tune-pills--five .ide-tune-pill {
+  min-height: 42px;
+}
+.ide-tune-pill--ai {
+  flex-basis: 100%;
+}
+.ide-tune-pill--ai:not(.active) {
+  border-color: rgba(24, 144, 255, 0.35);
+  color: #1677ff;
+  background: rgba(24, 144, 255, 0.04);
 }
 .ide-tune-dimensions {
   margin-top: 10px;
@@ -7943,6 +8483,16 @@ body.realdark .backtest-panel-toolbar {
 .ide-tune-run-btn {
   flex-shrink: 0;
   font-weight: 500;
+  min-width: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff !important;
+
+  span,
+  i {
+    color: inherit !important;
+  }
 }
 .ide-tune-method-badge--ai {
   /* Same neutral badge as the structured one. */
@@ -8033,7 +8583,7 @@ body.realdark .backtest-panel-toolbar {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  /deep/ .ant-btn {
+  ::v-deep .ant-btn {
     border-radius: 6px;
   }
 }
@@ -8042,11 +8592,11 @@ body.realdark .backtest-panel-toolbar {
 }
 .structured-tune-row {
   width: 100%;
-  /deep/ .ant-radio-group {
+  ::v-deep .ant-radio-group {
     display: flex;
     width: 100%;
   }
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-radio-button-wrapper {
     flex: 1;
     text-align: center;
     padding: 0 4px;
@@ -8090,7 +8640,7 @@ body.realdark .backtest-panel-toolbar {
 }
 .experiment-family-tags {
   margin-top: 10px;
-  /deep/ .ant-tag {
+  ::v-deep .ant-tag {
     margin-bottom: 6px;
     border-radius: 999px;
   }
@@ -8106,7 +8656,7 @@ body.realdark .backtest-panel-toolbar {
   .experiment-weights-label {
     margin-right: 4px;
   }
-  /deep/ .ant-tag {
+  ::v-deep .ant-tag {
     margin: 2px 0;
     border-radius: 4px;
   }
@@ -8227,7 +8777,7 @@ body.realdark .backtest-panel-toolbar {
 }
 .experiment-override-tags {
   margin-top: 12px;
-  /deep/ .ant-tag {
+  ::v-deep .ant-tag {
     margin-bottom: 6px;
     border-radius: 999px;
   }
@@ -8472,31 +9022,41 @@ body.realdark .backtest-panel-toolbar {
   display: flex;
   flex-direction: column;
   min-height: 280px;
+  overflow: visible;
 }
 .experiment-analytics-head {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  min-width: 0;
   i {
     color: #1890ff;
     font-size: 14px;
+    flex: 0 0 auto;
   }
 }
 .experiment-analytics-title {
   font-size: 13px;
   font-weight: 700;
   color: #1f1f1f;
+  flex: 0 0 auto;
 }
 .experiment-analytics-sub {
   margin-left: auto;
   font-size: 11px;
   color: #8c8c8c;
+  max-width: 56%;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .experiment-analytics-chart {
   flex: 1;
   width: 100%;
-  min-height: 240px;
+  min-height: 260px;
 }
 .experiment-detail-header {
   display: flex;
@@ -8507,7 +9067,7 @@ body.realdark .backtest-panel-toolbar {
 .experiment-detail-actions {
   display: flex;
   gap: 8px;
-  /deep/ .ant-btn {
+  ::v-deep .ant-btn {
     border-radius: 6px;
   }
 }
@@ -8699,15 +9259,15 @@ body.realdark .backtest-panel-toolbar {
 
 .add-item-active { background: #e6f7ff !important; }
 
-.date-presets /deep/ .ant-btn-primary,
-.date-presets /deep/ .ant-btn-primary:hover,
-.date-presets /deep/ .ant-btn-primary:focus,
-.date-presets /deep/ .ant-btn-primary:active {
+.date-presets ::v-deep .ant-btn-primary,
+.date-presets ::v-deep .ant-btn-primary:hover,
+.date-presets ::v-deep .ant-btn-primary:focus,
+.date-presets ::v-deep .ant-btn-primary:active {
   color: #fff;
 }
 
 // ===== Watchlist option (selected value in toolbar) =====
-/deep/ .wl-opt-tag {
+::v-deep .wl-opt-tag {
   display: inline-block;
   font-size: 10px;
   font-weight: 600;
@@ -8718,14 +9278,14 @@ body.realdark .backtest-panel-toolbar {
   margin-right: 4px;
   vertical-align: middle;
 }
-/deep/ .wl-mkt-crypto { background: #fa8c16; }
-/deep/ .wl-mkt-usstock { background: #9fe870; }
-/deep/ .wl-mkt-cnstock { background: #eb2f96; }
-/deep/ .wl-mkt-hkstock { background: #f5222d; }
-/deep/ .wl-mkt-forex { background: #52c41a; }
-/deep/ .wl-mkt-futures { background: #722ed1; }
-/deep/ .wl-opt-symbol { font-weight: 600; font-size: 12px; }
-/deep/ .wl-opt-name { color: #8c8c8c; font-size: 10px; margin-left: 3px; }
+::v-deep .wl-mkt-crypto { background: #fa8c16; }
+::v-deep .wl-mkt-usstock { background: #1890ff; }
+::v-deep .wl-mkt-cnstock { background: #eb2f96; }
+::v-deep .wl-mkt-hkstock { background: #f5222d; }
+::v-deep .wl-mkt-forex { background: #52c41a; }
+::v-deep .wl-mkt-futures { background: #722ed1; }
+::v-deep .wl-opt-symbol { font-weight: 600; font-size: 12px; }
+::v-deep .wl-opt-name { color: #8c8c8c; font-size: 10px; margin-left: 3px; }
 
 // ===== Dark Theme =====
 &.theme-dark {
@@ -8756,11 +9316,11 @@ body.realdark .backtest-panel-toolbar {
     color: #9fe870;
   }
   .ide-workspace-tabs.ide-workspace-tabs--pill {
-    /deep/ .ant-tabs-bar {
+    ::v-deep .ant-tabs-bar {
       border-bottom-color: #303030;
       background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
     }
-    /deep/ .ant-tabs-tab {
+    ::v-deep .ant-tabs-tab {
       border-color: #363636 !important;
       border-bottom: none !important;
       background: #1f1f1f !important;
@@ -8770,13 +9330,13 @@ body.realdark .backtest-panel-toolbar {
         background: #262626 !important;
       }
     }
-    /deep/ .ant-tabs-tab-active {
+    ::v-deep .ant-tabs-tab-active {
       color: #58a6ff !important;
       background: linear-gradient(180deg, #252525 0%, rgba(23, 125, 220, 0.12) 100%) !important;
       border-color: #177ddc !important;
       box-shadow: 0 -2px 14px rgba(23, 125, 220, 0.22);
     }
-    /deep/ .ant-tabs-card-content {
+    ::v-deep .ant-tabs-card-content {
       background: #141414;
       border-color: #303030;
       border-top: none;
@@ -8796,7 +9356,7 @@ body.realdark .backtest-panel-toolbar {
     box-shadow: none;
   }
   .ide-toolbar-label { color: rgba(255, 255, 255, 0.45); }
-  .tf-group /deep/ .ant-radio-button-wrapper {
+  .tf-group ::v-deep .ant-radio-button-wrapper {
     background: #262626;
     border-color: #434343;
     color: rgba(255, 255, 255, 0.65);
@@ -8856,7 +9416,7 @@ body.realdark .backtest-panel-toolbar {
     }
   }
   .ide-quick-panel-body {
-    /deep/ .qt-embedded-split--cols .qt-embedded-col-right {
+    ::v-deep .qt-embedded-split--cols .qt-embedded-col-right {
       border-top-color: #303030;
     }
   }
@@ -8878,15 +9438,6 @@ body.realdark .backtest-panel-toolbar {
   }
   .ide-tuning-method-card--ai {
     /* Inherit base dark card style. */
-  }
-  .ide-tune-mode-row {
-    border-bottom-color: #303030;
-  }
-  .ide-tune-mode-label {
-    color: rgba(255, 255, 255, 0.85);
-  }
-  .ide-tune-mode-desc {
-    color: rgba(255, 255, 255, 0.45);
   }
   .ide-tuning-method-icon {
     color: rgba(255, 255, 255, 0.65);
@@ -8917,53 +9468,103 @@ body.realdark .backtest-panel-toolbar {
   .param-section { border-bottom-color: #303030; }
   .param-label { color: rgba(255,255,255,0.78); }
   .field-label { color: rgba(255,255,255,0.58); }
-  .result-tabs /deep/ .ant-tabs-bar {
+  .result-tabs ::v-deep .ant-tabs-bar {
     background: linear-gradient(180deg, #1f1f1f 0%, #181818 100%);
     border-color: #303030;
     border-bottom: none;
   }
-  .result-tabs /deep/ .ant-tabs-tab {
+  .result-tabs ::v-deep .ant-tabs-tab {
     color: rgba(255, 255, 255, 0.55) !important;
   }
-  .result-tabs /deep/ .ant-tabs-tab-active {
+  .result-tabs ::v-deep .ant-tabs-tab-active {
     background: #1a1a1a !important;
     color: #58a6ff !important;
     border-color: #303030 !important;
   }
-  .result-tabs /deep/ .ant-tabs-content {
+  .result-tabs ::v-deep .ant-tabs-content {
     background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
     border-color: #303030;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     &::-webkit-scrollbar-thumb { background: #434343; }
   }
-  .params-card {
-    background: linear-gradient(165deg, #262626 0%, #1f1f1f 100%);
-    border-color: #363636;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  .result-split-panel,
+  .backtest-overview-head,
+  .eq-section--hero,
+  .backtest-quality-strip,
+  .backtest-quality-chip,
+  .benchmark-summary-card,
+  .trades-section--workbench,
+  .diagnostics-section,
+  .diagnostic-card {
+    background: #1f1f1f;
+    border-color: #303030;
   }
-  .params-card-header {
+  .backtest-overview-title,
+  .diagnostic-card-body strong,
+  .backtest-quality-chip strong,
+  .benchmark-summary-card strong,
+  .optimizer-step-title {
+    color: rgba(255, 255, 255, 0.88);
+  }
+  .backtest-quality-strip__title,
+  .backtest-quality-chip {
+    color: rgba(255, 255, 255, 0.62);
+  }
+  .backtest-quality-chip--good,
+  .backtest-quality-chip--good strong { color: #3fb950; }
+  .backtest-quality-chip--warn,
+  .backtest-quality-chip--warn strong { color: #f59e0b; }
+  .backtest-quality-chip--danger,
+  .backtest-quality-chip--danger strong { color: #ff7b72; }
+  .backtest-quality-chip--neutral,
+  .backtest-quality-chip--neutral strong { color: rgba(255, 255, 255, 0.55); }
+  .backtest-overview-desc,
+  .optimizer-step-desc,
+  .diagnostic-card-body small,
+  .benchmark-summary-card span {
+    color: rgba(255, 255, 255, 0.48);
+  }
+  .diagnostic-card-body span {
+    color: rgba(255, 255, 255, 0.58);
+  }
+  .optimizer-workflow-step--method {
+    border-top-color: #303030;
+  }
+  .params-card {
+    background: #1f1f1f;
+    border-color: #303030;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  }
+  .params-card-header,
+  .workbench-panel-header {
     background: linear-gradient(135deg, rgba(23, 125, 220, 0.12) 0%, rgba(23, 125, 220, 0.04) 100%);
     border-bottom-color: #303030;
     &:hover {
       background: linear-gradient(135deg, rgba(23, 125, 220, 0.16) 0%, rgba(23, 125, 220, 0.06) 100%);
     }
   }
-  .params-card-title { color: rgba(255,255,255,0.88); }
+  .workbench-panel-header:hover {
+    background: linear-gradient(135deg, rgba(23, 125, 220, 0.12) 0%, rgba(23, 125, 220, 0.04) 100%);
+  }
+  .params-card-title,
+  .workbench-panel-title { color: rgba(255,255,255,0.88); }
+  .workbench-panel-meta { color: rgba(255, 255, 255, 0.45); }
+  .workbench-panel-body { background: #1a1a1a; }
   .param-section {
     background: #1a1a1a;
     border-color: #333;
     box-shadow: none;
   }
   .param-label { color: rgba(255, 255, 255, 0.78); }
-  .date-presets /deep/ .ant-btn-sm {
+  .date-presets ::v-deep .ant-btn-sm {
     border-color: #434343;
     color: rgba(255, 255, 255, 0.65);
     background: #262626;
   }
-  .date-presets /deep/ .ant-btn-primary,
-  .date-presets /deep/ .ant-btn-primary:hover,
-  .date-presets /deep/ .ant-btn-primary:focus,
-  .date-presets /deep/ .ant-btn-primary:active {
+  .date-presets ::v-deep .ant-btn-primary,
+  .date-presets ::v-deep .ant-btn-primary:hover,
+  .date-presets ::v-deep .ant-btn-primary:focus,
+  .date-presets ::v-deep .ant-btn-primary:active {
     color: #fff;
   }
   .params-card-actions > .anticon {
@@ -8987,26 +9588,25 @@ body.realdark .backtest-panel-toolbar {
   }
   .strategy-directives-jump,
   .strategy-directives-doc-link { color: #58a6ff; &:hover { color: #79b8ff; } }
-  /* a-alert 默认 info 样式在暗色下对比度差，需覆盖 message/description/正文与 Ant 默认背景 */
   .strategy-directives-alert {
     &.ant-alert-info {
       background: rgba(23, 125, 220, 0.16) !important;
       border-color: rgba(88, 166, 255, 0.45) !important;
     }
   }
-  .strategy-directives-alert /deep/ .ant-alert-message {
+  .strategy-directives-alert ::v-deep .ant-alert-message {
     color: rgba(255, 255, 255, 0.92) !important;
   }
-  .strategy-directives-alert /deep/ .ant-alert-description {
+  .strategy-directives-alert ::v-deep .ant-alert-description {
     color: rgba(255, 255, 255, 0.72) !important;
     div {
       color: rgba(255, 255, 255, 0.72) !important;
     }
   }
-  .strategy-directives-alert /deep/ .ant-alert-icon {
+  .strategy-directives-alert ::v-deep .ant-alert-icon {
     color: #58a6ff !important;
   }
-  .strategy-directives-alert /deep/ .ant-alert-close-icon .anticon-close {
+  .strategy-directives-alert ::v-deep .ant-alert-close-icon .anticon-close {
     color: rgba(255, 255, 255, 0.55) !important;
     &:hover { color: rgba(255, 255, 255, 0.88) !important; }
   }
@@ -9021,7 +9621,7 @@ body.realdark .backtest-panel-toolbar {
   }
   .strict-mode-card__title { color: rgba(255, 255, 255, 0.88); }
   .strict-mode-card__hint { color: rgba(255, 255, 255, 0.55); }
-  .direction-radio-group /deep/ .ant-radio-button-wrapper {
+  .direction-radio-group ::v-deep .ant-radio-button-wrapper {
     background: #262626;
     border-color: #434343 !important;
     color: rgba(255, 255, 255, 0.55);
@@ -9114,9 +9714,9 @@ body.realdark .backtest-panel-toolbar {
   .experiment-segment-title span { color: rgba(255,255,255,0.45); }
   .experiment-stage-card.is-done { background: rgba(23, 125, 220, 0.12); border-color: rgba(23, 125, 220, 0.3); }
   .experiment-stage-index { background: rgba(23, 125, 220, 0.16); color: #58a6ff; }
-  .experiment-action-bar /deep/ .ant-btn-default,
-  .experiment-detail-actions /deep/ .ant-btn-default,
-  .experiment-best-actions /deep/ .ant-btn-default {
+  .experiment-action-bar ::v-deep .ant-btn-default,
+  .experiment-detail-actions ::v-deep .ant-btn-default,
+  .experiment-best-actions ::v-deep .ant-btn-default {
     background: #181818;
     border-color: #434343;
     color: rgba(255,255,255,0.72);
@@ -9183,6 +9783,22 @@ body.realdark .backtest-panel-toolbar {
       color: #ffa39e;
     }
   }
+  .experiment-lab {
+    background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+    border-color: #303030;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+  .experiment-lab-subtitle {
+    color: rgba(255, 255, 255, 0.48);
+  }
+  .experiment-audit-card {
+    background: #1f1f1f;
+    border-color: #303030;
+    i { color: #58a6ff; }
+    span,
+    small { color: rgba(255, 255, 255, 0.48); }
+    strong { color: rgba(255, 255, 255, 0.88); }
+  }
   .experiment-analytics-card {
     background: linear-gradient(165deg, #1f1f1f 0%, #181818 100%);
     border-color: #303030;
@@ -9226,6 +9842,12 @@ body.realdark .backtest-panel-toolbar {
       border-color: #9fe870;
       i { color: #fff; }
     }
+  }
+  .ide-tune-pill--ai:not(.active) {
+    background: rgba(88, 166, 255, 0.08);
+    border-color: rgba(88, 166, 255, 0.32);
+    color: #58a6ff;
+    i { color: #58a6ff; }
   }
   .ide-tune-method-meta {
     border-top-color: rgba(255, 255, 255, 0.08);
@@ -9318,7 +9940,7 @@ body.realdark .backtest-panel-toolbar {
   }
   .backtest-marker-legend__item { color: rgba(255, 255, 255, 0.82); }
   .backtest-marker-legend__hint { color: rgba(255, 255, 255, 0.45); }
-  .panel-title-actions /deep/ .ant-btn:not(.ant-btn-primary) {
+  .panel-title-actions ::v-deep .ant-btn:not(.ant-btn-primary) {
     background: #1f1f1f;
     border-color: #434343;
     color: rgba(255, 255, 255, 0.65);
@@ -9329,8 +9951,8 @@ body.realdark .backtest-panel-toolbar {
   }
   .code-editor-area {
     &::-webkit-scrollbar-thumb { background: #434343; }
-    /deep/ .CodeMirror-vscrollbar,
-    /deep/ .CodeMirror-hscrollbar {
+    ::v-deep .CodeMirror-vscrollbar,
+    ::v-deep .CodeMirror-hscrollbar {
       &::-webkit-scrollbar-thumb { background: #434343; }
     }
   }
@@ -9338,46 +9960,45 @@ body.realdark .backtest-panel-toolbar {
     &::-webkit-scrollbar-thumb { background: #434343; }
   }
 
-  /deep/ .ant-tabs-bar { border-bottom-color: #303030; }
-  /deep/ .ant-tabs-tab { color: rgba(255,255,255,0.55); &:hover { color: rgba(255,255,255,0.85); } }
-  /deep/ .ant-tabs-tab-active { color: #9fe870 !important; }
-  /deep/ .ant-tabs-ink-bar { background: #9fe870; }
-  /deep/ .ant-select .ant-select-selection {
+  ::v-deep .ant-tabs-bar { border-bottom-color: #303030; }
+  ::v-deep .ant-tabs-tab { color: rgba(255,255,255,0.55); &:hover { color: rgba(255,255,255,0.85); } }
+  ::v-deep .ant-tabs-tab-active { color: #177ddc !important; }
+  ::v-deep .ant-tabs-ink-bar { background: #177ddc; }
+  ::v-deep .ant-select .ant-select-selection {
     background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85);
     .ant-select-arrow { color: rgba(255,255,255,0.45); }
     &:hover { border-color: #9fe870; }
   }
-  /deep/ .ant-select-selection__placeholder { color: rgba(255,255,255,0.35); }
-  /deep/ .ant-input, /deep/ .ant-input-number { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); &:focus, &:hover { border-color: #9fe870; } }
-  /deep/ .ant-input-number-handler-wrap { background: #1f1f1f; border-left-color: #434343; }
-  /deep/ .ant-input-number-handler { color: rgba(255,255,255,0.45); &:hover { color: #9fe870; } }
-  /deep/ .ant-calendar-picker-input { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); }
-  /deep/ .ant-calendar-picker-icon { color: rgba(255,255,255,0.45); }
-  /deep/ .ant-radio-button-wrapper {
+  ::v-deep .ant-select-selection__placeholder { color: rgba(255,255,255,0.35); }
+  ::v-deep .ant-input, ::v-deep .ant-input-number { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); &:focus, &:hover { border-color: #177ddc; } }
+  ::v-deep .ant-input-number-handler-wrap { background: #1f1f1f; border-left-color: #434343; }
+  ::v-deep .ant-input-number-handler { color: rgba(255,255,255,0.45); &:hover { color: #177ddc; } }
+  ::v-deep .ant-calendar-picker-input { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.85); }
+  ::v-deep .ant-calendar-picker-icon { color: rgba(255,255,255,0.45); }
+  ::v-deep .ant-radio-button-wrapper {
     background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65);
     &:hover { color: #9fe870; }
     &.ant-radio-button-wrapper-checked { background: #9fe870; border-color: #9fe870; color: #0e0f0c; }
   }
-  /deep/ .ant-checkbox-wrapper { color: rgba(255,255,255,0.85); }
-  /deep/ .ant-checkbox-inner { background: #1f1f1f; border-color: #434343; }
-  /deep/ .ant-btn-default { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65); &:hover { border-color: #9fe870; color: #9fe870; } }
-  /deep/ .ant-table {
+  ::v-deep .ant-checkbox-wrapper { color: rgba(255,255,255,0.85); }
+  ::v-deep .ant-checkbox-inner { background: #1f1f1f; border-color: #434343; }
+  ::v-deep .ant-btn-default { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.65); &:hover { border-color: #177ddc; color: #177ddc; } }
+  ::v-deep .ant-table {
     background: transparent; color: rgba(255,255,255,0.85);
     .ant-table-thead > tr > th { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.65); border-bottom-color: #303030; }
     .ant-table-tbody > tr > td { border-bottom-color: #303030; }
     .ant-table-tbody > tr:hover > td { background: rgba(255,255,255,0.04); }
     .ant-table-placeholder { background: transparent; color: rgba(255,255,255,0.35); }
   }
-  /deep/ .ant-pagination {
-    .ant-pagination-item { background: #1f1f1f; border-color: #434343; a { color: rgba(255,255,255,0.65); } &.ant-pagination-item-active { border-color: #9fe870; a { color: #9fe870; } } }
+  ::v-deep .ant-pagination {
+    .ant-pagination-item { background: #1f1f1f; border-color: #434343; a { color: rgba(255,255,255,0.65); } &.ant-pagination-item-active { border-color: #177ddc; a { color: #177ddc; } } }
     .ant-pagination-prev, .ant-pagination-next { .ant-pagination-item-link { background: #1f1f1f; border-color: #434343; color: rgba(255,255,255,0.45); } }
   }
-  /deep/ .ant-empty-description { color: rgba(255,255,255,0.35); }
+  ::v-deep .ant-empty-description { color: rgba(255,255,255,0.35); }
 }
 </style>
 
 <style lang="less">
-/* Layout 使用 body.dark 时，回测区 a-alert 仍可能保留 Ant 默认浅色 info 样式，在此兜底 */
 body.dark .indicator-ide .strategy-directives-alert.ant-alert-info {
   background: rgba(23, 125, 220, 0.16) !important;
   border-color: rgba(88, 166, 255, 0.45) !important;
@@ -9460,7 +10081,6 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   }
 }
 .ide-indicator-multiselect-dropdown {
-  /* 全屏子树内须高于 K 线 canvas / 内部层，否则下拉看似「点不开」 */
   z-index: 10050 !important;
   .ant-dropdown-menu {
     padding: 0;
@@ -9597,7 +10217,6 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
 }
 </style>
 
-<!-- 闪电交易 Select / 添加交易所 Modal 挂到 body 时须高于回测卡片、侧栏等 -->
 <style lang="less">
 .ant-select-dropdown.ide-qt-select-dropdown {
   z-index: 10060 !important;
@@ -9610,7 +10229,6 @@ body.dark .indicator-ide .result-tabs .ant-tabs-tab-active {
   z-index: 10080 !important;
 }
 
-/* 仅收掉内容区与 IDE 之间的留白；勿改 display/flex/min-height，否则会整页高度塌成 0 */
 @supports selector(:has(*)) {
   .ant-layout-content:has(.indicator-ide),
   .ant-pro-basicLayout-content:has(.indicator-ide) {

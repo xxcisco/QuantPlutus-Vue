@@ -11,7 +11,6 @@
   >
     <a-spin :spinning="loading">
       <div v-if="detail" class="detail-container indicator-detail-modal" :class="{ 'is-dark': isDarkTheme }">
-        <!-- 头部区域 -->
         <div class="detail-header" :style="headerStyle">
           <div class="header-cover" v-if="detail.preview_image">
             <img :src="detail.preview_image" :alt="detail.name" @error="imageError = true" />
@@ -51,9 +50,7 @@
           </div>
         </div>
 
-        <!-- 内容区域 -->
         <div class="detail-body">
-          <!-- 描述 -->
           <div class="section">
             <h3>{{ $t('community.description') }}</h3>
             <p class="description">{{ detail.description || $t('community.noDescription') }}</p>
@@ -159,7 +156,6 @@
               </div>
             </div>
 
-            <!-- 适用范围 -->
             <div v-if="hasApplicable" class="applicable-row">
               <div class="applicable-row__label">{{ $t('community.applicableSymbols') }}</div>
               <div class="applicable-row__tags">
@@ -183,7 +179,6 @@
               </div>
             </div>
 
-            <!-- 净值曲线 -->
             <div v-if="hasEquityCurve" class="equity-card">
               <div class="equity-card__head">
                 <div class="equity-card__title">{{ $t('community.equityCurveTitle') }}</div>
@@ -215,7 +210,6 @@
             />
           </div>
 
-          <!-- 评论区域 -->
           <div class="section">
             <h3>{{ $t('community.reviews') }} ({{ comments.total || 0 }})</h3>
             <comment-list
@@ -232,7 +226,6 @@
           </div>
         </div>
 
-        <!-- 底部操作区域 -->
         <div class="detail-footer">
           <div class="price-info">
             <a-tag v-if="detail.vip_free" color="gold" style="margin-right: 8px;">
@@ -408,10 +401,8 @@ export default {
       return (this.performance.applicable_symbols || []).length > 0 ||
         (this.performance.applicable_timeframes || []).length > 0
     },
-    // 头部背景样式
     headerStyle () {
       if (!this.detail) return {}
-      // 根据指标 ID 生成渐变色
       const gradients = [
         'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -423,7 +414,6 @@ export default {
       const index = (this.detail.id || 0) % gradients.length
       return { background: gradients[index] }
     },
-    // 指标名称首字母
     indicatorInitials () {
       if (!this.detail) return ''
       const name = this.detail.name || 'I'
@@ -664,7 +654,6 @@ export default {
           this.$message.success(this.$t('community.commentSuccess'))
           this.loadComments(1)
           this.loadMyComment()
-          // 刷新详情以更新评分
           this.loadDetail()
         } else {
           const msgKey = `community.${res.msg}`
@@ -689,7 +678,6 @@ export default {
           this.$message.success(this.$t('community.commentUpdateSuccess'))
           this.loadComments(1)
           this.loadMyComment()
-          // 刷新详情以更新评分
           this.loadDetail()
         } else {
           const msgKey = `community.${res.msg}`
@@ -733,14 +721,14 @@ export default {
       this.$emit('close')
       const assetType = (this.detail && this.detail.asset_type) || 'indicator'
       if (assetType === 'script_template') {
-        const sid = this.detail && this.detail.purchased_strategy_id
+        const sid = this.detail && (this.detail.script_source_id || this.detail.purchased_script_source_id)
         if (sid) {
           this.$router.push({
-            path: '/strategy-script',
-            query: { strategy_id: String(sid), mode: 'edit' }
+            path: '/strategy-ide',
+            query: { tab: 'script', source_id: String(sid) }
           })
         } else {
-          this.$router.push({ path: '/strategy-script', query: { mode: 'create' } })
+          this.$router.push({ path: '/strategy-ide', query: { tab: 'script' } })
         }
         return
       }
@@ -927,7 +915,7 @@ export default {
         display: flex;
         gap: 24px;
 
-        /deep/ .ant-statistic {
+        ::v-deep .ant-statistic {
           .ant-statistic-title {
             color: rgba(255, 255, 255, 0.8);
             font-size: 12px;
@@ -1146,7 +1134,7 @@ export default {
         padding: 0 6px;
       }
 
-      /deep/ .ant-badge {
+      ::v-deep .ant-badge {
         display: inline-block;
       }
     }

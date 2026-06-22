@@ -1,24 +1,3 @@
-/**
- * 交易机器人预置策略脚本模板。
- * 每种机器人类型对应 on_init + on_bar Python 代码，参数由用户在向导中填写后注入顶部变量。
- * 运行时由后端 TradingExecutor 以 ScriptStrategy 方式执行。
- *
- * ctx API (StrategyScriptContext):
- *   ctx.param(name, default)       → 读取/初始化持久化参数
- *   ctx._params[name] = val        → 写入持久化参数
- *   ctx.bars(n)                    → 最近 n 根 K 线（ScriptBar: open/high/low/close/volume）
- *   ctx.position                   → ScriptPosition dict (side/size/entry_price)，bool(pos) 表示有仓位
- *   ctx.balance                    → 当前可用余额（按账户 quote currency 计价: 加密=USDT, 美股=USD, 外汇=账户基础货币）
- *   ctx.buy(price=, amount=)       → 买入信号（amount 为 quote currency 名义金额，后端按 leverage/market_type 换算成 qty/share/lot）
- *   ctx.sell(price=, amount=)      → 卖出信号
- *   ctx.close_position()           → 平仓
- *   ctx.log(msg)                   → 日志
- *
- * 多市场说明：模板逻辑只用 amount=名义金额 + price 接口，后端
- * trading_executor._to_local_qty 会按市场和杠杆换算成实际下单数量，
- * 所以同一个模板既能跑 BTC/USDT 也能跑 TSLA、EUR/USD。模板里的
- * "quote" 字样代表账户基础货币（加密=USDT，美股=USD，外汇=账户币种）。
- */
 
 const TIMEFRAME_MINUTES = {
   '1m': 1, '5m': 5, '15m': 15, '1h': 60, '4h': 240, '1d': 1440
@@ -30,7 +9,6 @@ const FREQUENCY_MINUTES = {
 
 export const BOT_SCRIPT_TEMPLATES = {
 
-  // ========== 网格交易（Live 由后端 resting 引擎执行，脚本仅占位） ==========
   grid: () => `# ---- Grid Trading Bot (resting engine placeholder) ----
 
 def on_init(ctx):
@@ -40,7 +18,6 @@ def on_bar(ctx, bar):
     pass
 `,
 
-  // ========== 马丁格尔 ==========
   martingale: (params) => `# ---- Martingale Bot ----
 import time as _time
 
@@ -220,7 +197,6 @@ def on_bar(ctx, bar):
         # trailing_active and peak_price untouched here.
 `,
 
-  // ========== 趋势跟踪 ==========
   trend: (params) => `# ---- Trend Following Bot ----
 MA_PERIOD    = ${params.maPeriod}
 MA_TYPE      = "${params.maType || 'EMA'}"
@@ -395,7 +371,6 @@ def on_bar(ctx, bar):
             _reset_trailing(ctx)
 `,
 
-  // ========== 定投 DCA ==========
   dca: (params, context) => {
     const tf = (context && context.timeframe) || '1h'
     const tfMin = TIMEFRAME_MINUTES[tf] || 60
@@ -427,7 +402,6 @@ def on_bar(ctx, bar):
     has_pos     = ctx.position and float(ctx.position.get("size", 0)) > 0
     now         = int(_time.time())
 
-    # 若仓位被外部平掉(手动/止损等),重置累计状态以便下一轮 DCA
     if buy_count > 0 and total_qty > 0 and not has_pos:
         ctx.log("DCA position closed externally, resetting stats")
         total_spent = 0.0
@@ -445,7 +419,6 @@ def on_bar(ctx, bar):
     if budget_done:
         return
 
-    # 使用真实时间戳而非 bar 计数,确保 frequency 与 timeframe 脱耦
     elapsed = now - last_ts
     due = (buy_count == 0) or (elapsed >= INTERVAL_SEC)
     if not due:
@@ -478,13 +451,6 @@ def on_bar(ctx, bar):
   }
 }
 
-/**
- * 生成完整的策略脚本代码
- * @param {string} botType - 机器人类型
- * @param {object} params - 策略参数
- * @param {object} context - 额外上下文 { timeframe }
- * @returns {string} Python 策略代码
- */
 export function generateBotScript (botType, params, context) {
   const generator = BOT_SCRIPT_TEMPLATES[botType]
   if (!generator) {

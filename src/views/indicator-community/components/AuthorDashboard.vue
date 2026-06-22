@@ -1,20 +1,5 @@
-<!--
-  AuthorDashboard.vue — 作者后台子面板
-
-  作为「指标市场」页面的一个 tab 嵌入，让普通用户看到自己上传指标的销量 /
-  收入 / 评分。不再是独立路由（之前的 /author-dashboard 已废弃）。
-
-  注意：
-    - 内部用 `subTab` 而非 `activeTab`，避免和外层 IndicatorCommunity
-      的 `activeTab` 命名冲突。
-    - 不再渲染 page-level header（外层市场页已有 tabs 标题），
-      统计卡之后直接是「我的发布 / 销售明细」子 tab。
-    - 接到 `view-in-market(record)` event 可触发父组件跳转到市场 tab 并
-      打开对应 indicator detail；父组件目前简单 push 路由即可。
--->
 <template>
   <div class="author-dashboard" :class="{ 'theme-dark': isDarkTheme }">
-    <!-- ============ 统计卡 ============ -->
     <a-row :gutter="16" class="ad-stat-row">
       <a-col :xs="12" :sm="12" :md="6">
         <a-card class="ad-stat-card" :loading="summaryLoading">
@@ -70,9 +55,7 @@
       </a-col>
     </a-row>
 
-    <!-- ============ 子 Tabs：我的发布 / 销售明细 ============ -->
     <a-tabs v-model="subTab" class="ad-tabs" type="card" @change="onSubTabChange">
-      <!-- 我的发布 -->
       <a-tab-pane key="published">
         <template #tab>
           <span><a-icon type="appstore" /> {{ $t('authorDashboard.tab.published') }}</span>
@@ -150,7 +133,6 @@
         </a-table>
       </a-tab-pane>
 
-      <!-- 销售明细 -->
       <a-tab-pane key="sales">
         <template #tab>
           <span><a-icon type="dollar" /> {{ $t('authorDashboard.tab.sales') }}</span>
@@ -262,7 +244,6 @@ export default {
       },
       published: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
       sales: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
-      // 从「我的发布」点 "查看销售" 时填这个，让销售明细 tab 只显示该指标
       salesIndicatorFilter: null
     }
   },
@@ -536,49 +517,43 @@ export default {
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  /deep/ .ant-card { background: #1f1f1f !important; border-color: rgba(255, 255, 255, 0.08) !important; }
-  /deep/ .ant-card-body { background: #1f1f1f !important; }
+  ::v-deep .ant-card { background: #1f1f1f !important; border-color: rgba(255, 255, 255, 0.08) !important; }
+  ::v-deep .ant-card-body { background: #1f1f1f !important; }
 
-  /*
-   * type="card" 的子 tabs 在暗黑模式下不能只改文字颜色:
-   * Ant Design 默认给未激活的 card-tab 配一个 #fafafa 的浅色背景。
-   * 如果只把文字改成白色而不覆盖背景,就会出现"白底白字"看不见的情况
-   * (这是上一版的现象)。下面同时改 background + border + color。
-   */
-  /deep/ .ant-tabs-bar { border-bottom-color: rgba(255, 255, 255, 0.1) !important; }
-  /deep/ .ant-tabs-nav-container { color: rgba(255, 255, 255, 0.65) !important; }
-  /deep/ .ant-tabs-nav .ant-tabs-tab,
-  /deep/ .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab {
+  ::v-deep .ant-tabs-bar { border-bottom-color: rgba(255, 255, 255, 0.1) !important; }
+  ::v-deep .ant-tabs-nav-container { color: rgba(255, 255, 255, 0.65) !important; }
+  ::v-deep .ant-tabs-nav .ant-tabs-tab,
+  ::v-deep .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab {
     background: #1a1a1a !important;
     border-color: rgba(255, 255, 255, 0.12) !important;
     color: rgba(255, 255, 255, 0.65) !important;
   }
-  /deep/ .ant-tabs-nav .ant-tabs-tab:hover,
-  /deep/ .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab:hover {
+  ::v-deep .ant-tabs-nav .ant-tabs-tab:hover,
+  ::v-deep .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab:hover {
     color: #40a9ff !important;
   }
-  /deep/ .ant-tabs-nav .ant-tabs-tab-active,
-  /deep/ .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active,
-  /deep/ .ant-tabs-tab.ant-tabs-tab-active {
+  ::v-deep .ant-tabs-nav .ant-tabs-tab-active,
+  ::v-deep .ant-tabs.ant-tabs-card .ant-tabs-card-bar .ant-tabs-tab-active,
+  ::v-deep .ant-tabs-tab.ant-tabs-tab-active {
     background: #2a2a2a !important;
     border-color: rgba(255, 255, 255, 0.18) !important;
     color: #40a9ff !important;
   }
-  /deep/ .ant-tabs-nav .ant-tabs-ink-bar { background-color: #40a9ff !important; }
+  ::v-deep .ant-tabs-nav .ant-tabs-ink-bar { background-color: #40a9ff !important; }
 
-  /deep/ .ant-table { background: #1f1f1f !important; color: rgba(255, 255, 255, 0.85) !important; }
-  /deep/ .ant-table-thead > tr > th { background: #262626 !important; color: rgba(255, 255, 255, 0.85) !important; border-bottom-color: rgba(255, 255, 255, 0.1) !important; }
-  /deep/ .ant-table-tbody > tr > td { background: #1f1f1f !important; border-bottom-color: rgba(255, 255, 255, 0.08) !important; }
-  /deep/ .ant-table-tbody > tr:hover > td { background: #262626 !important; }
-  /deep/ .ant-pagination-item,
-  /deep/ .ant-pagination-prev .ant-pagination-item-link,
-  /deep/ .ant-pagination-next .ant-pagination-item-link {
+  ::v-deep .ant-table { background: #1f1f1f !important; color: rgba(255, 255, 255, 0.85) !important; }
+  ::v-deep .ant-table-thead > tr > th { background: #262626 !important; color: rgba(255, 255, 255, 0.85) !important; border-bottom-color: rgba(255, 255, 255, 0.1) !important; }
+  ::v-deep .ant-table-tbody > tr > td { background: #1f1f1f !important; border-bottom-color: rgba(255, 255, 255, 0.08) !important; }
+  ::v-deep .ant-table-tbody > tr:hover > td { background: #262626 !important; }
+  ::v-deep .ant-pagination-item,
+  ::v-deep .ant-pagination-prev .ant-pagination-item-link,
+  ::v-deep .ant-pagination-next .ant-pagination-item-link {
     background: #1f1f1f !important;
     border-color: rgba(255, 255, 255, 0.15) !important;
     color: rgba(255, 255, 255, 0.85) !important;
   }
-  /deep/ .ant-pagination-item-active { border-color: #40a9ff !important; }
-  /deep/ .ant-pagination-item-active a { color: #40a9ff !important; }
+  ::v-deep .ant-pagination-item-active { border-color: #40a9ff !important; }
+  ::v-deep .ant-pagination-item-active a { color: #40a9ff !important; }
 
   .ad-filter-banner { background: rgba(24, 144, 255, 0.15); color: rgba(255, 255, 255, 0.85); }
   .ad-name { color: #40a9ff; }

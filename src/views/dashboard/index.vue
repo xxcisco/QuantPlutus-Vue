@@ -1,9 +1,7 @@
 
 <template>
   <div class="dashboard-pro" :class="{ 'theme-dark': isDarkTheme, 'dashboard-pro--embedded': embedded }">
-    <!-- 主要KPI指标卡片 -->
     <div class="kpi-grid">
-      <!-- 总权益 -->
       <div class="kpi-card kpi-primary">
         <div class="kpi-glow"></div>
         <div class="kpi-content">
@@ -26,7 +24,6 @@
         </div>
       </div>
 
-      <!-- 胜率 -->
       <div class="kpi-card kpi-win-rate">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -62,7 +59,6 @@
         </div>
       </div>
 
-      <!-- 盈亏比 -->
       <div class="kpi-card kpi-profit-factor">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -82,7 +78,6 @@
         </div>
       </div>
 
-      <!-- 最大回撤 -->
       <div class="kpi-card kpi-drawdown">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -101,7 +96,6 @@
         </div>
       </div>
 
-      <!-- 总交易数 -->
       <div class="kpi-card kpi-trades">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -122,7 +116,6 @@
         </div>
       </div>
 
-      <!-- 运行策略 -->
       <div class="kpi-card kpi-strategies clickable" @click="goToStrategyManagement">
         <div class="kpi-content">
           <div class="kpi-header">
@@ -174,9 +167,7 @@
       </div>
     </div>
 
-    <!-- 图表区域 - 第一行 -->
     <div class="chart-row">
-      <!-- 收益日历 -->
       <div class="chart-panel chart-main">
         <div class="panel-header">
           <div class="panel-title">
@@ -245,7 +236,6 @@
         </div>
       </div>
 
-      <!-- 策略表现饼图 -->
       <div class="chart-panel chart-side">
         <div class="panel-header">
           <div class="panel-title">
@@ -257,9 +247,7 @@
       </div>
     </div>
 
-    <!-- 图表区域 - 第二行 -->
     <div class="chart-row">
-      <!-- 回撤曲线 -->
       <div class="chart-panel chart-half">
         <div class="panel-header">
           <div class="panel-title">
@@ -270,7 +258,6 @@
         <div ref="drawdownChart" class="chart-body chart-sm"></div>
       </div>
 
-      <!-- 交易时段分布 -->
       <div class="chart-panel chart-half">
         <div class="panel-header">
           <div class="panel-title">
@@ -282,7 +269,6 @@
       </div>
     </div>
 
-    <!-- 策略排行榜 -->
     <div class="chart-panel">
       <div class="panel-header">
         <div class="panel-title">
@@ -343,9 +329,7 @@
       </div>
     </div>
 
-    <!-- 数据表格区域 -->
     <div class="table-row">
-      <!-- 当前持仓 -->
       <div class="table-panel">
         <div class="panel-header">
           <div class="panel-title">
@@ -387,7 +371,6 @@
         </a-table>
       </div>
 
-      <!-- 最近交易 -->
       <div class="table-panel">
         <div class="panel-header">
           <div class="panel-title">
@@ -421,7 +404,6 @@
       </div>
     </div>
 
-    <!-- 订单执行记录 -->
     <div class="chart-panel orders-panel">
       <div class="panel-header">
         <div class="panel-title">
@@ -575,7 +557,6 @@ export default {
         pageSize: 20,
         total: 0
       },
-      // 声音提醒相关
       orderPollTimer: null,
       lastOrderId: 0,
       orderPollIntervalMs: 5000,
@@ -838,7 +819,6 @@ export default {
         this.ordersLoading = false
       }
     },
-    // ========== 订单声音提醒 ==========
     playOrderBeep () {
       if (!this.soundEnabled) return
       try {
@@ -846,11 +826,9 @@ export default {
         if (!AudioCtx) return
         if (!this.beepCtx) this.beepCtx = new AudioCtx()
         const ctx = this.beepCtx
-        // 部分浏览器需要用户交互后才能播放声音
         if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
           ctx.resume().catch(() => {})
         }
-        // 播放两声短促的提示音
         const playTone = (startTime, freq) => {
           const o = ctx.createOscillator()
           const g = ctx.createGain()
@@ -871,7 +849,6 @@ export default {
     },
     startOrderPolling () {
       this.stopOrderPolling()
-      // 初始化 lastOrderId
       this.initLastOrderId()
       this.orderPollTimer = setInterval(() => {
         this.pollNewOrders()
@@ -887,7 +864,6 @@ export default {
       try {
         const res = await getPendingOrders({ page: 1, pageSize: 1 })
         if (res.code === 1 && res.data && res.data.list && res.data.list.length > 0) {
-          // 获取最新的订单ID
           this.lastOrderId = res.data.list[0].id || 0
         }
       } catch (e) {
@@ -902,7 +878,6 @@ export default {
         const orders = res.data.list || []
         if (orders.length === 0) return
 
-        // 检查是否有新订单
         let hasNew = false
         let maxId = this.lastOrderId
         for (const order of orders) {
@@ -916,9 +891,7 @@ export default {
         if (hasNew) {
           this.lastOrderId = maxId
           this.playOrderBeep()
-          // 刷新订单列表
           this.fetchPendingOrders()
-          // 显示通知
           this.$notification.info({
             message: this.$t('dashboard.newOrderNotify'),
             description: this.$t('dashboard.newOrderDesc'),
@@ -1023,19 +996,16 @@ export default {
       if (num === undefined || num === null) return '0.00'
       return Number(num).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
     },
-    // 格式化盈亏值（处理信号模式下没有实盘的情况）
     formatProfitValue (value, record) {
       if (value === null || value === undefined) return '--'
 
       const numValue = parseFloat(value)
 
-      // 如果值为0且是开仓信号（open_long/open_short），显示--
       const openTypes = ['open_long', 'open_short', 'add_long', 'add_short']
       if (numValue === 0 && record && openTypes.includes(record.type)) {
         return '--'
       }
 
-      // 如果值极小（科学计数法如0E-8），视为0
       if (Math.abs(numValue) < 0.000001) {
         if (record && openTypes.includes(record.type)) {
           return '--'
@@ -1043,7 +1013,6 @@ export default {
         return '$0.00'
       }
 
-      // 正常显示
       const sign = numValue >= 0 ? '+' : ''
       return `${sign}$${this.formatNumber(numValue)}`
     },

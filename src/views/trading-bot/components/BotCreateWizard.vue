@@ -24,7 +24,6 @@
     </a-steps>
 
     <div class="wizard-content">
-      <!-- Step 1: 基础配置 -->
       <div v-show="currentStep === 0" class="step-panel">
         <a-form-model
           ref="baseForm"
@@ -86,7 +85,7 @@
               </a-select-option>
             </a-select>
             <div class="form-hint" style="margin-top: 6px;">
-              <router-link to="/profile?tab=exchange">
+              <router-link to="/broker-accounts">
                 <a-icon type="setting" /> {{ $t('trading-bot.wizard.manageCredentials') }}
               </router-link>
             </div>
@@ -195,7 +194,6 @@
         </a-form-model>
       </div>
 
-      <!-- Step 2: 策略参数 -->
       <div v-show="currentStep === 1" class="step-panel">
         <div class="step-hint">
           <a-icon type="info-circle" /> {{ typeInfo.configHint }}
@@ -209,7 +207,6 @@
         />
       </div>
 
-      <!-- Step 3: 风控设置 -->
       <div v-show="currentStep === 2" class="step-panel">
         <a-form-model
           ref="riskForm"
@@ -301,7 +298,6 @@
         </a-form-model>
       </div>
 
-      <!-- Step 4: 确认 -->
       <div v-show="currentStep === 3" class="step-panel">
         <div class="confirm-section">
           <h4>{{ $t('trading-bot.wizard.confirmTitle') }}</h4>
@@ -548,13 +544,9 @@ export default {
         // grid-bot-only (P0-2 / P1-2):
         gridOobBufferPct: 5
       },
-      // 自选标的列表（从 qd_watchlist 拉取，按 market 过滤后只展示 Crypto）
       watchlist: [],
       loadingWatchlist: false,
-      // a-select 的内部 v-model；其值与 baseForm.symbol 等价，但拦截
-      // 特殊值 `__add__` 用于触发添加弹窗，避免直接污染表单 symbol。
       selectedSymbolKey: undefined,
-      // 添加自选弹窗状态
       showAddSymbolModal: false,
       addSearchKeyword: '',
       addSearchResults: [],
@@ -875,8 +867,6 @@ export default {
       }
       this.riskForm.maxDailyLoss = Math.round(val * 0.1)
     },
-    // baseForm.symbol 与下拉框选中值双向同步：编辑机器人 / AI 预设
-    // 都会先改 baseForm.symbol，这里再把它映射回下拉显示值。
     'baseForm.symbol': {
       immediate: true,
       handler (val) {
@@ -1167,7 +1157,6 @@ export default {
       this.riskForm.maxPosition = this.botType === 'martingale' ? 0 : null
       this.riskForm.maxDailyLoss = null
     },
-    // ===== 自选标的（watchlist 模式） =====
     async loadWatchlist () {
       this.loadingWatchlist = true
       try {
@@ -1176,7 +1165,6 @@ export default {
           this.watchlist = res.data
         }
       } catch (e) {
-        // 静默失败：用户没收藏过任何自选时也可能 401/空，保持空数组即可
       } finally {
         this.loadingWatchlist = false
       }
@@ -1186,14 +1174,12 @@ export default {
       if (val === '__add__') return true
       const q = String(input || '').trim().toLowerCase()
       if (!q) return true
-      // 拼接 symbol + 显示名一起做匹配，避免用户只记得名称的情况漏匹配。
       const row = this.cryptoWatchlist.find(w => w.symbol === option.componentOptions.propsData.value)
       const haystack = (val + ' ' + ((row && row.name) || '')).toLowerCase()
       return haystack.includes(q)
     },
     handleSymbolChange (val) {
       if (val === '__add__') {
-        // 触发添加自选弹窗；同时把下拉值回退到旧 symbol，避免 select 显示成 "__add__"
         this.$nextTick(() => {
           this.selectedSymbolKey = this.baseForm.symbol || undefined
         })
@@ -1204,15 +1190,12 @@ export default {
       this.selectedSymbolKey = val || undefined
     },
     symbolSelectGetPopupContainer (trigger) {
-      // 弹窗模式下挂载到当前 wizard 容器，避免 modal 关闭时下拉残留
       if (this.isModal) {
         return trigger.parentNode || document.body
       }
       return document.body
     },
     addSymbolModalGetContainer () {
-      // 让 modal 始终挂到 body（默认行为）但保留扩展点，
-      // wizard 自身嵌在父 modal 里时 ant 也能正确叠放层级。
       return document.body
     },
     openAddSymbolModal () {
@@ -1254,8 +1237,6 @@ export default {
         this.addSearchResults = list
         this.addSearched = true
         if (list.length === 0) {
-          // 没搜到也允许用户原样添加（例如非常冷门的交易对），
-          // 与 indicator-ide 行为保持一致，符合用户对"自由补充"的预期。
           this.addSelectedItem = { market, symbol: kw.toUpperCase(), name: '' }
         } else if (!this.addSelectedItem || !list.some(x => x.symbol === this.addSelectedItem.symbol)) {
           this.addSelectedItem = list[0]
@@ -1288,7 +1269,6 @@ export default {
         this.selectedSymbolKey = symbol
         this.$message.success(this.$t('trading-bot.wizard.addSymbolSuccess'))
         this.closeAddSymbolModal()
-        // 让 a-form-model 重新校验 symbol，去掉之前的红框提示
         this.$nextTick(() => {
           if (this.$refs.baseForm) {
             try { this.$refs.baseForm.clearValidate(['symbol']) } catch (_) {}
@@ -1473,8 +1453,6 @@ export default {
                 grid_oob_buffer_pct: this.riskForm.gridOobBufferPct
               }
             : {}),
-          // 马丁/趋势机器人依赖即时成交触发加仓/平仓,强制市价;
-          // 网格/DCA 保留用户选择(默认 maker 更省手续费)
           order_mode: (this.botType === 'martingale' || this.botType === 'trend')
             ? 'market'
             : (strategyParams.orderMode || 'maker'),

@@ -1,6 +1,5 @@
 import Vue from 'vue'
-// ant-design-vue 1.x 全量样式（lazy_use.js 通过 Vue.use 注册组件，但样式仍需整体引入）
-import 'ant-design-vue/dist/antd.less'
+import 'ant-design-vue/dist/antd.css'
 import App from './App.vue'
 import router from './router'
 import store from './store/'

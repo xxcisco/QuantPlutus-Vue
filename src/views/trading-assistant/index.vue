@@ -56,7 +56,6 @@
     >
       <a-tab-pane key="strategy" :tab="$t('trading-assistant.tabs.strategyManage')">
         <a-row :gutter="24" class="strategy-layout">
-          <!-- 左侧：策略列表 -->
           <a-col
             :xs="24"
             :sm="24"
@@ -73,7 +72,6 @@
                 </a-button>
               </div>
 
-              <!-- 分组方式切换 -->
               <div class="group-mode-switch">
                 <span class="group-mode-label">{{ $t('trading-assistant.groupBy') }}:</span>
                 <a-radio-group v-model="groupByMode" size="small" button-style="solid">
@@ -98,9 +96,7 @@
                   </a-button>
                 </div>
                 <div v-else class="strategy-grouped-list">
-                  <!-- 策略组列表 -->
                   <div v-for="group in groupedStrategies.groups" :key="group.id" class="strategy-group">
-                    <!-- 策略组头部 -->
                     <div class="strategy-group-header" @click="toggleGroup(group.id)">
                       <div class="group-header-left">
                         <a-icon :type="collapsedGroups[group.id] ? 'right' : 'down'" class="collapse-icon" />
@@ -136,7 +132,6 @@
                         </a-dropdown>
                       </div>
                     </div>
-                    <!-- 策略组内的策略列表（可折叠） -->
                     <div v-show="!collapsedGroups[group.id]" class="strategy-group-content">
                       <div
                         v-for="item in group.strategies"
@@ -264,7 +259,6 @@
                     </div>
                   </div>
 
-                  <!-- 未分组的策略列表 -->
                   <div
                     v-for="item in groupedStrategies.ungrouped"
                     :key="item.id"
@@ -359,7 +353,6 @@
             </a-card>
           </a-col>
 
-          <!-- 右侧：策略详情和交易记录 -->
           <a-col
             :xs="24"
             :sm="24"
@@ -384,7 +377,6 @@
             </div>
 
             <div v-else class="strategy-detail-panel">
-              <!-- 策略头部信息 -->
               <a-card :bordered="false" class="strategy-header-card">
                 <div class="strategy-header">
                   <div class="header-left">
@@ -396,7 +388,6 @@
                       </div>
                     </div>
 
-                    <!-- 关键数据卡片 -->
                     <div class="key-stats-grid">
                       <div
                         class="stat-card"
@@ -435,7 +426,6 @@
                       </div>
                     </div>
 
-                    <!-- 生命周期：脚本页显示验证/回测；指标页引导去 IDE -->
                     <div v-if="selectedStrategy" class="strategy-lifecycle-tags">
                       <template v-if="isScriptStrategySelected">
                         <a-tag v-if="isStrategyVerified(selectedStrategy)" color="green">{{ $t('strategyCenter.lifecycle.verified') }}</a-tag>
@@ -455,7 +445,6 @@
                       </a-button>
                     </div>
 
-                    <!-- 策略详情标签 -->
                     <div class="strategy-tags">
                       <div class="tag-item" v-if="isCrossSectionalStrategy(selectedStrategy)">
                         <a-icon type="appstore" />
@@ -526,7 +515,6 @@
                 </div>
               </a-card>
 
-              <!-- 策略详情标签页 -->
               <a-card :bordered="false" class="strategy-content-card">
                 <a-tabs v-model="detailTab">
                   <a-tab-pane key="positions" :tab="$t('trading-assistant.tabs.positions')">
@@ -555,17 +543,6 @@
                       :strategy-id="selectedStrategy.id"
                       :is-dark="isDarkTheme" />
                   </a-tab-pane>
-                  <a-tab-pane v-if="showStrategyDetailBacktest" key="backtest" :tab="$t('strategyCenter.tabs.backtest')">
-                    <strategy-backtest-panel
-                      v-if="selectedStrategy"
-                      ref="strategyBacktestPanel"
-                      :strategy-id="selectedStrategy.id"
-                      :strategy="selectedStrategy"
-                      :is-dark="isDarkTheme"
-                      @backtested="onStrategyBacktested"
-                      @history-loaded="onBacktestHistoryLoaded"
-                    />
-                  </a-tab-pane>
                   <a-tab-pane key="logs" :tab="$t('trading-assistant.tabs.logs')">
                     <strategy-logs
                       :strategy-id="selectedStrategy.id"
@@ -577,7 +554,6 @@
           </a-col>
         </a-row>
 
-        <!-- 策略类型选择弹窗 -->
         <a-modal
           :visible="showModeSelector"
           :title="$t('trading-assistant.selectMode')"
@@ -596,7 +572,6 @@
           />
         </a-modal>
 
-        <!-- 创建/编辑策略弹窗 - 合并版本 -->
         <a-modal
           :visible="showFormModal"
           :destroy-on-close="true"
@@ -611,7 +586,7 @@
           <a-spin :spinning="loadingIndicators">
             <a-steps :current="displayCurrentStep" class="steps-container">
               <template v-if="strategyMode === 'script'">
-                <a-step :title="$t('trading-assistant.editor.title')" />
+                <a-step :title="$t('trading-assistant.form.scriptSource')" />
                 <a-step :title="$t('trading-assistant.form.scriptStepParams')" />
                 <a-step :title="$t('trading-assistant.form.scriptStepSignalLive')" />
               </template>
@@ -622,32 +597,47 @@
             </a-steps>
 
             <div class="form-container">
-              <!-- 步骤1: 指标策略-选择技术指标 / 脚本策略-编写代码 -->
               <div v-show="currentStep === 0" class="step-content">
-                <!-- 脚本策略：先写代码 -->
                 <div v-if="strategyMode === 'script'">
                   <a-alert
                     type="info"
                     show-icon
                     style="margin-bottom: 12px;"
-                    :message="$t('trading-assistant.editor.title')"
-                    :description="$t('trading-assistant.form.scriptStepCodeHint')"
+                    :message="$t('trading-assistant.form.scriptSourceTitle')"
+                    :description="$t('trading-assistant.form.scriptSourceHint')"
                   />
-                  <strategy-editor
-                    ref="strategyEditor"
-                    :key="strategyEditorKey"
-                    v-model="strategyCode"
-                    :is-dark="isDarkTheme"
-                    :user-id="1"
-                    :strategy-id="editingStrategy && editingStrategy.id ? editingStrategy.id : null"
-                    :visible="showFormModal && strategyMode === 'script' && currentStep === 0"
-                    :initial-template-key="pendingScriptTemplateKey"
-                    @template-change="onScriptTemplateChange"
-                    @verified="onScriptVerified"
-                  />
+                  <a-form :form="form" layout="vertical">
+                    <a-form-item :label="$t('trading-assistant.form.scriptSource')">
+                      <a-select
+                        v-model="selectedScriptSourceId"
+                        show-search
+                        option-filter-prop="children"
+                        :loading="loadingScriptSource"
+                        :placeholder="$t('trading-assistant.form.scriptSourcePlaceholder')"
+                        @change="handleScriptSourceChange">
+                        <a-select-option
+                          v-for="item in scriptSourceOptions"
+                          :key="String(item.id)"
+                          :value="String(item.id)">
+                          {{ item.optionLabel }}
+                        </a-select-option>
+                      </a-select>
+                    </a-form-item>
+                    <div v-if="selectedScriptSourcePreview" class="script-source-preview">
+                      <div class="script-source-preview__title">{{ selectedScriptSourcePreview.name || selectedScriptSourcePreview.strategy_name }}</div>
+                      <div class="script-source-preview__meta">
+                        <a-tag v-if="scriptTemplateKeyOf(selectedScriptSourcePreview)" color="blue">
+                          {{ scriptTemplateLabel(scriptTemplateKeyOf(selectedScriptSourcePreview)) }}
+                        </a-tag>
+                        <span>{{ selectedScriptSourcePreview.code ? selectedScriptSourcePreview.code.length : 0 }} chars</span>
+                      </div>
+                    </div>
+                    <a-button type="link" icon="code" style="padding-left: 0" @click="$router.push({ path: '/strategy-ide', query: { tab: 'script' } })">
+                      {{ $t('trading-assistant.form.manageScriptSources') }}
+                    </a-button>
+                  </a-form>
                 </div>
 
-                <!-- 指标策略：选择技术指标 -->
                 <div v-if="strategyType === 'indicator' && strategyMode !== 'script'">
                   <a-form :form="form" layout="vertical">
                     <a-form-item :label="$t('trading-assistant.form.indicator')">
@@ -711,7 +701,6 @@
                       </div>
                     </a-form-item>
 
-                    <!-- 指标参数配置 -->
                     <a-form-item v-if="indicatorParams.length > 0" :label="$t('trading-assistant.form.indicatorParams')">
                       <div class="indicator-params-form">
                         <a-row :gutter="16">
@@ -723,26 +712,22 @@
                                   <a-icon type="question-circle" style="margin-left: 4px; color: #999;" />
                                 </a-tooltip>
                               </label>
-                              <!-- 整数类型 -->
                               <a-input-number
                                 v-if="param.type === 'int'"
                                 v-model="indicatorParamValues[param.name]"
                                 :precision="0"
                                 style="width: 100%;"
                                 size="small" />
-                              <!-- 浮点数类型 -->
                               <a-input-number
                                 v-else-if="param.type === 'float'"
                                 v-model="indicatorParamValues[param.name]"
                                 :precision="4"
                                 style="width: 100%;"
                                 size="small" />
-                              <!-- 布尔类型 -->
                               <a-switch
                                 v-else-if="param.type === 'bool'"
                                 v-model="indicatorParamValues[param.name]"
                                 size="small" />
-                              <!-- 字符串类型 -->
                               <a-input
                                 v-else
                                 v-model="indicatorParamValues[param.name]"
@@ -879,7 +864,6 @@
                       v-if="csStrategyTypeUi !== 'cross_sectional'"
                       :label="isEditMode ? $t('trading-assistant.form.symbol') : $t('trading-assistant.form.symbols')"
                       :required="true">
-                      <!-- 编辑模式：单选 -->
                       <a-select
                         v-if="isEditMode"
                         v-decorator="['symbol', { rules: [{ required: true, message: $t('trading-assistant.validation.symbolRequired') }] }]"
@@ -901,7 +885,6 @@
                             <span v-if="item.name" class="symbol-name-extra">{{ item.name }}</span>
                           </div>
                         </a-select-option>
-                        <!-- 添加交易对选项 -->
                         <a-select-option key="__add_symbol_option__" value="__add_symbol_option__" class="add-symbol-option">
                           <div style="width: 100%; text-align: center; padding: 4px 0; color: #1890ff; cursor: pointer;">
                             <a-icon type="plus" style="margin-right: 4px;" />
@@ -909,7 +892,6 @@
                           </div>
                         </a-select-option>
                       </a-select>
-                      <!-- 创建模式：多选 -->
                       <a-select
                         v-else
                         v-model="selectedSymbols"
@@ -933,7 +915,6 @@
                             <span v-if="item.name" class="symbol-name-extra">{{ item.name }}</span>
                           </div>
                         </a-select-option>
-                        <!-- 添加交易对选项 -->
                         <a-select-option key="__add_symbol_option__" value="__add_symbol_option__" class="add-symbol-option">
                           <div style="width: 100%; text-align: center; padding: 4px 0; color: #1890ff; cursor: pointer;">
                             <a-icon type="plus" style="margin-right: 4px;" />
@@ -1095,7 +1076,6 @@
                 </div>
               </div>
 
-              <!-- 脚本策略步骤2：策略参数 -->
               <div v-if="strategyMode === 'script'" v-show="currentStep === 1" class="step-content">
                 <div>
                   <a-form :form="form" layout="vertical">
@@ -1215,7 +1195,6 @@
                 </div>
               </div>
 
-              <!-- 指标策略：执行/通知（步进 1）；脚本策略：信号 & 实盘（步进 2） -->
               <div
                 v-show="(strategyMode === 'script' && currentStep === 2) || (strategyMode !== 'script' && currentStep === 1)"
                 class="step-content">
@@ -1418,7 +1397,6 @@
           </template>
         </a-modal>
 
-        <!-- 添加交易对弹窗 -->
         <a-modal
           :title="$t('trading-assistant.form.addSymbolTitle')"
           :visible="showAddSymbolModal"
@@ -1431,7 +1409,6 @@
           :maskClosable="false"
           :keyboard="false">
           <div class="add-symbol-modal-content">
-            <!-- 市场类型Tab -->
             <a-tabs v-model="addSymbolMarket" @change="handleAddSymbolMarketChange" class="market-tabs">
               <a-tab-pane
                 v-for="marketType in addSymbolMarketTypes"
@@ -1440,7 +1417,6 @@
               </a-tab-pane>
             </a-tabs>
 
-            <!-- 搜索输入框 -->
             <div class="symbol-search-section">
               <a-input-search
                 v-model="addSymbolKeyword"
@@ -1456,7 +1432,6 @@
               </a-input-search>
             </div>
 
-            <!-- 搜索结果 -->
             <div v-if="symbolSearchResults.length > 0" class="search-results-section">
               <div class="section-title">
                 <a-icon type="search" style="margin-right: 4px;" />
@@ -1483,7 +1458,6 @@
               </a-list>
             </div>
 
-            <!-- 热门标的 -->
             <div class="hot-symbols-section">
               <div class="section-title">
                 <a-icon type="fire" style="color: #ff4d4f; margin-right: 4px;" />
@@ -1513,7 +1487,6 @@
               </a-spin>
             </div>
 
-            <!-- 选中的标的显示 -->
             <div v-if="selectedAddSymbol" class="selected-symbol-section">
               <div class="section-title">
                 <a-icon type="check-circle" style="color: #52c41a; margin-right: 4px;" />
@@ -1564,25 +1537,23 @@
 </template>
 
 <script>
-import { getStrategyList, getStrategyDetail, startStrategy, stopStrategy, deleteStrategy, updateStrategy, createStrategy, getStrategyEquityCurve, getStrategyPositions, batchCreateStrategies, batchStartStrategies, batchStopStrategies, batchDeleteStrategies, getStrategyBacktestHistory, publishStrategyTemplate, verifyStrategyCode } from '@/api/strategy'
+import { getStrategyList, getStrategyDetail, getScriptSourceList, getScriptSourceDetail, startStrategy, stopStrategy, deleteStrategy, updateStrategy, createStrategy, getStrategyEquityCurve, getStrategyPositions, batchCreateStrategies, batchStartStrategies, batchStopStrategies, batchDeleteStrategies, getStrategyBacktestHistory, publishStrategyTemplate, publishScriptSource, publishBotPreset } from '@/api/strategy'
 import { getWatchlist, addWatchlist, searchSymbols, getHotSymbols } from '@/api/market'
 import { listExchangeCredentials } from '@/api/credentials'
 import { formatExchangeCredentialLabel } from '@/utils/exchangeCredential'
 import { getNotificationSettings } from '@/api/user'
 import { baseMixin } from '@/store/app-mixin'
 import request from '@/utils/request'
+import { loadEnabledMarketOptions, firstMarketValue } from '@/utils/marketModules'
 import TradingRecords from './components/TradingRecords.vue'
 import PositionRecords from './components/PositionRecords.vue'
 import StrategyTypeSelector from './components/StrategyTypeSelector.vue'
-import StrategyEditor from './components/StrategyEditor.vue'
 import PerformanceAnalysis from './components/PerformanceAnalysis.vue'
 import StrategyReviewReport from './components/StrategyReviewReport.vue'
 import StrategyLogs from './components/StrategyLogs.vue'
 import ExchangeAccountModal from '@/components/ExchangeAccountModal/ExchangeAccountModal.vue'
-import StrategyBacktestPanel from '@/components/StrategyBacktestPanel.vue'
 import { CROSS_SECTIONAL_INDICATOR_TEMPLATE } from '@/constants/crossSectionalIndicatorTemplate'
 
-// 常见加密货币交易对
 const CRYPTO_SYMBOLS = [
   'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'ADA/USDT',
   'XRP/USDT', 'DOGE/USDT', 'DOT/USDT', 'MATIC/USDT', 'AVAX/USDT',
@@ -1598,8 +1569,7 @@ const EXCHANGE_OPTIONS = [
   { value: 'coinbaseexchange', labelKey: 'coinbaseexchange' },
   { value: 'kraken', labelKey: 'kraken' },
   { value: 'kucoin', labelKey: 'kucoin' },
-  { value: 'gate', labelKey: 'gate' },
-  { value: 'deepcoin', labelKey: 'deepcoin' }
+  { value: 'gate', labelKey: 'gate' }
 ]
 
 // Traditional broker options (US stocks) - extensible for future brokers
@@ -1608,8 +1578,6 @@ const BROKER_OPTIONS = [
   // Future brokers can be added here:
   // { value: 'td', labelKey: 'td', name: 'TD Ameritrade' },
   // { value: 'schwab', labelKey: 'schwab', name: 'Charles Schwab' },
-  // { value: 'futu', labelKey: 'futu', name: 'Futu (富途)' },
-  // { value: 'tiger', labelKey: 'tiger', name: 'Tiger Brokers (老虎证券)' },
 ]
 
 // Forex broker options
@@ -1627,12 +1595,10 @@ export default {
     TradingRecords,
     PositionRecords,
     StrategyTypeSelector,
-    StrategyEditor,
     PerformanceAnalysis,
     StrategyReviewReport,
     StrategyLogs,
-    ExchangeAccountModal,
-    StrategyBacktestPanel
+    ExchangeAccountModal
   },
   computed: {
     showAssistantGuide () {
@@ -1687,7 +1653,6 @@ export default {
     showStrategyFormSubmit () {
       return this.currentStep === this.strategyFormLastStepIndex
     },
-    /** 指标代码中未配置止损/止盈/移动止盈时提示（依赖 # @strategy，与指标 IDE 一致） */
     indicatorRiskMissingWarn () {
       if (!this.showFormModal || this.strategyMode === 'script') return false
       if (this.currentStep !== 0) return false
@@ -1711,7 +1676,7 @@ export default {
     },
     needsPassphrase () {
       // Exchanges that require passphrase
-      return ['okx', 'okex', 'coinbaseexchange', 'kucoin', 'bitget', 'deepcoin'].includes(this.currentExchangeId)
+      return ['okx', 'okex', 'coinbaseexchange', 'kucoin', 'bitget'].includes(this.currentExchangeId)
     },
     // Check if current market uses IBKR (US Stock)
     isIBKRMarket () {
@@ -1736,7 +1701,6 @@ export default {
         return this.isCredentialCompatible(cred)
       })
     },
-    // 预处理交易所列表，包含显示名称，提升性能
     formattedExchangeOptions () {
       return EXCHANGE_OPTIONS.map(exchange => {
         let label = ''
@@ -1749,7 +1713,6 @@ export default {
             }
           }
         } catch (e) {
-          // 忽略翻译错误
         }
 
         if (!label) {
@@ -1761,7 +1724,6 @@ export default {
         }
       })
     },
-    /** 与头部「投入资金」展示一致：优先 trading_config.initial_capital */
     strategyInitialCapital () {
       const s = this.selectedStrategy
       if (!s) return null
@@ -1868,7 +1830,7 @@ export default {
       if (String(cat).toLowerCase() === 'crypto') {
         return [
           'binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange',
-          'kraken', 'kucoin', 'gate', 'deepcoin', 'htx', 'alpaca'
+          'kraken', 'kucoin', 'gate', 'htx', 'alpaca'
         ].includes(exchangeId)
       }
       // USStock uses IBKR (local TWS/Gateway) or Alpaca (REST).
@@ -1881,9 +1843,7 @@ export default {
       }
       return false
     },
-    // 是否显示模拟交易开关
     showDemoTradingSwitch () {
-      // 目前仅支持 Binance 的 Demo Trading
       return this.currentExchangeId && this.currentExchangeId.toLowerCase() === 'binance'
     },
     // Broker options for US stocks (with i18n support)
@@ -1951,12 +1911,11 @@ export default {
     isScriptStrategiesOnlyPage () {
       return !!(this.$route.meta && this.$route.meta.scriptStrategiesOnly)
     },
-    /** 脚本/机器人策略页展示回测；指标策略页回测在指标 IDE */
     showStrategyListBacktest () {
-      return !this.isIndicatorSignalOnlyPage
+      return false
     },
     showStrategyDetailBacktest () {
-      return !this.isIndicatorSignalOnlyPage
+      return false
     },
     isIndicatorSignalOnlyPage () {
       return !!(this.$route.meta && this.$route.meta.indicatorSignalOnly)
@@ -1965,7 +1924,6 @@ export default {
       if (this.isScriptStrategiesOnlyPage) return 'script'
       return 'all'
     },
-    /** 按路由过滤：策略与实盘页不展示脚本/机器人策略；脚本专页只展示脚本策略 */
     strategiesForPage () {
       const list = this.strategies || []
       if (this.isIndicatorSignalOnlyPage) {
@@ -1976,14 +1934,12 @@ export default {
       }
       return list.filter(s => s.strategy_mode !== 'bot')
     },
-    // 策略分组显示
     groupedStrategies () {
       if (this.groupByMode === 'symbol') {
         return this.groupedBySymbol
       }
       return this.groupedByStrategy
     },
-    // 按策略分组（原有逻辑）
     groupedByStrategy () {
       const groups = {}
       const ungrouped = []
@@ -1996,7 +1952,6 @@ export default {
               id: groupId,
               baseName: s.group_base_name || s.strategy_name.split('-')[0],
               strategies: [],
-              // 统计信息
               runningCount: 0,
               stoppedCount: 0
             }
@@ -2012,7 +1967,6 @@ export default {
         }
       }
 
-      // 转换为数组，按创建时间排序
       const groupList = Object.values(groups).sort((a, b) => {
         const aTime = Math.max(...a.strategies.map(s => s.created_at || 0))
         const bTime = Math.max(...b.strategies.map(s => s.created_at || 0))
@@ -2021,7 +1975,6 @@ export default {
 
       return { groups: groupList, ungrouped }
     },
-    // 按 Symbol 分组
     groupedBySymbol () {
       const groups = {}
       const ungrouped = []
@@ -2039,7 +1992,6 @@ export default {
               stoppedCount: 0
             }
           }
-          // 添加策略详情信息
           const strategyInfo = {
             ...s,
             displayInfo: {
@@ -2059,7 +2011,6 @@ export default {
         }
       }
 
-      // 转换为数组，按 symbol 名称排序
       const groupList = Object.values(groups).sort((a, b) => {
         return a.baseName.localeCompare(b.baseName)
       })
@@ -2100,9 +2051,17 @@ export default {
       if (!s) return false
       return s.strategy_mode === 'script' || s.strategy_type === 'ScriptStrategy'
     },
-    strategyEditorKey () {
-      const id = this.editingStrategy && this.editingStrategy.id
-      return id ? `script-editor-${id}` : `script-editor-new-${this.pendingScriptTemplateKey || 'blank'}`
+    scriptSourceOptions () {
+      return (this.scriptSources || [])
+        .map(s => {
+          const pieces = [s.name || s.strategy_name || `Script #${s.id}`]
+          return { ...s, optionLabel: pieces.join(' - ') }
+        })
+    },
+    selectedScriptSourcePreview () {
+      const id = String(this.selectedScriptSourceId || '')
+      if (!id) return null
+      return (this.scriptSourceOptions || []).find(item => String(item.id) === id) || null
     }
   },
   watch: {
@@ -2150,7 +2109,10 @@ export default {
       // Strategy mode: 'signal' (indicator-based) or 'script' (code-based)
       strategyMode: '',
       strategyCode: '',
+      scriptSources: [],
       pendingScriptTemplateKey: '',
+      selectedScriptSourceId: '',
+      loadingScriptSource: false,
       showModeSelector: false,
       // Only indicator strategy in local mode
       strategyType: 'indicator',
@@ -2198,25 +2160,15 @@ export default {
       showExchangeAccountModal: false,
       saveCredentialUi: false,
       suppressApiClearOnce: false,
-      // 多币种选择（创建模式）
       selectedSymbols: [],
-      // 截面策略标的列表
       crossSectionalSymbols: [],
       csStrategyTypeUi: 'single',
       crossSectionalIndicatorCodeOverride: null,
-      // 策略组折叠状态
       collapsedGroups: {},
-      // 分组模式: 'strategy' 或 'symbol'
       groupByMode: 'strategy',
-      // 添加交易对弹窗相关
       showAddSymbolModal: false,
       addSymbolMarket: 'Crypto',
-      addSymbolMarketTypes: [
-        { value: 'Crypto', i18nKey: 'dashboard.analysis.market.Crypto' },
-        { value: 'USStock', i18nKey: 'dashboard.analysis.market.USStock' },
-        { value: 'Forex', i18nKey: 'dashboard.analysis.market.Forex' },
-        { value: 'Futures', i18nKey: 'dashboard.analysis.market.Futures' }
-      ],
+      addSymbolMarketTypes: [],
       addSymbolKeyword: '',
       searchingSymbol: false,
       symbolSearchResults: [],
@@ -2233,7 +2185,7 @@ export default {
   beforeCreate () {
     this.form = this.$form.createForm(this)
   },
-  mounted () {
+  async mounted () {
     this.restoreAssistantGuidePreference()
     if (this.isScriptStrategiesOnlyPage) {
       this.topTab = 'strategy'
@@ -2241,6 +2193,7 @@ export default {
     if (this.$route.query.tab === 'strategy' || this.$route.query.mode === 'create') {
       this.topTab = 'strategy'
     }
+    await this.loadMarketModules()
     this.loadStrategies()
     this.loadUserNotificationSettings()
 
@@ -2270,6 +2223,23 @@ export default {
     this.stopEquityPolling()
   },
   methods: {
+    isScriptStrategy (strategy) {
+      const type = String(strategy?.strategy_type || strategy?.strategyType || '').toLowerCase()
+      const mode = String(strategy?.strategy_mode || strategy?.strategyMode || '').toLowerCase()
+      return type === 'scriptstrategy' || mode === 'script' || mode === 'bot'
+    },
+    async loadMarketModules () {
+      const options = await loadEnabledMarketOptions({ includeFeatures: ['research'] })
+      this.addSymbolMarketTypes = options
+      const values = options.map(item => item.value)
+      if (!values.includes(this.addSymbolMarket)) {
+        this.addSymbolMarket = firstMarketValue(options)
+      }
+      if (!values.includes(this.selectedMarketCategory)) {
+        this.selectedMarketCategory = this.addSymbolMarket || firstMarketValue(options)
+        this.applyMarketDefaultsForCategory(this.selectedMarketCategory)
+      }
+    },
     restoreAssistantGuidePreference () {
       try {
         this.assistantGuideDismissed = window.localStorage.getItem(this.assistantGuideStorageKey) === '1'
@@ -2327,7 +2297,6 @@ export default {
         this.loadingWatchlist = false
       }
     },
-    // ====== 添加交易对弹窗相关方法 ======
     handleCloseAddSymbolModal () {
       this.showAddSymbolModal = false
       this.addSymbolKeyword = ''
@@ -2341,20 +2310,16 @@ export default {
       this.symbolSearchResults = []
       this.selectedAddSymbol = null
       this.hasSearchedSymbol = false
-      // 加载该市场的热门标的
       this.loadHotSymbols(market)
     },
-    // 搜索输入框变化时的处理（防抖）
     handleSymbolSearchInputChange (e) {
       const keyword = e.target.value
       this.addSymbolKeyword = keyword
 
-      // 清除之前的定时器
       if (this.searchTimer) {
         clearTimeout(this.searchTimer)
       }
 
-      // 如果关键词为空，清空搜索结果和状态
       if (!keyword || keyword.trim() === '') {
         this.symbolSearchResults = []
         this.hasSearchedSymbol = false
@@ -2362,12 +2327,10 @@ export default {
         return
       }
 
-      // 防抖：500ms后执行搜索
       this.searchTimer = setTimeout(() => {
         this.searchSymbolsInModal(keyword)
       }, 500)
     },
-    // 搜索或直接添加（整合逻辑）
     async handleSearchSymbol (keyword) {
       if (!keyword || !keyword.trim()) {
         return
@@ -2378,20 +2341,16 @@ export default {
         return
       }
 
-      // 如果有搜索结果，不处理（让用户选择）
       if (this.symbolSearchResults.length > 0) {
         return
       }
 
-      // 如果没有搜索结果，直接添加
       if (this.hasSearchedSymbol && this.symbolSearchResults.length === 0) {
         this.handleDirectAdd()
       } else {
-        // 执行搜索
         this.searchSymbolsInModal(keyword)
       }
     },
-    // 搜索标的（在添加股票弹窗中）
     async searchSymbolsInModal (keyword) {
       if (!keyword || keyword.trim() === '') {
         this.symbolSearchResults = []
@@ -2422,7 +2381,6 @@ export default {
         this.searchingSymbol = false
       }
     },
-    // 直接添加（搜索无结果时）
     handleDirectAdd () {
       if (!this.addSymbolKeyword || !this.addSymbolKeyword.trim()) {
         this.$message.warning(this.$t('dashboard.analysis.modal.addStock.pleaseEnterSymbol'))
@@ -2434,7 +2392,6 @@ export default {
         return
       }
 
-      // 设置选中的标的（手动输入，名称会在后端获取）
       this.selectedAddSymbol = {
         market: this.addSymbolMarket,
         symbol: this.addSymbolKeyword.trim().toUpperCase(),
@@ -2448,7 +2405,6 @@ export default {
         name: item.name || ''
       }
     },
-    // 加载热门标的
     async loadHotSymbols (market) {
       if (!market) {
         market = this.addSymbolMarket || 'Crypto'
@@ -2476,16 +2432,13 @@ export default {
       }
     },
     async handleConfirmAddSymbol () {
-      // 确定要添加的交易对
       let market = ''
       let symbol = ''
 
-      // 检查是否选中了标的（从数据库选择或手动输入）
       if (this.selectedAddSymbol) {
         market = this.selectedAddSymbol.market
         symbol = this.selectedAddSymbol.symbol.toUpperCase()
       } else if (this.addSymbolKeyword && this.addSymbolKeyword.trim()) {
-        // 如果没有选中，但搜索框有输入，使用搜索框的值
         if (!this.addSymbolMarket) {
           this.$message.warning(this.$t('dashboard.analysis.modal.addStock.pleaseSelectMarket'))
           return
@@ -2499,7 +2452,6 @@ export default {
 
       this.addingSymbol = true
       try {
-        // 调用添加自选API
         const res = await addWatchlist({
           userid: 1,
           market: market,
@@ -2507,9 +2459,7 @@ export default {
         })
         if (res && res.code === 1) {
           this.$message.success(this.$t('dashboard.analysis.message.addStockSuccess'))
-          // 重新加载自选列表
           await this.loadWatchlist()
-          // 自动选中新添加的交易对
           const newValue = `${market}:${symbol}`
           if (this.isEditMode) {
             this.form.setFieldsValue({ symbol: newValue })
@@ -2520,13 +2470,11 @@ export default {
             }
             this.handleCrossSectionalSymbolChange(this.crossSectionalSymbols)
           } else {
-            // 多选模式：添加到已选列表
             if (!this.selectedSymbols.includes(newValue)) {
               this.selectedSymbols = [...this.selectedSymbols, newValue]
             }
             this.handleMultiSymbolChange(this.selectedSymbols)
           }
-          // 关闭弹窗
           this.handleCloseAddSymbolModal()
         } else {
           this.$message.error(res?.msg || this.$t('dashboard.analysis.message.addStockFailed'))
@@ -2538,27 +2486,20 @@ export default {
         this.addingSymbol = false
       }
     },
-    // ====== 添加交易对弹窗相关方法 END ======
     filterWatchlistOption (input, option) {
       const value = option.componentOptions?.propsData?.value || ''
-      // 始终显示"添加"选项
       if (value === '__add_symbol_option__') return true
       return String(value).toLowerCase().includes(String(input || '').toLowerCase())
     },
     filterWatchlistOptionWithAdd (input, option) {
       const value = option.componentOptions?.propsData?.value || ''
-      // 始终显示"添加"选项
       if (value === '__add_symbol_option__') return true
       return String(value).toLowerCase().includes(String(input || '').toLowerCase())
     },
     handleMultiSymbolChangeWithAdd (vals) {
-      // 检查是否点击了"添加"选项
       if (vals && vals.includes('__add_symbol_option__')) {
-        // 从选中列表中移除特殊选项
         this.selectedSymbols = vals.filter(v => v !== '__add_symbol_option__')
-        // 打开添加弹窗
         this.showAddSymbolModal = true
-        // 加载热门标的
         this.loadHotSymbols(this.addSymbolMarket)
         return
       }
@@ -2583,19 +2524,14 @@ export default {
       return (tc.cs_strategy_type || '') === 'cross_sectional'
     },
     handleCrossSectionalSymbolChange (vals) {
-      // 检查是否点击了"添加"选项
       if (vals && vals.includes('__add_symbol_option__')) {
-        // 从选中列表中移除特殊选项
         this.crossSectionalSymbols = vals.filter(v => v !== '__add_symbol_option__')
-        // 打开添加弹窗
         this.showAddSymbolModal = true
-        // 加载热门标的
         this.loadHotSymbols(this.addSymbolMarket)
         return
       }
       this.crossSectionalSymbols = vals || []
 
-      // 更新市场类型基于选中的标的
       if (vals && vals.length > 0) {
         const firstVal = vals[0]
         if (typeof firstVal === 'string' && firstVal.includes(':')) {
@@ -2678,15 +2614,11 @@ export default {
       return { marketType, leverage, tradeDirection }
     },
     handleWatchlistSymbolChange (val) {
-      // 检查是否点击了"添加"选项
       if (val === '__add_symbol_option__') {
-        // 重置表单值（不选中特殊选项）
         this.$nextTick(() => {
           this.form.setFieldsValue({ symbol: undefined })
         })
-        // 打开添加弹窗
         this.showAddSymbolModal = true
-        // 加载热门标的
         this.loadHotSymbols(this.addSymbolMarket)
         return
       }
@@ -2921,7 +2853,7 @@ export default {
         }
 
         // Validate crypto exchanges can only be used for Crypto
-        const cryptoExchanges = ['binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange', 'kraken', 'kucoin', 'gate', 'deepcoin', 'htx']
+        const cryptoExchanges = ['binance', 'okx', 'bitget', 'bybit', 'coinbaseexchange', 'kraken', 'kucoin', 'gate', 'htx']
         if (cryptoExchanges.includes(exchangeId) && this.selectedMarketCategory !== 'Crypto') {
           this.$message.error(this.$t('trading-assistant.validation.cryptoExchangeOnlyForCrypto'))
           // Clear the selection
@@ -3026,16 +2958,13 @@ export default {
       try {
         const res = await getStrategyList()
         if (res.code === 1) {
-          // 显示所有策略（包括指标策略和AI策略）
           const allStrategies = res.data.strategies || []
           this.strategies = allStrategies
-          // 如果有选中的策略，更新它
           if (this.selectedStrategy) {
             const updated = this.strategies.find(s => s.id === this.selectedStrategy.id)
             if (updated) {
               this.selectedStrategy = updated
             } else {
-              // 如果选中的策略被过滤掉了，清空选中状态
               this.selectedStrategy = null
             }
           }
@@ -3091,6 +3020,7 @@ export default {
         this.strategyMode = 'script'
         this.pendingScriptTemplateKey = ''
         this.strategyCode = ''
+        this.selectedScriptSourceId = ''
         this.showModeSelector = false
         this.showFormModal = false
         this._openCreateModal()
@@ -3109,10 +3039,8 @@ export default {
       this._openCreateModal()
     },
     handleUseTemplate (templateKey) {
-      this.strategyMode = 'script'
-      this.pendingScriptTemplateKey = templateKey
       this.showModeSelector = false
-      this._openCreateModal()
+      this.$router.push({ path: '/strategy-ide', query: { tab: 'script', template: templateKey || '' } })
     },
     _openCreateModal () {
       this.strategyType = 'indicator'
@@ -3130,6 +3058,8 @@ export default {
       this.crossSectionalSymbols = []
       this.csStrategyTypeUi = 'single'
       this.crossSectionalIndicatorCodeOverride = null
+      this.selectedScriptSourceId = ''
+      this.strategyCode = ''
       const isScriptCreate = this.strategyMode === 'script'
       const defaultStrategyName = isScriptCreate
         ? this.buildScriptStrategyDefaultName(this.pendingScriptTemplateKey || null)
@@ -3162,12 +3092,14 @@ export default {
         })
         await this.loadWatchlist()
         await this.loadIndicators()
+        if (isScriptCreate) {
+          await this.loadScriptSources()
+        }
         this.applyPendingRouteIndicatorSelection()
         this.loadExchangeCredentials()
       })
     },
     async handleEditStrategy (strategy) {
-      // 如果策略正在运行，提示用户先停止
       if (strategy.status === 'running') {
         this.$message.warning(this.$t('trading-assistant.messages.runningWarning'))
         return
@@ -3208,12 +3140,10 @@ export default {
       })
     },
     async loadStrategyDataToForm (strategy) {
-      // 先加载指标列表（如果需要）
       if (!this.indicatorsLoaded) {
         await this.loadIndicators()
       }
 
-      // 使用 nextTick 确保表单已初始化
       await this.$nextTick()
 
       // Market / execution / notification defaults (backward compatible)
@@ -3269,6 +3199,17 @@ export default {
         const sk = tc.script_template_key ? String(tc.script_template_key) : ''
         this.scriptTemplateKeyForPayload = sk
         this.pendingScriptTemplateKey = sk
+        this.selectedScriptSourceId = tc.script_source_id ? String(tc.script_source_id) : ''
+        this.strategyCode = strategy.strategy_code || ''
+        if (tc.script_source_id) {
+          try {
+            await this.loadScriptSources()
+            const srcRes = await getScriptSourceDetail(tc.script_source_id)
+            const src = (srcRes && srcRes.data) || srcRes || {}
+            this.strategyCode = src.code || this.strategyCode
+            this.scriptTemplateKeyForPayload = src.template_key || this.scriptTemplateKeyForPayload
+          } catch (e) {}
+        }
         this.lastAutoScriptStrategyName = strategy.strategy_name || ''
         this.lastAutoStrategyName = strategy.strategy_name || ''
         const mt = this.isStockMarketCategory
@@ -3286,24 +3227,19 @@ export default {
         return
       }
 
-      // 加载指标数据
       if (strategy.indicator_config && strategy.indicator_config.indicator_id) {
-        // 查找对应的指标，确保ID类型一致（处理 string vs number 问题）
         const targetId = strategy.indicator_config.indicator_id
-        // 使用字符串比较处理类型不匹配问题（string vs number）
         const indicator = this.availableIndicators.find(ind => {
           return String(ind.id) === String(targetId)
         })
 
         if (indicator) {
-          // 找到匹配的指标，使用指标对象中的ID（确保类型一致）
           const finalId = String(indicator.id)
           this.form.setFieldsValue({
             indicator_id: finalId
           })
           await this.handleIndicatorChange(finalId)
 
-          // 恢复已保存的指标参数值 - 使用 $set 确保响应式
           const savedParams = strategy.trading_config?.indicator_params
           if (savedParams && typeof savedParams === 'object') {
             Object.keys(savedParams).forEach(key => {
@@ -3313,7 +3249,6 @@ export default {
             })
           }
         } else {
-          // 如果找不到，仍然设置值，但可能显示为ID
           this.form.setFieldsValue({
             indicator_id: String(targetId)
           })
@@ -3371,7 +3306,6 @@ export default {
         }
       }
 
-      // 加载交易配置（风控/仓位由指标 # @strategy 决定，此处不再写入已删除的表单项）
       if (strategy.trading_config) {
         const tc = strategy.trading_config || {}
         const csType = tc.cs_strategy_type || 'single'
@@ -3420,14 +3354,12 @@ export default {
       if (!this.selectedStrategy) {
         return Promise.resolve()
       }
-      // 同时加载净值曲线和持仓数据，计算实时净值
       try {
         const [curveRes, posRes] = await Promise.all([
           getStrategyEquityCurve(this.selectedStrategy.id),
           getStrategyPositions(this.selectedStrategy.id)
         ])
 
-        // 1. 已平仓净值（基于交易记录）
         let closedEquity = null
         if (curveRes.code === 1 && curveRes.data) {
           if (Array.isArray(curveRes.data) && curveRes.data.length > 0) {
@@ -3439,7 +3371,6 @@ export default {
           }
         }
 
-        // 2. 未平仓浮动盈亏
         let totalUnrealizedPnl = 0
         if (posRes.code === 1 && posRes.data) {
           const positions = posRes.data.positions || posRes.data.items || []
@@ -3448,24 +3379,20 @@ export default {
           }
         }
 
-        // 3. 实时净值 = 已平仓净值 + 未平仓浮动盈亏
         if (closedEquity !== null) {
           this.currentEquity = closedEquity + totalUnrealizedPnl
         } else {
           this.currentEquity = null
         }
       } catch (error) {
-        // 静默处理
       }
     },
     startEquityPolling () {
       this.stopEquityPolling()
       if (!this.selectedStrategy) return
 
-      // 初始加载一次
       this.loadStrategyDetails()
 
-      // 每10秒轮询一次（包含持仓浮动盈亏，保持实时性）
       this.equityPollingTimer = setInterval(() => {
         this.loadStrategyDetails()
       }, 10000)
@@ -3484,6 +3411,7 @@ export default {
       this.strategyMode = ''
       this.strategyCode = ''
       this.pendingScriptTemplateKey = ''
+      this.selectedScriptSourceId = ''
       this.currentStep = 0
       this.currentExchangeId = ''
       this.selectedIndicator = null
@@ -3528,18 +3456,24 @@ export default {
     },
     handleBacktestStrategy (strategy) {
       if (!strategy || !strategy.id) return
-      if (!this.showStrategyDetailBacktest) {
-        this.goToIndicatorIdeForBacktest(strategy)
-        return
-      }
-      this.handleSelectStrategy(strategy)
-      this.detailTab = 'backtest'
+      this.goToStrategyIdeForBacktest(strategy)
     },
     goToIndicatorIdeForBacktest (strategy) {
       const st = strategy || this.selectedStrategy
       const indId = st && st.indicator_config && st.indicator_config.indicator_id
       const query = indId ? { indicator_id: String(indId) } : {}
-      this.$router.push({ path: '/indicator-ide', query })
+      this.$router.push({ path: '/strategy-ide', query })
+    },
+    goToStrategyIdeForBacktest (strategy) {
+      const st = strategy || this.selectedStrategy
+      if (st && (st.strategy_mode === 'script' || st.strategy_type === 'ScriptStrategy')) {
+        this.$router.push({
+          path: '/strategy-ide',
+          query: { tab: 'script', strategy_id: String(st.id) }
+        })
+        return
+      }
+      this.goToIndicatorIdeForBacktest(st)
     },
     isStrategyVerified (strategy) {
       const tc = (strategy && strategy.trading_config) || {}
@@ -3573,15 +3507,27 @@ export default {
     },
     async submitPublishTemplate () {
       if (!this.selectedStrategy || !this.selectedStrategy.id) return
+      const tradingConfig = this.selectedStrategy.trading_config || this.selectedStrategy.tradingConfig || {}
+      const scriptSourceId = tradingConfig.script_source_id || tradingConfig.scriptSourceId
+      const isScriptStrategy = this.isScriptStrategy(this.selectedStrategy)
+      const isBotPreset = String(this.selectedStrategy.strategy_mode || '').toLowerCase() === 'bot'
+      if (isScriptStrategy && !isBotPreset && !scriptSourceId) {
+        this.$message.warning(this.$t('trading-assistant.form.scriptSourceRequired'))
+        return
+      }
       this.publishingTemplate = true
       try {
-        const res = await publishStrategyTemplate({
-          strategyId: this.selectedStrategy.id,
+        const payload = {
           name: this.publishForm.name,
           description: this.publishForm.description,
           pricingType: this.publishForm.pricingType,
           price: this.publishForm.pricingType === 'paid' ? this.publishForm.price : 0
-        })
+        }
+        const res = isBotPreset
+          ? await publishBotPreset({ ...payload, strategyId: this.selectedStrategy.id })
+          : (isScriptStrategy
+            ? await publishScriptSource({ ...payload, sourceId: scriptSourceId })
+            : await publishStrategyTemplate({ ...payload, strategyId: this.selectedStrategy.id }))
         if (res.code === 1) {
           this.$message.success(this.$t('strategyCenter.publish.success'))
           this.showPublishTemplateModal = false
@@ -3663,7 +3609,6 @@ export default {
             if (res.code === 1) {
               const count = res.data?.success_ids?.length || strategyIds.length
               this.$message.success(this.$t('trading-assistant.messages.batchDeleteSuccess', { count }))
-              // 如果删除的策略包含当前选中的策略，清空选中状态
               if (this.selectedStrategy && strategyIds.includes(this.selectedStrategy.id)) {
                 this.selectedStrategy = null
                 this.stopEquityPolling()
@@ -3695,8 +3640,7 @@ export default {
               onOk: () => resolve(true),
               onCancel: () => {
                 if (strategy) {
-                  this.handleSelectStrategy(strategy)
-                  this.detailTab = 'backtest'
+                  this.goToStrategyIdeForBacktest(strategy)
                 }
                 resolve(false)
               }
@@ -3710,7 +3654,6 @@ export default {
         if (res.code === 1) {
           this.$message.success(this.$t('trading-assistant.messages.startSuccess'))
           this.loadStrategies()
-          // 更新选中的策略状态
           if (this.selectedStrategy && this.selectedStrategy.id === id) {
             this.selectedStrategy.status = 'running'
           }
@@ -3727,7 +3670,6 @@ export default {
         if (res.code === 1) {
           this.$message.success(this.$t('trading-assistant.messages.stopSuccess'))
           this.loadStrategies()
-          // 更新选中的策略状态
           if (this.selectedStrategy && this.selectedStrategy.id === id) {
             this.selectedStrategy.status = 'stopped'
           }
@@ -3791,16 +3733,13 @@ export default {
       }
       return directionMap[direction] || direction
     },
-    // 指标相关方法
     async handleIndicatorSelectFocus () {
-      // 懒加载：只在用户点击选择框时才加载指标
       if (!this.indicatorsLoaded && !this.loadingIndicators) {
         await this.loadIndicators()
       }
     },
     async loadIndicators () {
       if (this.loadingIndicators) {
-        // 如果正在加载，等待加载完成
         return new Promise((resolve) => {
           const checkInterval = setInterval(() => {
             if (!this.loadingIndicators) {
@@ -3815,13 +3754,11 @@ export default {
         return Promise.resolve()
       }
 
-      // 获取用户ID
       const userInfo = this.$store.getters.userInfo || {}
       const userId = userInfo.id || 1
 
       this.loadingIndicators = true
       try {
-        // 使用和 indicator-analysis 页面相同的接口
         const res = await request({
           url: '/api/indicator/getIndicators',
           method: 'get',
@@ -3831,7 +3768,6 @@ export default {
         })
 
         if (res.code === 1 && res.data) {
-          // 将所有指标（包括选购的和自己创建的）合并到一个数组
           const indicators = res.data.map(item => ({
             id: item.id,
             name: item.name,
@@ -3861,7 +3797,6 @@ export default {
       this.selectedIndicator = this.availableIndicators.find(ind => String(ind.id) === idStr)
       this.applyAutoStrategyName(this.selectedIndicator)
 
-      // 获取指标参数声明
       this.indicatorParams = []
       this.indicatorParamValues = {}
       if (indicatorId) {
@@ -3869,10 +3804,8 @@ export default {
           const res = await this.$http.get('/api/indicator/getIndicatorParams', {
             params: { indicator_id: indicatorId }
           })
-          // 响应拦截器已返回 response.data，所以直接访问 res.code 和 res.data
           if (res && res.code === 1 && Array.isArray(res.data)) {
             this.indicatorParams = res.data
-            // 初始化参数值为默认值 - 先构建完整对象再赋值，确保响应式
             const paramValues = {}
             res.data.forEach(p => {
               paramValues[p.name] = p.default
@@ -3886,7 +3819,6 @@ export default {
     },
     handleMarketTypeChange (e) {
       const marketType = e.target.value
-      // 如果切换到现货，自动设置交易方向为做多，杠杆为1
       if (marketType === 'spot') {
         this.form.setFieldsValue({
           trade_direction: 'long',
@@ -3894,7 +3826,6 @@ export default {
         })
       }
     },
-    /** 与指标 IDE / 后端 StrategyConfigParser：从行首解析 # @strategy key value */
     parseStrategyAnnotationRaw (code) {
       const lineRe = /^#\s*@strategy\s+(\w+)\s*:?\s*(\S+)/i
       const config = {}
@@ -3930,10 +3861,6 @@ export default {
       }
       return out
     },
-    /**
-     * 保存时由后端 StrategyConfigParser.to_trading_config_risk_flat 再次校正；
-     * 此处尽量与入库 percent 字段对齐，避免 UI 展示与 DB 短暂不一致。
-     */
     buildRiskPositionFromIndicatorCode (code) {
       const raw = this.parseStrategyAnnotationRaw(code || '')
       const headers = this.parseIndicatorContractHeaders(code || '')
@@ -3977,7 +3904,6 @@ export default {
       if (headers.exit_owner) out.exit_owner = headers.exit_owner
       return out
     },
-    /** 编辑策略时保留库里的加减仓配置；新建时全部为关/0 */
     extractScaleReduceFlatFromTradingConfig (tc) {
       tc = tc || {}
       const scaleObj = (tc.scale && typeof tc.scale === 'object') ? tc.scale : null
@@ -4039,8 +3965,10 @@ export default {
       return `${base}${suffix}`
     },
     scriptTemplateKeyOf (item) {
-      if (!item || !item.trading_config) return ''
-      const k = item.trading_config.script_template_key
+      if (!item) return ''
+      const tc = item.trading_config || item.metadata || {}
+      const lastRun = tc.last_run_config || {}
+      const k = item.template_key || tc.script_template_key || lastRun.script_template_key
       return k ? String(k) : ''
     },
     scriptTemplateLabel (key) {
@@ -4099,14 +4027,11 @@ export default {
       const translated = this.$t(key)
       return translated !== key ? translated : type
     },
-    // 交易所相关方法
     getExchangeName (exchange) {
       if (exchange.labelKey) {
         const translationKey = `trading-assistant.exchangeNames.${exchange.labelKey}`
         const translated = this.$t(translationKey)
-        // 如果翻译不存在，返回键值本身，否则返回翻译后的名称
         if (translated === translationKey) {
-          // 翻译不存在，返回交易所ID的首字母大写
           return exchange.value.charAt(0).toUpperCase() + exchange.value.slice(1)
         }
         return translated
@@ -4115,16 +4040,13 @@ export default {
     },
     getExchangeDisplayName (exchangeId) {
       if (!exchangeId) return ''
-      // 查找对应的交易所选项
       const exchange = this.exchangeOptions.find(ex => ex.value === exchangeId)
       if (exchange) {
         return this.getExchangeName(exchange)
       }
-      // 如果找不到，返回格式化的交易所ID
       return exchangeId.charAt(0).toUpperCase() + exchangeId.slice(1)
     },
     getExchangeTagColor (exchangeId) {
-      // 为不同交易所设置不同的标签颜色
       const colorMap = {
         binance: 'gold',
         okx: 'blue',
@@ -4166,7 +4088,6 @@ export default {
       return colorMap[exchangeId] || 'default'
     },
     handleApiConfigChange () {
-      // 当API配置字段变化时，清空测试结果
       this.connectionTestResult = null
     },
     getModalPopupContainer () {
@@ -4259,7 +4180,6 @@ export default {
       if (exchangePlaceholders[fieldType]) {
         return exchangePlaceholders[fieldType]
       }
-      // 默认占位符使用多语言
       const fieldLabels = {
         'api_key': this.$t('trading-assistant.placeholders.inputApiKey'),
         'secret_key': this.$t('trading-assistant.placeholders.inputSecretKey'),
@@ -4267,32 +4187,64 @@ export default {
       }
       return fieldLabels[fieldType] || this.$t('trading-assistant.placeholders.inputApiKey')
     },
-    // 表单步骤控制
+    async loadScriptSources () {
+      this.loadingScriptSource = true
+      try {
+        const res = await getScriptSourceList()
+        const data = res && res.data
+        this.scriptSources = Array.isArray(data)
+          ? data
+          : ((data && (data.sources || data.items)) || [])
+      } catch (e) {
+        this.scriptSources = []
+        this.$message.warning(this.$t('trading-assistant.form.scriptSourceLoadFailed'))
+      } finally {
+        this.loadingScriptSource = false
+      }
+    },
+    async handleScriptSourceChange (id) {
+      if (!id) {
+        this.strategyCode = ''
+        this.scriptTemplateKeyForPayload = ''
+        return
+      }
+      this.loadingScriptSource = true
+      try {
+        const res = await getScriptSourceDetail(id)
+        const source = (res && res.data) || res || {}
+        const metadata = source.metadata || {}
+        const tc = metadata.last_run_config || {}
+        this.strategyCode = source.code || source.strategy_code || ''
+        this.scriptTemplateKeyForPayload = source.template_key || (tc.script_template_key ? String(tc.script_template_key) : '')
+        const nextName = this.buildScriptStrategyDefaultName(this.scriptTemplateKeyForPayload || null)
+        const currentName = this.form && this.form.getFieldValue('strategy_name')
+        if (!currentName || currentName === this.lastAutoScriptStrategyName || currentName === this.lastAutoStrategyName) {
+          this.safeSetFormFields({ strategy_name: nextName })
+          this.lastAutoScriptStrategyName = nextName
+          this.lastAutoStrategyName = nextName
+        }
+      } catch (e) {
+        this.$message.error(this.$t('trading-assistant.form.scriptSourceLoadFailed'))
+      } finally {
+        this.loadingScriptSource = false
+      }
+    },
     async handleNext () {
       // ===== Script mode: code → params → signal/live =====
       if (this.strategyMode === 'script') {
         if (this.currentStep === 0) {
-          if (!this.strategyCode || this.strategyCode.trim().length < 20) {
-            this.$message.warning(this.$t('trading-assistant.editor.codeHint'))
+          if (!this.selectedScriptSourceId) {
+            this.$message.warning(this.$t('trading-assistant.form.scriptSourceRequired'))
             return
           }
-          this.saving = true
-          try {
-            const res = await verifyStrategyCode({
-              code: this.strategyCode,
-              strategyId: this.editingStrategy && this.editingStrategy.id ? this.editingStrategy.id : undefined
-            })
-            if (!res || !res.success) {
-              this.$message.error((res && (res.message || res.msg)) || this.$t('trading-assistant.editor.verifyFailed'))
-              return
-            }
-            this.onScriptVerified()
-            this.currentStep = 1
-          } catch (e) {
-            this.$message.error(this.$t('trading-assistant.editor.verifyFailed') + ': ' + (e.message || ''))
-          } finally {
-            this.saving = false
+          if (!this.strategyCode) {
+            await this.handleScriptSourceChange(this.selectedScriptSourceId)
           }
+          if (!this.strategyCode || this.strategyCode.trim().length < 20) {
+            this.$message.warning(this.$t('trading-assistant.form.scriptSourceCodeMissing'))
+            return
+          }
+          this.currentStep = 1
           return
         }
         if (this.currentStep === 1) {
@@ -4375,7 +4327,6 @@ export default {
           try {
             this.saving = true
 
-            // ===== Script Strategy Submit（创建 / 编辑）=====
             if (this.strategyMode === 'script') {
               const notificationConfig = {
                 channels: values.notify_channels || ['browser'],
@@ -4444,7 +4395,9 @@ export default {
                 trade_direction: tradeDirection,
                 timeframe: values.timeframe || '15m',
                 market_type: marketType,
-                symbol: symbol
+                symbol: symbol,
+                script_source_id: this.selectedScriptSourceId || undefined,
+                script_role: 'runtime'
               }
               if (this.scriptTemplateKeyForPayload) {
                 tradingConfig.script_template_key = this.scriptTemplateKeyForPayload
@@ -4456,7 +4409,7 @@ export default {
                 strategy_name: values.strategy_name,
                 strategy_type: 'ScriptStrategy',
                 strategy_mode: 'script',
-                strategy_code: this.strategyCode,
+                strategy_code: '',
                 market_category: marketCategory,
                 execution_mode: values.execution_mode || 'signal',
                 notification_config: notificationConfig,
@@ -4623,7 +4576,6 @@ export default {
               tradingConfigBase.rebalance_frequency = values.rebalance_frequency || 'daily'
             }
 
-            // 构建基础 payload
             const basePayload = {
               strategy_name: values.strategy_name,
               market_category: this.selectedMarketCategory || 'Crypto',
@@ -4687,7 +4639,7 @@ export default {
                 const totalCreated = res.data?.total_created || this.selectedSymbols.length
                 this.$message.success(this.$t('trading-assistant.messages.batchCreateSuccess', { count: totalCreated }))
               }
-              // Credentials are managed in Profile → Exchange Config; no inline save needed.
+              // Credentials are managed in Broker Accounts; no inline save needed.
               this.handleRefresh()
             } else {
               this.$message.error(res.msg || (this.isEditMode ? this.$t('trading-assistant.messages.updateFailed') : this.$t('trading-assistant.messages.createFailed')))
@@ -4712,36 +4664,57 @@ export default {
       })
     },
     getDropdownContainer (triggerNode) {
-      // 始终将下拉菜单挂载到body，避免被父容器裁剪
       return document.body
     }
   }
 }
+
 </script>
 
 <style lang="less" scoped>
-// 顶层 Tab 样式
+.script-source-preview {
+  margin: 8px 0 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.script-source-preview__title {
+  font-weight: 700;
+  color: #172033;
+}
+
+.script-source-preview__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .top-level-tabs {
-  /deep/ .ant-tabs-bar {
+  ::v-deep .ant-tabs-bar {
     margin-bottom: 16px;
     border-bottom: 1px solid #e8e8e8;
   }
-  /deep/ .ant-tabs-tab {
+  ::v-deep .ant-tabs-tab {
     font-size: 15px;
     padding: 12px 20px;
   }
 }
 .theme-dark .top-level-tabs {
-  /deep/ .ant-tabs-bar {
+  ::v-deep .ant-tabs-bar {
     border-bottom-color: #303030;
   }
-  /deep/ .ant-tabs-tab {
+  ::v-deep .ant-tabs-tab {
     color: rgba(255,255,255,0.65);
   }
-  /deep/ .ant-tabs-tab-active {
+  ::v-deep .ant-tabs-tab-active {
     color: #177ddc;
   }
-  /deep/ .ant-tabs-ink-bar {
+  ::v-deep .ant-tabs-ink-bar {
     background: #177ddc;
   }
 }
@@ -4936,7 +4909,6 @@ export default {
   }
 }
 
-// 主色调变量
 @primary-color: #1890ff;
 @primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 @success-color: #0ecb81;
@@ -4951,16 +4923,15 @@ export default {
 .trading-assistant {
   display: flow-root;
   padding: 0px;
-  height: calc(100vh - 120px);
+  min-height: calc(100vh - 120px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 
   .strategy-layout {
-    height: calc(100vh - 120px);
+    min-height: calc(100vh - 120px);
     align-items: stretch;
     margin: 0!important;
   }
 
-  // 移动端适配
   @media (max-width: 768px) {
     min-height: auto;
     margin: -24px;
@@ -5016,14 +4987,14 @@ export default {
           }
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           max-height: calc(50vh - 60px);
           overflow-y: auto;
           padding: 8px;
           -webkit-overflow-scrolling: touch;
         }
 
-        /deep/ .ant-card-head {
+        ::v-deep .ant-card-head {
           padding: 0;
           min-height: 48px;
         }
@@ -5033,11 +5004,11 @@ export default {
           margin-bottom: 4px;
           border-radius: 8px;
 
-          /deep/ .ant-list-item-meta {
+          ::v-deep .ant-list-item-meta {
             width: 100%;
           }
 
-          /deep/ .ant-list-item-action {
+          ::v-deep .ant-list-item-action {
             margin-left: 8px;
           }
 
@@ -5083,7 +5054,7 @@ export default {
             }
           }
 
-          /deep/ .ant-list-item-meta-description {
+          ::v-deep .ant-list-item-meta-description {
             .strategy-item-info {
               display: flex !important;
               flex-direction: row;
@@ -5124,11 +5095,11 @@ export default {
         gap: 12px;
 
         .strategy-header-card {
-          /deep/ .ant-card-body {
+          ::v-deep .ant-card-body {
             padding: 16px 12px;
           }
 
-          /deep/ .ant-card-head {
+          ::v-deep .ant-card-head {
             padding: 0;
           }
 
@@ -5153,7 +5124,7 @@ export default {
                 gap: 8px;
                 align-items: start;
 
-                /deep/ .ant-tag {
+                ::v-deep .ant-tag {
                   grid-column: 1 / -1;
                   justify-self: start;
                   margin: 0;
@@ -5175,14 +5146,12 @@ export default {
                     margin-top: 2px;
                   }
 
-                  // 确保文本可换行
                   &>span {
                     word-break: break-word;
                     line-height: 1.5;
                     flex: 1;
                   }
 
-                  // 对于包含数值的span
                   span:not(.anticon) {
                     display: inline;
                     word-break: break-word;
@@ -5190,11 +5159,10 @@ export default {
                   }
                 }
 
-                // 如果参数过多，使用单列布局
                 @media (max-width: 480px) {
                   grid-template-columns: 1fr;
 
-                  /deep/ .ant-tag {
+                  ::v-deep .ant-tag {
                     grid-column: 1;
                   }
                 }
@@ -5225,16 +5193,16 @@ export default {
         }
 
         .strategy-content-card {
-          /deep/ .ant-card-body {
+          ::v-deep .ant-card-body {
             padding: 12px 8px;
             overflow-x: hidden;
           }
 
-          /deep/ .ant-card-head {
+          ::v-deep .ant-card-head {
             padding: 0 8px;
           }
 
-          /deep/ .ant-tabs {
+          ::v-deep .ant-tabs {
             .ant-tabs-nav {
               padding: 0 4px;
 
@@ -5261,7 +5229,6 @@ export default {
     }
   }
 
-  // 超小屏幕适配
   @media (max-width: 480px) {
     .strategy-list-col {
       max-height: 45vh;
@@ -5269,7 +5236,7 @@ export default {
       .strategy-list-card {
         max-height: 45vh;
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           max-height: calc(45vh - 60px);
         }
       }
@@ -5350,7 +5317,6 @@ export default {
         }
       }
 
-      // 分组模式切换
       .group-mode-switch {
         display: flex;
         align-items: center;
@@ -5365,7 +5331,7 @@ export default {
           font-weight: 500;
         }
 
-        /deep/ .ant-radio-group {
+        ::v-deep .ant-radio-group {
           .ant-radio-button-wrapper {
             font-size: 12px;
             padding: 0 10px;
@@ -5388,19 +5354,18 @@ export default {
         }
       }
 
-      /deep/ .ant-card-body {
+      ::v-deep .ant-card-body {
         flex: 1;
         overflow-y: auto;
         background: #fff;
         padding: 12px;
       }
 
-      /deep/ .ant-card-head {
+      ::v-deep .ant-card-head {
         background: linear-gradient(180deg, #fff 0%, #fafbfc 100%);
         border-bottom: 1px solid #f0f0f0;
       }
 
-      // 策略分组列表
       .strategy-grouped-list {
         .strategy-group {
           margin-bottom: 12px;
@@ -5528,7 +5493,7 @@ export default {
                 padding-top: 0;
                 margin-left: 4px;
 
-                /deep/ .ant-btn {
+                ::v-deep .ant-btn {
                   display: inline-flex;
                   align-items: center;
                   justify-content: center;
@@ -5651,7 +5616,7 @@ export default {
           align-self: center;
           margin-left: 4px;
 
-          /deep/ .ant-btn {
+          ::v-deep .ant-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -5734,7 +5699,6 @@ export default {
           box-shadow: 0 4px 16px rgba(24, 144, 255, 0.15);
         }
 
-        // 移动端优化点击区域
         @media (max-width: 768px) {
           padding: 12px 8px;
           margin: 0 4px 4px 4px;
@@ -5808,7 +5772,7 @@ export default {
               column-gap: 6px;
               width: 100%;
 
-              /deep/ .ant-tag {
+              ::v-deep .ant-tag {
                 margin-right: 0;
               }
 
@@ -5818,13 +5782,13 @@ export default {
             }
           }
 
-          /deep/ .status-stopped {
+          ::v-deep .status-stopped {
             color: @danger-color !important;
             border-color: @danger-color !important;
           }
         }
 
-        /deep/ .ant-list-item-meta-description {
+        ::v-deep .ant-list-item-meta-description {
           max-width: calc(100% - 20px); // 留出空间给右侧操作按钮和选中边框
           overflow: hidden;
 
@@ -5918,7 +5882,7 @@ export default {
               }
             }
 
-            /deep/ .ant-tag {
+            ::v-deep .ant-tag {
               margin-right: 0;
               font-size: 11px;
               line-height: 18px;
@@ -6009,12 +5973,12 @@ export default {
           box-shadow: @card-shadow-hover;
         }
 
-        /deep/ .ant-card-head {
+        ::v-deep .ant-card-head {
           background: transparent;
           border-bottom: none;
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           background: transparent;
           padding: 20px;
         }
@@ -6098,7 +6062,6 @@ export default {
               }
             }
 
-            // 关键数据卡片网格
             .key-stats-grid {
               display: flex;
               flex-wrap: wrap;
@@ -6188,7 +6151,6 @@ export default {
               margin-bottom: 12px;
             }
 
-            // 策略标签
             .strategy-tags {
               display: flex;
               flex-wrap: wrap;
@@ -6309,13 +6271,13 @@ export default {
           box-shadow: @card-shadow-hover;
         }
 
-        /deep/ .ant-card-head {
+        ::v-deep .ant-card-head {
           background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
           border-bottom: 1px solid #f0f0f0;
           flex-shrink: 0;
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -6353,8 +6315,14 @@ export default {
   }
 
   &.theme-dark {
-    background: #141414;
+    background: #0f0f10;
     color: var(--dark-text-color, #fff);
+
+    .strategy-layout,
+    .strategy-detail-col,
+    .strategy-detail-panel {
+      background: #0f0f10;
+    }
 
     .creation-mode-toggle {
       background: rgba(24, 144, 255, 0.08);
@@ -6365,7 +6333,6 @@ export default {
       }
     }
 
-    // 左侧策略列表卡片
     .strategy-list-col {
       .strategy-list-card {
         background: #1c1c1c;
@@ -6379,7 +6346,7 @@ export default {
           background-clip: text;
         }
 
-        /deep/ .ant-card-head {
+        ::v-deep .ant-card-head {
           background: #1c1c1c;
           border-bottom-color: rgba(255, 255, 255, 0.06);
 
@@ -6388,15 +6355,14 @@ export default {
           }
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           background: transparent;
         }
 
-        /deep/ .ant-empty-description {
+        ::v-deep .ant-empty-description {
           color: #868993;
         }
 
-        // 按标的分组：覆盖浅色主题中高特异选择器（.strategy-list-card .strategy-grouped-list ...）
         .strategy-grouped-list {
           .strategy-group {
             background: rgba(30, 30, 30, 0.96);
@@ -6456,7 +6422,6 @@ export default {
           }
         }
 
-        // 与浅色区相同链条，避免 .strategy-name / .strategy-name-text 被浅色高特异性规则覆盖
         .strategy-grouped-list {
           .strategy-group .strategy-group-content .strategy-list-item,
           > .strategy-list-item {
@@ -6477,7 +6442,7 @@ export default {
           }
         }
 
-        /deep/ .ant-list {
+        ::v-deep .ant-list {
           .ant-list-item {
             border-bottom-color: rgba(255, 255, 255, 0.06);
 
@@ -6499,7 +6464,7 @@ export default {
           color: rgba(255, 255, 255, 0.45);
         }
 
-        /deep/ .ant-radio-button-wrapper {
+        ::v-deep .ant-radio-button-wrapper {
           background: rgba(255, 255, 255, 0.04);
           border-color: rgba(255, 255, 255, 0.12);
           color: rgba(255, 255, 255, 0.65);
@@ -6509,7 +6474,7 @@ export default {
           }
         }
 
-        /deep/ .ant-radio-button-wrapper-checked {
+        ::v-deep .ant-radio-button-wrapper-checked {
           background: rgba(24, 144, 255, 0.25) !important;
           border-color: @primary-color !important;
           color: #fff !important;
@@ -6638,23 +6603,21 @@ export default {
       }
     }
 
-    // 右侧策略详情卡片
     .strategy-detail-col {
       .strategy-header-card {
         background: #1c1c1c;
         border: 1px solid rgba(255, 255, 255, 0.06);
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-        /deep/ .ant-card-head {
+        ::v-deep .ant-card-head {
           background: transparent;
           border-bottom: none;
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           background: transparent;
         }
 
-        // 覆盖浅色下 h3.strategy-title 的渐变 + transparent fill，需与 .strategy-header .header-left 同链
         .strategy-header .header-left .strategy-title-row .strategy-title {
           background: none !important;
           -webkit-background-clip: border-box !important;
@@ -6704,7 +6667,7 @@ export default {
         border: 1px solid rgba(255, 255, 255, 0.06);
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-        /deep/ .ant-card-head {
+        ::v-deep .ant-card-head {
           background: #1c1c1c;
           border-bottom-color: rgba(255, 255, 255, 0.06);
 
@@ -6713,11 +6676,11 @@ export default {
           }
         }
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           background: transparent;
         }
 
-        /deep/ .ant-tabs {
+        ::v-deep .ant-tabs {
           .ant-tabs-nav {
             .ant-tabs-tab {
               color: #868993;
@@ -6743,7 +6706,7 @@ export default {
           }
         }
 
-        /deep/ .ant-empty-description {
+        ::v-deep .ant-empty-description {
           color: #868993;
         }
       }
@@ -6846,20 +6809,20 @@ export default {
   border-radius: 10px;
   overflow: hidden;
 
-  /deep/ .ant-collapse-item {
+  ::v-deep .ant-collapse-item {
     border-bottom-color: #f0f0f0;
   }
 
-  /deep/ .ant-collapse-header {
+  ::v-deep .ant-collapse-header {
     font-weight: 500;
     font-size: 13px;
   }
 
-  /deep/ .ant-collapse-content-box {
+  ::v-deep .ant-collapse-content-box {
     padding: 12px 16px;
   }
 
-  /deep/ .ant-input-number {
+  ::v-deep .ant-input-number {
     width: 100%;
   }
 }
@@ -7231,18 +7194,17 @@ export default {
   font-size: 18px;
 }
 
-// 弹窗样式
 .steps-container {
   margin-bottom: 24px;
 
   @media (max-width: 768px) {
     margin-bottom: 16px;
 
-    /deep/ .ant-steps-item-title {
+    ::v-deep .ant-steps-item-title {
       font-size: 12px;
     }
 
-    /deep/ .ant-steps-item-icon {
+    ::v-deep .ant-steps-item-icon {
       width: 24px;
       height: 24px;
       line-height: 24px;
@@ -7259,7 +7221,7 @@ export default {
     animation: fadeIn 0.3s;
   }
 
-  /deep/ .ant-form-item {
+  ::v-deep .ant-form-item {
     margin-bottom: 20px;
   }
 
@@ -7289,7 +7251,7 @@ export default {
       padding: 16px;
     }
 
-    /deep/ .ant-form-item-label {
+    ::v-deep .ant-form-item-label {
       padding-bottom: 4px;
 
       label {
@@ -7297,13 +7259,13 @@ export default {
       }
     }
 
-    /deep/ .ant-input,
-    /deep/ .ant-input-number,
-    /deep/ .ant-select {
+    ::v-deep .ant-input,
+    ::v-deep .ant-input-number,
+    ::v-deep .ant-select {
       font-size: 14px;
     }
 
-    /deep/ .ant-radio-group {
+    ::v-deep .ant-radio-group {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -7318,13 +7280,13 @@ export default {
     min-height: 250px;
     padding: 12px 0;
 
-    /deep/ .ant-form-item-label label {
+    ::v-deep .ant-form-item-label label {
       font-size: 12px;
     }
 
-    /deep/ .ant-input,
-    /deep/ .ant-input-number,
-    /deep/ .ant-select {
+    ::v-deep .ant-input,
+    ::v-deep .ant-input-number,
+    ::v-deep .ant-select {
       font-size: 13px;
     }
   }
@@ -7342,7 +7304,7 @@ export default {
       color: #262626;
     }
 
-    /deep/ .ant-radio-group {
+    ::v-deep .ant-radio-group {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -7595,12 +7557,11 @@ export default {
   }
 }
 
-/deep/ .danger-item {
+::v-deep .danger-item {
   color: #ff4d4f;
 }
 
-// 移动端弹窗样式
-/deep/ .mobile-modal {
+::v-deep .mobile-modal {
   .ant-modal {
     top: 20px;
     padding-bottom: 0;
@@ -7635,7 +7596,6 @@ export default {
   }
 }
 
-// 添加交易对弹窗样式
 .add-symbol-modal-content {
   .market-tabs {
     margin-bottom: 16px;
@@ -7708,12 +7668,11 @@ export default {
     }
   }
 }
+
 </style>
 
 <style lang="less">
-/* ========== Trading Assistant: Modal 暗色穿透样式 (non-scoped) ========== */
 body.dark {
-  /* --- Modal.confirm：删除策略 / 批量删除 --- */
   .ta-strategy-confirm-modal.ant-modal-confirm {
     .ant-modal-content {
       background: #1e1e1e;
@@ -7754,7 +7713,6 @@ body.dark {
     }
   }
 
-  /* --- 策略类型选择弹窗 --- */
   .mode-selector-modal .ant-modal-content {
     background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -7777,7 +7735,6 @@ body.dark {
     }
   }
 
-  /* --- 创建/编辑策略弹窗 --- */
   .strategy-form-modal.strategy-form-modal-dark .ant-modal-content {
     background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -7801,6 +7758,19 @@ body.dark {
       background: #1e1e1e;
     }
 
+    .script-source-preview {
+      background: #141414;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .script-source-preview__title {
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .script-source-preview__meta {
+      color: rgba(255, 255, 255, 0.52);
+    }
+
     .creation-mode-toggle {
       background: rgba(24, 144, 255, 0.08);
       border-color: rgba(24, 144, 255, 0.2);
@@ -7812,7 +7782,6 @@ body.dark {
     }
   }
 
-  /* --- Steps 步骤条 --- */
   .strategy-form-modal.strategy-form-modal-dark .ant-steps {
     .ant-steps-item-title {
       color: rgba(255, 255, 255, 0.65) !important;
@@ -7854,7 +7823,6 @@ body.dark {
     }
   }
 
-  /* --- Form 表单控件 --- */
   .strategy-form-modal.strategy-form-modal-dark {
     .ant-form-item-label > label {
       color: rgba(255, 255, 255, 0.75);

@@ -8,7 +8,6 @@
     @close="$emit('cancel')"
     class="backtest-history-drawer"
   >
-    <!-- 顶部工具栏 -->
     <div class="drawer-toolbar">
       <div class="toolbar-left">
         <a-button type="primary" :loading="loading" icon="reload" size="small" @click="loadRuns">
@@ -122,7 +121,6 @@
 
     <a-empty v-if="!loading && runs.length === 0" :description="$t('dashboard.indicator.backtest.historyNoData')" />
 
-    <!-- AI 修正建议 Modal -->
     <a-modal
       :title="$t('dashboard.indicator.backtest.historyAISuggestTitle')"
       :visible="showAIResult"
@@ -604,7 +602,7 @@ export default {
   flex-basis: 100%;
   margin-top: 2px;
 }
-/deep/ .ant-table-tbody > tr.backtest-history-row--clickable:hover > td {
+::v-deep .ant-table-tbody > tr.backtest-history-row--clickable:hover > td {
   background: #fafafa;
 }
 .ai-modal-content {
@@ -642,42 +640,42 @@ export default {
   color: #262626;
   font-size: 14px;
   line-height: 1.8;
-  /deep/ h1,
-  /deep/ h2,
-  /deep/ h3 {
+  ::v-deep h1,
+  ::v-deep h2,
+  ::v-deep h3 {
     margin: 0 0 12px;
     font-weight: 700;
     color: #1f1f1f;
     line-height: 1.5;
   }
-  /deep/ h1 { font-size: 20px; }
-  /deep/ h2 { font-size: 17px; }
-  /deep/ h3 {
+  ::v-deep h1 { font-size: 20px; }
+  ::v-deep h2 { font-size: 17px; }
+  ::v-deep h3 {
     font-size: 15px;
     padding-left: 10px;
     border-left: 3px solid #1890ff;
   }
-  /deep/ p {
+  ::v-deep p {
     margin: 0 0 12px;
     color: #434343;
   }
-  /deep/ ul,
-  /deep/ ol {
+  ::v-deep ul,
+  ::v-deep ol {
     margin: 0 0 14px 20px;
     padding: 0;
   }
-  /deep/ li {
+  ::v-deep li {
     margin-bottom: 8px;
     color: #434343;
   }
-  /deep/ strong {
+  ::v-deep strong {
     color: #262626;
     font-weight: 700;
   }
-  /deep/ em {
+  ::v-deep em {
     color: #595959;
   }
-  /deep/ code {
+  ::v-deep code {
     padding: 2px 6px;
     border-radius: 6px;
     background: #f5f5f5;
@@ -685,7 +683,7 @@ export default {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
   }
-  /deep/ pre {
+  ::v-deep pre {
     overflow: auto;
     margin: 0 0 14px;
     padding: 14px;
@@ -693,12 +691,12 @@ export default {
     background: #141414;
     color: #f0f0f0;
   }
-  /deep/ pre code {
+  ::v-deep pre code {
     padding: 0;
     background: transparent;
     color: inherit;
   }
-  /deep/ blockquote {
+  ::v-deep blockquote {
     margin: 0 0 14px;
     padding: 10px 14px;
     border-left: 4px solid #91d5ff;

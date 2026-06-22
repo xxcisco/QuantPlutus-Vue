@@ -1,3 +1,20 @@
+/* Remove Pro Layout's default 24px content gutter. Pages own their spacing. */
+.basic-layout-wrapper .ant-pro-basicLayout-content,
+.basic-layout-wrapper .ant-pro-basicLayout-content-disable-margin,
+.basic-layout-wrapper .ant-pro-basicLayout-children-content-wrap,
+.basic-layout-wrapper .ant-pro-page-header-wrap,
+.basic-layout-wrapper .ant-pro-page-header-wrap-children-content,
+.basic-layout-wrapper .ant-layout-content,
+.basic-layout-wrapper .basic-route-view-shell {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.basic-layout-wrapper .ant-pro-basicLayout-content > .ant-pro-page-header-wrap,
+.basic-layout-wrapper .ant-pro-basicLayout-content > div > .ant-pro-page-header-wrap {
+  margin: 0 !important;
+}
+
 /**
  * 必须在 main.js 中于 global.less 之后引入，确保覆盖 Ant Design Vue / Pro Layout 默认 #001529 等。
  * 选择器以 .basic-layout-wrapper.{dark|realdark|light} 为准（与 BasicLayout 根节点 settings.theme 同步），

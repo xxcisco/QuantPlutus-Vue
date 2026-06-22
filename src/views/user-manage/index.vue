@@ -100,18 +100,6 @@
                 <a-icon type="line-chart" class="section-card-title-icon" />
                 {{ $t('userManage.chartGrowthTitle') || 'Member Growth (Last 30 Days)' }}
               </h4>
-              <a-button-group size="small">
-                <a-button
-                  size="small"
-                  :type="userStatsLoading ? 'default' : 'primary'"
-                  :ghost="!userStatsLoading"
-                  :loading="userStatsLoading"
-                  @click="loadUserStats(true)"
-                >
-                  <a-icon type="reload" v-if="!userStatsLoading" />
-                  {{ $t('common.refresh') || 'Refresh' }}
-                </a-button>
-              </a-button-group>
             </div>
             <div ref="growthChart" class="chart-canvas chart-canvas-tall" />
           </a-card>
@@ -819,8 +807,9 @@
               <a-icon type="thunderbolt" />
             </div>
             <div class="summary-info">
-              <div class="summary-value">{{ aiStatsSummary.total_analyses || 0 }}</div>
-              <div class="summary-label">{{ $t('adminAiStats.totalAnalyses') || 'Total Analyses' }}</div>
+              <div class="summary-value">{{ (aiStatsSummary.total_analyses || 0) + (aiStatsSummary.total_copilot_sessions || 0) }}</div>
+              <div class="summary-label">{{ $t('adminAiStats.aiActivity') || 'AI Activity' }}</div>
+              <div class="summary-sub">{{ aiStatsSummary.total_analyses || 0 }} {{ isZh ? '份报告' : 'reports' }} / {{ aiStatsSummary.total_copilot_sessions || 0 }} {{ isZh ? '个会话' : 'chats' }}</div>
             </div>
           </div>
           <div class="summary-card">
@@ -828,8 +817,9 @@
               <a-icon type="team" />
             </div>
             <div class="summary-info">
-              <div class="summary-value">{{ aiStatsSummary.unique_users || 0 }}</div>
+              <div class="summary-value">{{ Math.max(aiStatsSummary.unique_users || 0, aiStatsSummary.unique_chat_users || 0) }}</div>
               <div class="summary-label">{{ $t('adminAiStats.activeUsers') || 'Active Users' }}</div>
+              <div class="summary-sub">{{ aiStatsSummary.unique_chat_users || 0 }} {{ isZh ? '名 Copilot 用户' : 'Copilot users' }}</div>
             </div>
           </div>
           <div class="summary-card">
@@ -837,8 +827,8 @@
               <a-icon type="stock" />
             </div>
             <div class="summary-info">
-              <div class="summary-value">{{ aiStatsSummary.unique_symbols || 0 }}</div>
-              <div class="summary-label">{{ $t('adminAiStats.uniqueSymbols') || 'Symbols Analyzed' }}</div>
+              <div class="summary-value">{{ aiStatsSummary.total_copilot_messages || 0 }}</div>
+              <div class="summary-label">{{ $t('adminAiStats.copilotMessages') || 'Copilot Messages' }}</div>
             </div>
           </div>
           <div class="summary-card">
@@ -887,7 +877,7 @@
             :loading="aiStatsLoading"
             :pagination="aiStatsPagination"
             :rowKey="record => record.user_id"
-            :scroll="{ x: 960 }"
+            :scroll="{ x: 1160 }"
             @change="handleAiStatsTableChange"
           >
             <!-- User Column -->
@@ -1273,6 +1263,10 @@ export default {
   },
   computed: {
     ...mapGetters(['userInfo']),
+    isZh () {
+      const locale = this.$i18n ? String(this.$i18n.locale || '') : 'zh-CN'
+      return locale.toLowerCase().startsWith('zh')
+    },
     isDarkTheme () {
       return this.navTheme === 'dark' || this.navTheme === 'realdark'
     },
@@ -1661,6 +1655,18 @@ export default {
           title: this.$t('adminAiStats.colMarkets') || 'Markets',
           dataIndex: 'market_count',
           width: 90,
+          align: 'center'
+        },
+        {
+          title: this.$t('adminAiStats.colCopilotSessions') || 'Chats',
+          dataIndex: 'chat_session_count',
+          width: 90,
+          align: 'center'
+        },
+        {
+          title: this.$t('adminAiStats.colCopilotMessages') || 'Messages',
+          dataIndex: 'chat_message_count',
+          width: 100,
           align: 'center'
         },
         {
@@ -2815,7 +2821,7 @@ export default {
   }
 
   .manage-tabs {
-    /deep/ .ant-tabs-bar {
+    ::v-deep .ant-tabs-bar {
       margin-bottom: 20px;
     }
   }
@@ -3001,7 +3007,7 @@ export default {
     min-width: 0;
     overflow: hidden;
 
-    /deep/ .ant-card-body {
+    ::v-deep .ant-card-body {
       padding: 20px 24px;
     }
 
@@ -3150,7 +3156,7 @@ export default {
   }
 
   // Order status tag styles - ensure expired status is visible
-  /deep/ .ant-tag {
+  ::v-deep .ant-tag {
     &.ant-tag-grey {
       background-color: #f5f5f5;
       border-color: #d9d9d9;
@@ -3172,16 +3178,16 @@ export default {
     }
 
     .manage-tabs {
-      /deep/ .ant-tabs-bar {
+      ::v-deep .ant-tabs-bar {
         border-bottom-color: #2a2a2a;
       }
-      /deep/ .ant-tabs-tab {
+      ::v-deep .ant-tabs-tab {
         color: #8b949e;
         &:hover {
           color: #c9d1d9;
         }
       }
-      /deep/ .ant-tabs-tab-active {
+      ::v-deep .ant-tabs-tab-active {
         color: @primary-color;
       }
     }
@@ -3211,11 +3217,11 @@ export default {
       background: #1c1c1c;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-      /deep/ .ant-card-body {
+      ::v-deep .ant-card-body {
         background: #1c1c1c;
       }
 
-      /deep/ .ant-table {
+      ::v-deep .ant-table {
         background: #1c1c1c;
         color: #c9d1d9;
 
@@ -3268,7 +3274,7 @@ export default {
         background: #1c1c1c;
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 
-        /deep/ .ant-card-body {
+        ::v-deep .ant-card-body {
           background: #1c1c1c;
         }
       }
@@ -3393,7 +3399,7 @@ export default {
       display: flex;
       flex-direction: column;
 
-      /deep/ .ant-card-body {
+      ::v-deep .ant-card-body {
         padding: 16px 18px;
         flex: 1;
         display: flex;
@@ -3520,7 +3526,6 @@ export default {
     }
   }
 
-  // —— 响应式 ——
   @media (max-width: 1200px) {
     .summary-cards {
       grid-template-columns: repeat(2, 1fr);
@@ -3607,20 +3612,20 @@ export default {
     }
 
     .manage-tabs {
-      /deep/ .ant-tabs-bar {
+      ::v-deep .ant-tabs-bar {
         margin-bottom: 12px;
       }
 
-      /deep/ .ant-tabs-nav-container {
+      ::v-deep .ant-tabs-nav-container {
         overflow-x: auto;
         overflow-y: hidden;
       }
 
-      /deep/ .ant-tabs-nav-wrap {
+      ::v-deep .ant-tabs-nav-wrap {
         margin-bottom: 0;
       }
 
-      /deep/ .ant-tabs-tab {
+      ::v-deep .ant-tabs-tab {
         padding: 10px 12px;
         margin-right: 4px;
         font-size: 13px;
@@ -3628,20 +3633,20 @@ export default {
       }
     }
 
-    .user-table-card /deep/ .ant-card-body {
+    .user-table-card ::v-deep .ant-card-body {
       padding: 12px 10px;
     }
 
-    /deep/ .ant-table {
+    ::v-deep .ant-table {
       font-size: 12px;
     }
 
-    /deep/ .ant-table-thead > tr > th,
-    /deep/ .ant-table-tbody > tr > td {
+    ::v-deep .ant-table-thead > tr > th,
+    ::v-deep .ant-table-tbody > tr > td {
       padding: 8px 6px;
     }
 
-    /deep/ .ant-pagination {
+    ::v-deep .ant-pagination {
       margin: 12px 0 0;
     }
   }
@@ -3666,7 +3671,7 @@ export default {
       line-height: 1.35;
     }
 
-    /deep/ .ant-pagination-options {
+    ::v-deep .ant-pagination-options {
       display: none;
     }
   }
@@ -3722,7 +3727,6 @@ export default {
 </style>
 
 <style lang="less">
-/* Modal 挂载在 body 上，需非 scoped */
 .user-manage-modal-dark {
   .ant-modal-content,
   .ant-modal-header,

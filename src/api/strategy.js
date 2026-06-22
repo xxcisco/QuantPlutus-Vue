@@ -32,15 +32,16 @@ const api = {
   backtest: '/api/strategies/backtest',
   backtestHistory: '/api/strategies/backtest/history',
   backtestGet: '/api/strategies/backtest/get',
+  scriptSources: '/api/strategies/script-sources',
+  scriptSourceDetail: '/api/strategies/script-sources/detail',
+  createScriptSource: '/api/strategies/script-sources/create',
+  updateScriptSource: '/api/strategies/script-sources/update',
+  deleteScriptSource: '/api/strategies/script-sources/delete',
+  publishScriptSource: '/api/strategies/script-sources/publish',
   publishTemplate: '/api/strategies/publish-template',
   publishBotPreset: '/api/strategies/publish-bot-preset'
 }
 
-/**
- * 获取策略列表
- * @param {Object} params - 查询参数
- * @param {number} params.user_id - 用户ID（可选）
- */
 export function getStrategyList (params = {}) {
   return request({
     url: api.strategies,
@@ -49,10 +50,6 @@ export function getStrategyList (params = {}) {
   })
 }
 
-/**
- * 获取策略详情
- * @param {number} id - 策略ID
- */
 export function getStrategyDetail (id) {
   return request({
     url: api.strategyDetail,
@@ -61,16 +58,6 @@ export function getStrategyDetail (id) {
   })
 }
 
-/**
- * 创建策略
- * @param {Object} data - 策略数据
- * @param {number} data.user_id - 用户ID
- * @param {string} data.strategy_name - 策略名称
- * @param {string} data.strategy_type - 策略类型
- * @param {Object} data.llm_model_config - LLM模型配置
- * @param {Object} data.exchange_config - 交易所配置
- * @param {Object} data.trading_config - 交易配置
- */
 export function createStrategy (data) {
   return request({
     url: api.createStrategy,
@@ -79,12 +66,6 @@ export function createStrategy (data) {
   })
 }
 
-/**
- * 批量创建策略（多币种）
- * @param {Object} data - 策略数据
- * @param {string} data.strategy_name - 策略基础名称
- * @param {Array} data.symbols - 币种数组，如 ["Crypto:BTC/USDT", "Crypto:ETH/USDT"]
- */
 export function batchCreateStrategies (data) {
   return request({
     url: api.batchCreateStrategies,
@@ -93,15 +74,6 @@ export function batchCreateStrategies (data) {
   })
 }
 
-/**
- * 更新策略
- * @param {number} id - 策略ID
- * @param {Object} data - 策略数据
- * @param {string} data.strategy_name - 策略名称（可选）
- * @param {Object} data.indicator_config - 技术指标配置（可选）
- * @param {Object} data.exchange_config - 交易所配置（可选）
- * @param {Object} data.trading_config - 交易配置（可选）
- */
 export function updateStrategy (id, data) {
   return request({
     url: api.updateStrategy,
@@ -111,10 +83,6 @@ export function updateStrategy (id, data) {
   })
 }
 
-/**
- * 停止策略
- * @param {number} id - 策略ID
- */
 export function stopStrategy (id) {
   return request({
     url: api.stopStrategy,
@@ -123,10 +91,6 @@ export function stopStrategy (id) {
   })
 }
 
-/**
- * 启动策略
- * @param {number} id - 策略ID
- */
 export function startStrategy (id) {
   return request({
     url: api.startStrategy,
@@ -135,10 +99,6 @@ export function startStrategy (id) {
   })
 }
 
-/**
- * 删除策略
- * @param {number} id - 策略ID
- */
 export function deleteStrategy (id) {
   return request({
     url: api.deleteStrategy,
@@ -147,12 +107,6 @@ export function deleteStrategy (id) {
   })
 }
 
-/**
- * 批量启动策略
- * @param {Object} data
- * @param {Array} data.strategy_ids - 策略ID数组
- * @param {string} data.strategy_group_id - 策略组ID（可选，与strategy_ids二选一）
- */
 export function batchStartStrategies (data) {
   return request({
     url: api.batchStartStrategies,
@@ -161,12 +115,6 @@ export function batchStartStrategies (data) {
   })
 }
 
-/**
- * 批量停止策略
- * @param {Object} data
- * @param {Array} data.strategy_ids - 策略ID数组
- * @param {string} data.strategy_group_id - 策略组ID（可选，与strategy_ids二选一）
- */
 export function batchStopStrategies (data) {
   return request({
     url: api.batchStopStrategies,
@@ -175,12 +123,6 @@ export function batchStopStrategies (data) {
   })
 }
 
-/**
- * 批量删除策略
- * @param {Object} data
- * @param {Array} data.strategy_ids - 策略ID数组
- * @param {string} data.strategy_group_id - 策略组ID（可选，与strategy_ids二选一）
- */
 export function batchDeleteStrategies (data) {
   return request({
     url: api.batchDeleteStrategies,
@@ -189,10 +131,6 @@ export function batchDeleteStrategies (data) {
   })
 }
 
-/**
- * 测试交易所连接
- * @param {Object} exchangeConfig - 交易所配置
- */
 export function testExchangeConnection (exchangeConfig) {
   return request({
     url: api.testConnection,
@@ -201,10 +139,6 @@ export function testExchangeConnection (exchangeConfig) {
   })
 }
 
-/**
- * 获取策略交易记录
- * @param {number} id - 策略ID
- */
 export function getStrategyTrades (id, lang) {
   const params = { id }
   if (lang) params.lang = lang
@@ -215,10 +149,6 @@ export function getStrategyTrades (id, lang) {
   })
 }
 
-/**
- * 获取策略持仓记录
- * @param {number} id - 策略ID
- */
 export function getStrategyPositions (id) {
   return request({
     url: api.positions,
@@ -227,12 +157,6 @@ export function getStrategyPositions (id) {
   })
 }
 
-/**
- * L1 account position mirror (exchange truth per credential).
- * @param {Object} params
- * @param {number} [params.credential_id] - filter by saved credential
- * @param {string} [params.market_type] - swap | spot
- */
 export function getAccountPositions (params = {}) {
   return request({
     url: api.accountPositions,
@@ -241,11 +165,6 @@ export function getAccountPositions (params = {}) {
   })
 }
 
-/**
- * Live account snapshot: swap/spot positions + open orders.
- * @param {Object} params
- * @param {number} params.credential_id
- */
 export function getAccountSnapshot (params = {}) {
   return request({
     url: api.accountSnapshot,
@@ -254,13 +173,6 @@ export function getAccountSnapshot (params = {}) {
   })
 }
 
-/**
- * 获取网格 resting 限价单（Live 预挂）
- * @param {number} id - 策略ID
- * @param {Object} [opts]
- * @param {string} [opts.status='open'] - open | all | filled | cancelled ...
- * @param {number} [opts.limit=200]
- */
 export function getGridRestingOrders (id, opts = {}) {
   const params = { id }
   if (opts.status) params.status = opts.status
@@ -273,10 +185,6 @@ export function getGridRestingOrders (id, opts = {}) {
   })
 }
 
-/**
- * 获取策略净值曲线
- * @param {number} id - 策略ID
- */
 export function getStrategyEquityCurve (id) {
   return request({
     url: api.equityCurve,
@@ -285,11 +193,6 @@ export function getStrategyEquityCurve (id) {
   })
 }
 
-/**
- * Live vs backtest deviation report for a strategy.
- * @param {number} id - strategy id
- * @param {number} [limit=200] - max trades to analyse
- */
 export function getStrategyDryRunDeviation (id, limit = 200) {
   return request({
     url: api.dryRunDeviation,
@@ -298,13 +201,6 @@ export function getStrategyDryRunDeviation (id, limit = 200) {
   })
 }
 
-/**
- * Strategy signal notifications (browser channel persistence).
- * @param {Object} params
- * @param {number} params.id - strategy id (optional)
- * @param {number} params.limit - max items (optional)
- * @param {number} params.since_id - return items with id > since_id (optional)
- */
 export function getStrategyNotifications (params = {}) {
   return request({
     url: api.notifications,
@@ -313,9 +209,6 @@ export function getStrategyNotifications (params = {}) {
   })
 }
 
-/**
- * Unread notification count for header badge.
- */
 export function getUnreadNotificationCount () {
   return request({
     url: api.unreadNotificationCount,
@@ -323,9 +216,6 @@ export function getUnreadNotificationCount () {
   })
 }
 
-/**
- * Verify strategy script code
- */
 export function verifyStrategyCode (data) {
   return request({
     url: api.verifyCode,
@@ -334,9 +224,6 @@ export function verifyStrategyCode (data) {
   })
 }
 
-/**
- * AI generate strategy code
- */
 export function aiGenerateStrategy (data) {
   return request({
     url: api.aiGenerate,
@@ -345,9 +232,6 @@ export function aiGenerateStrategy (data) {
   })
 }
 
-/**
- * Get strategy performance metrics
- */
 export function getStrategyPerformance (id) {
   return request({
     url: api.performance,
@@ -356,9 +240,6 @@ export function getStrategyPerformance (id) {
   })
 }
 
-/**
- * Build an AI-assisted strategy review report from factual trades.
- */
 export function getStrategyReviewReport (id, data = {}) {
   return request({
     url: api.reviewReport,
@@ -368,9 +249,6 @@ export function getStrategyReviewReport (id, data = {}) {
   })
 }
 
-/**
- * List or load saved AI strategy review reports.
- */
 export function getStrategyReviewReportHistory (id, params = {}) {
   return request({
     url: api.reviewReportHistory,
@@ -379,9 +257,6 @@ export function getStrategyReviewReportHistory (id, params = {}) {
   })
 }
 
-/**
- * Get strategy running logs
- */
 export function getStrategyLogs (id, params = {}) {
   return request({
     url: api.logs,
@@ -415,6 +290,55 @@ export function getStrategyBacktestRun (runId) {
     url: api.backtestGet,
     method: 'get',
     params: { runId }
+  })
+}
+
+export function getScriptSourceList (params = {}) {
+  return request({
+    url: api.scriptSources,
+    method: 'get',
+    params
+  })
+}
+
+export function getScriptSourceDetail (id) {
+  return request({
+    url: api.scriptSourceDetail,
+    method: 'get',
+    params: { id }
+  })
+}
+
+export function createScriptSource (data) {
+  return request({
+    url: api.createScriptSource,
+    method: 'post',
+    data
+  })
+}
+
+export function updateScriptSource (id, data) {
+  return request({
+    url: api.updateScriptSource,
+    method: 'put',
+    params: { id },
+    data
+  })
+}
+
+export function deleteScriptSource (id) {
+  return request({
+    url: api.deleteScriptSource,
+    method: 'delete',
+    params: { id }
+  })
+}
+
+export function publishScriptSource (data) {
+  return request({
+    url: api.publishScriptSource,
+    method: 'post',
+    data
   })
 }
 

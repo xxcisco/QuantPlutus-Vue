@@ -846,11 +846,11 @@ export default {
     color: rgba(255, 255, 255, 0.38);
   }
 
-  /deep/ .ant-empty-description {
+  ::v-deep .ant-empty-description {
     color: rgba(255, 255, 255, 0.35);
   }
 
-  .strategy-tab-empty /deep/ .ant-empty-description {
+  .strategy-tab-empty ::v-deep .ant-empty-description {
     color: rgba(255, 255, 255, 0.35);
   }
 
